@@ -1,6 +1,6 @@
 import { copy } from "@/lib/copy";
-import { Layout } from "./layout";
-import { Card, ButtonLink } from "./ui";
+import { Layout } from "@/views/layout";
+import { Card, ButtonLink } from "@/views/ui";
 
 type HomeProps = {
   session: {

@@ -1,12 +1,12 @@
 import { emailOtp as EmailOtpTemplate, email2fa as Email2faTemplate, emailVerification as EmailVerificationTemplate } from "@/email/templates";
 import { copy } from "@/lib/copy";
 import { Resend } from "resend";
-import { Telemetry } from "./telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { betterAuth } from "better-auth/minimal";
-import { db } from "./drizzle/db";
-import { dotenv } from "./env";
+import { db } from "@/server/drizzle/db";
+import { dotenv } from "@/server/env";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import * as schema from "./drizzle/schema";
+import * as schema from "@/server/drizzle/schema";
 import { passkey } from "@better-auth/passkey";
 import { username, twoFactor, emailOTP } from "better-auth/plugins";
 

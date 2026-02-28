@@ -1,7 +1,7 @@
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { LoggerProvider, SimpleLogRecordProcessor } from "@opentelemetry/sdk-logs";
-import type { MultiLogExporter } from "./exporters";
+import type { MultiLogExporter } from "@/server/telemetry/exporters";
 
 let loggerProvider: LoggerProvider | null = null;
 

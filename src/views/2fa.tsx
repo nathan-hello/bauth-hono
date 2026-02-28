@@ -1,7 +1,7 @@
 import { copy } from "@/lib/copy";
 import type { AuthError } from "@/lib/auth-error";
-import { Layout } from "./layout";
-import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, FormAlert } from "./ui";
+import { Layout } from "@/views/layout";
+import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, FormAlert } from "@/views/ui";
 import { routes } from "@/routes/routes";
 
 export type TwoFactorState = {

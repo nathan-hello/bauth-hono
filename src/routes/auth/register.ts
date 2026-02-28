@@ -6,7 +6,7 @@ import {
   redirectIfSession,
   redirectWithHeaders,
   serverError,
-} from "./redirect";
+} from "@/routes/auth/redirect";
 import { RegisterPage } from "@/views/register";
 import { routes } from "@/routes/routes";
 

@@ -3,7 +3,7 @@ import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { getAuthError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithHeaders, serverError } from "./redirect";
+import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
 import { TwoFactorPage } from "@/views/2fa";
 import { parse } from "cookie";
 import { routes } from "@/routes/routes";

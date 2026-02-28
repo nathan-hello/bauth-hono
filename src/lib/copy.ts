@@ -1,4 +1,4 @@
-import type { AuthError } from "./auth-error";
+import type { AuthError } from "@/lib/auth-error";
 
 export const ERROR_COPY: Partial<Record<AuthError["type"], string>> = {
   password_mismatch: "Passwords do not match.",

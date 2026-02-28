@@ -1,7 +1,7 @@
 import { copy } from "@/lib/copy";
 import type { AuthError } from "@/lib/auth-error";
-import { Layout } from "./layout";
-import { Input, Button, Badge, FormAlert, ErrorAlerts } from "./ui";
+import { Layout } from "@/views/layout";
+import { Input, Button, Badge, FormAlert, ErrorAlerts } from "@/views/ui";
 import type { Child } from "hono/jsx";
 import { routes } from "@/routes/routes";
 
