@@ -1,13 +1,13 @@
 import type { Handler } from "hono";
-import { auth, validateUsername } from "../../server/auth";
-import { getAuthError, type AuthError } from "../../lib/auth-error";
-import { Telemetry, safeRequestAttrs } from "../../server/telemetry";
+import { auth, validateUsername } from "@/server/auth";
+import { getAuthError, type AuthError } from "@/lib/auth-error";
+import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import {
   redirectIfSession,
   redirectWithHeaders,
   serverError,
 } from "./redirect";
-import { RegisterPage } from "../../views/register";
+import { RegisterPage } from "@/views/register";
 import { routes } from "@/routes/routes";
 
 const tel = new Telemetry(routes.auth.register);

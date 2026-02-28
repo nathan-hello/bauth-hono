@@ -1,6 +1,6 @@
 import { ERROR_COPY } from "./copy";
 import { APIError } from "better-auth";
-import { auth } from "../server/auth";
+import { auth } from "@/server/auth";
 
 export type AuthApiErrors = keyof (typeof auth)["$ERROR_CODES"];
 

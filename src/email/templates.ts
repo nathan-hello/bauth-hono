@@ -1,4 +1,4 @@
-import { copy } from "../lib/copy";
+import { copy } from "@/lib/copy";
 
 function layout(url: string, content: string): string {
   return `<!DOCTYPE html>

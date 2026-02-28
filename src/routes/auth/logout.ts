@@ -1,10 +1,10 @@
 import type { Context, Handler } from "hono";
-import { auth } from "../../server/auth";
-import { getAuthError } from "../../lib/auth-error";
+import { auth } from "@/server/auth";
+import { getAuthError } from "@/lib/auth-error";
 import { APIError } from "better-auth";
-import { Telemetry, safeRequestAttrs } from "../../server/telemetry";
+import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { redirectWithHeaders } from "./redirect";
-import { LogoutPage } from "../../views/logout";
+import { LogoutPage } from "@/views/logout";
 import { routes } from "@/routes/routes";
 
 const tel = new Telemetry(routes.auth.logout);

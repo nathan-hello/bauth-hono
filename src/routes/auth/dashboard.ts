@@ -1,10 +1,10 @@
 import type { Handler } from "hono";
-import { auth } from "../../server/auth";
-import { copy } from "../../lib/copy";
-import { AppError, getAuthError } from "../../lib/auth-error";
-import { Telemetry, safeRequestAttrs } from "../../server/telemetry";
-import { generateQrSvg } from "../../lib/qr";
-import { DashboardPage, type DashboardActionData, type DashboardLoaderData } from "../../views/dashboard";
+import { auth } from "@/server/auth";
+import { copy } from "@/lib/copy";
+import { AppError, getAuthError } from "@/lib/auth-error";
+import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
+import { generateQrSvg } from "@/lib/qr";
+import { DashboardPage, type DashboardActionData, type DashboardLoaderData } from "@/views/dashboard";
 
 const tel = new Telemetry("route.dashboard");
 

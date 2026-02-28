@@ -1,5 +1,5 @@
-import { copy } from "../lib/copy";
-import type { AuthError } from "../lib/auth-error";
+import { copy } from "@/lib/copy";
+import type { AuthError } from "@/lib/auth-error";
 import { Layout } from "./layout";
 import { Card, Button, FormFooter, TextLink, ErrorAlerts } from "./ui";
 import { routes } from "@/routes/routes";

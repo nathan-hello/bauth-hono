@@ -1,4 +1,4 @@
-import { auth } from "../../server/auth";
+import { auth } from "@/server/auth";
 
 export async function redirectIfSession(request: Request): Promise<Response | null> {
   try {
