@@ -1,1 +1,1 @@
-export * from "./schema.auth";
+export * from "@/server/drizzle/schema.auth";

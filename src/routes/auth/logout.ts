@@ -3,7 +3,7 @@ import { auth } from "@/server/auth";
 import { getAuthError } from "@/lib/auth-error";
 import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectWithHeaders } from "./redirect";
+import { redirectWithHeaders } from "@/routes/auth/redirect";
 import { LogoutPage } from "@/views/logout";
 import { routes } from "@/routes/routes";
 

@@ -1,6 +1,6 @@
-import { dotenv } from "./server/env";
-import { StartLogging } from "./server/telemetry/sdk";
-import { MultiLogExporter, PinoLogExporter } from "./server/telemetry/exporters";
+import { dotenv } from "@/server/env";
+import { StartLogging } from "@/server/telemetry/sdk";
+import { MultiLogExporter, PinoLogExporter } from "@/server/telemetry/exporters";
 
 StartLogging({
   tracesUrl: dotenv.OTEL_TRACES_URL,
@@ -9,7 +9,7 @@ StartLogging({
 
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
-import { registerRoutes } from "./routes/index";
+import { registerRoutes } from "@/routes/index";
 
 const app = new Hono();
 

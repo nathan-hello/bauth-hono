@@ -1,6 +1,6 @@
 import { trace, SpanStatusCode, type Span, context } from "@opentelemetry/api";
 import { SeverityNumber, type AnyValue } from "@opentelemetry/api-logs";
-import { getLoggerProvider } from "./sdk";
+import { getLoggerProvider } from "@/server/telemetry/sdk";
 
 export type TelemetryLogSchema = {
   info: [string, Record<string, AnyValue>];

@@ -1,4 +1,4 @@
-import { ERROR_COPY } from "./copy";
+import { ERROR_COPY } from "@/lib/copy";
 import { APIError } from "better-auth";
 import { auth } from "@/server/auth";
 

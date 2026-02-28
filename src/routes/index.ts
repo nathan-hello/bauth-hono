@@ -1,13 +1,13 @@
 import type { Hono } from "hono";
-import * as home from "./auth/home";
-import * as login from "./auth/login";
-import * as register from "./auth/register";
-import * as logout from "./auth/logout";
-import * as forgot from "./auth/forgot";
-import * as twofa from "./auth/2fa";
-import * as dashboard from "./auth/dashboard";
-import * as api from "./auth/api";
-import { routes } from "./routes";
+import * as home from "@/routes/auth/home";
+import * as login from "@/routes/auth/login";
+import * as register from "@/routes/auth/register";
+import * as logout from "@/routes/auth/logout";
+import * as forgot from "@/routes/auth/forgot";
+import * as twofa from "@/routes/auth/2fa";
+import * as dashboard from "@/routes/auth/dashboard";
+import * as api from "@/routes/auth/api";
+import { routes } from "@/routes/routes";
 
 
 export function registerRoutes(app: Hono) {
