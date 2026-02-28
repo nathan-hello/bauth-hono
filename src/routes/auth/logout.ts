@@ -5,8 +5,9 @@ import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "../../server/telemetry";
 import { redirectWithHeaders } from "./redirect";
 import { LogoutPage } from "../../views/logout";
+import { routes } from "@/routes/routes";
 
-const tel = new Telemetry("route.logout");
+const tel = new Telemetry(routes.auth.logout);
 
 function handleSignOutError(c: Context, error: unknown) {
   if (error instanceof APIError && error.body?.code === "FAILED_TO_GET_SESSION") {

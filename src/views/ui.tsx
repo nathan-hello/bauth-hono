@@ -2,8 +2,6 @@ import type { Child } from "hono/jsx";
 import { copy } from "../lib/copy";
 import type { AuthError } from "../lib/auth-error";
 
-// --- Inputs ---
-
 export function Input(props: Record<string, any>) {
   const { class: cls, ...rest } = props;
   return (
@@ -13,8 +11,6 @@ export function Input(props: Record<string, any>) {
     />
   );
 }
-
-// --- Buttons ---
 
 type ButtonVariant = "primary" | "ghost";
 
@@ -56,8 +52,6 @@ export function TextLink(props: Record<string, any>) {
   );
 }
 
-// --- Layout ---
-
 export function Card(props: { children: Child; class?: string }) {
   return (
     <div class={`lg:w-lg xl:w-xl flex flex-col gap-6 p-4 bg-surface opacity-95 ${props.class ?? ""}`}>
@@ -81,8 +75,6 @@ export function Label(props: { for?: string; children: Child }) {
     </label>
   );
 }
-
-// --- Alerts ---
 
 export function FormAlert({ message, color }: { message?: string; color?: "danger" | "success" }) {
   if (!message) return null;
@@ -117,8 +109,6 @@ export function ErrorAlerts({ errors }: { errors?: AuthError[] }) {
     </>
   );
 }
-
-// --- Badge ---
 
 export function Badge({ children, color }: { children: Child; color: "green" | "yellow" | "blue" | "gray" }) {
   const styles: Record<string, string> = {

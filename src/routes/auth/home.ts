@@ -1,9 +1,10 @@
 import type { Handler } from "hono";
 import { auth } from "../../server/auth";
 import { Telemetry, safeRequestAttrs } from "../../server/telemetry";
-import { HomePage } from "../../views/home";
+import { HomePage } from "../../views/debug";
+import { routes } from "@/routes/routes";
 
-const tel = new Telemetry("route.home");
+const tel = new Telemetry(routes.debug.home);
 
 export const get: Handler = async (c) => {
   const result = await tel.task("GET", async (span) => {

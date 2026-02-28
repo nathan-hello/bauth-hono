@@ -2,6 +2,7 @@ import { copy } from "../lib/copy";
 import type { AuthError } from "../lib/auth-error";
 import { Layout } from "./layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, FormAlert } from "./ui";
+import { routes } from "@/routes/routes";
 
 export type TwoFactorState = {
   errors?: AuthError[];
@@ -39,7 +40,7 @@ export function TwoFactorPage({ state }: TwoFactorProps) {
 function EmailVerificationForm() {
   return (
     <>
-      <form method="post" action="/auth/2fa" class="flex flex-col gap-y-4">
+      <form method="post" action={routes.auth.twoFactor} class="flex flex-col gap-y-4">
         <input type="hidden" name="action" value="verify-email" />
         <Input
           autofocus
@@ -54,7 +55,7 @@ function EmailVerificationForm() {
       </form>
 
       <FormFooter>
-        <form method="post" action="/auth/2fa">
+        <form method="post" action={routes.auth.twoFactor}>
           <input type="hidden" name="action" value="resend-email" />
           <button type="submit" class="underline underline-offset-2 font-semibold bg-transparent border-0 cursor-pointer text-fg p-0 text-xs">
             {copy.code_resend}
@@ -71,7 +72,7 @@ function EmailVerificationForm() {
 function TotpVerificationForm() {
   return (
     <>
-      <form method="post" action="/auth/2fa" class="flex flex-col gap-y-4">
+      <form method="post" action={routes.auth.twoFactor} class="flex flex-col gap-y-4">
         <input type="hidden" name="action" value="verify-totp" />
         <Input
           autofocus
@@ -98,7 +99,7 @@ function VerificationTypeSwitcher({ currentType }: { currentType: "totp" | "emai
   return (
     <div class="mt-4">
       {currentType === "email" && (
-        <form method="post" action="/auth/2fa">
+        <form method="post" action={routes.auth.twoFactor}>
           <input type="hidden" name="action" value="switch-totp" />
           <button type="submit" class="underline underline-offset-2 font-semibold bg-transparent border-0 cursor-pointer text-fg p-0 text-sm">
             {copy.twofa_switch_totp}
@@ -106,7 +107,7 @@ function VerificationTypeSwitcher({ currentType }: { currentType: "totp" | "emai
         </form>
       )}
       {currentType === "totp" && (
-        <form method="post" action="/auth/2fa">
+        <form method="post" action={routes.auth.twoFactor}>
           <input type="hidden" name="action" value="switch-email" />
           <button type="submit" class="underline underline-offset-2 font-semibold bg-transparent border-0 cursor-pointer text-fg p-0 text-sm">
             {copy.twofa_switch_email}
