@@ -1,0 +1,42 @@
+{
+  "name": "bauth-hono",
+  "scripts": {
+    "dev": "bun run --no-cache --hot src/index.ts",
+    "start": "NODE_ENV=production bun run src/index.ts",
+    "build:css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --minify",
+    "dev:css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --watch",
+    "typegen:ba": "bunx @better-auth/cli generate --config ./src/server/auth.ts --output ./src/server/drizzle/schema.auth.ts -y",
+    "typegen:db": "bunx drizzle-kit generate --config ./src/server/drizzle/config.ts",
+    "typegen": "bun run typegen:ba && bun run typegen:db",
+    "db:migrate": "drizzle-kit migrate --config ./src/server/drizzle/config.ts",
+    "db:push": "drizzle-kit push --config ./src/server/drizzle/config.ts",
+    "db:studio": "drizzle-kit studio --config ./src/server/drizzle/config.ts"
+  },
+  "dependencies": {
+    "@better-auth/passkey": "^1.4.20",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api-logs": "^0.212.0",
+    "@opentelemetry/core": "^2.5.1",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.212.0",
+    "@opentelemetry/sdk-logs": "^0.212.0",
+    "@opentelemetry/sdk-node": "^0.212.0",
+    "better-auth": "^1.4.20",
+    "better-sqlite3": "^12.6.2",
+    "cookie": "^1.1.1",
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.12.3",
+    "pino": "^10.3.1",
+    "qrcode": "^1.5.4",
+    "resend": "^6.9.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/bun": "latest",
+    "@types/cookie": "^1.0.0",
+    "@types/qrcode": "^1.5.6",
+    "drizzle-kit": "^0.31.9",
+    "tailwindcss": "^4.2.1"
+  }
+}

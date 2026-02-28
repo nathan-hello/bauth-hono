@@ -1,0 +1,17 @@
+# deps
+node_modules/
+
+# db
+*.sqlite
+
+# env
+.env
+
+# logs
+logs/
+
+# build artifacts
+public/styles.css
+
+# tsc emit artifacts (bun runs ts directly)
+src/**/*.js
