@@ -1,6 +1,6 @@
 import type { Child } from "hono/jsx";
-import { copy } from "../lib/copy";
-import type { AuthError } from "../lib/auth-error";
+import { copy } from "@/lib/copy";
+import type { AuthError } from "@/lib/auth-error";
 
 export function Input(props: Record<string, any>) {
   const { class: cls, ...rest } = props;

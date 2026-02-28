@@ -1,4 +1,4 @@
-import { copy } from "../lib/copy";
+import { copy } from "@/lib/copy";
 import { Layout } from "./layout";
 import { Card, ButtonLink } from "./ui";
 

@@ -1,5 +1,5 @@
-import { emailOtp as EmailOtpTemplate, email2fa as Email2faTemplate, emailVerification as EmailVerificationTemplate } from "../email/templates";
-import { copy } from "../lib/copy";
+import { emailOtp as EmailOtpTemplate, email2fa as Email2faTemplate, emailVerification as EmailVerificationTemplate } from "@/email/templates";
+import { copy } from "@/lib/copy";
 import { Resend } from "resend";
 import { Telemetry } from "./telemetry";
 import { betterAuth } from "better-auth/minimal";
