@@ -3,6 +3,7 @@ import type { AuthError } from "../lib/auth-error";
 import { Layout } from "./layout";
 import { Input, Button, Badge, FormAlert, ErrorAlerts } from "./ui";
 import type { Child } from "hono/jsx";
+import { routes } from "@/routes/routes";
 
 export type DashboardActionData = {
   errors?: AuthError[];
@@ -108,7 +109,7 @@ function EmailSection({
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         {!email.verified && (
-          <form method="post" action="/auth/dashboard" class="flex flex-col gap-2">
+          <form method="post" action={routes.auth.dashboard} class="flex flex-col gap-2">
             <input type="hidden" name="action" value="email_resend_verification" />
             <label class="text-xs text-fg-muted">
               {verificationSent
@@ -129,7 +130,7 @@ function PasswordSection() {
   return (
     <section class="px-6 py-5">
       <SectionHeading>{copy.dashboard_password_heading}</SectionHeading>
-      <form method="post" action="/auth/dashboard" class="flex flex-col gap-2 max-w-sm">
+      <form method="post" action={routes.auth.dashboard} class="flex flex-col gap-2 max-w-sm">
         <input type="hidden" name="action" value="change_password" />
 
         <label for="current" class="text-xs text-fg-muted">
@@ -194,7 +195,7 @@ function TwoFactorDisabled() {
     <section class="px-6 py-5">
       <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
       <p class="text-sm text-fg-muted mb-4">{copy.dashboard_2fa_description}</p>
-      <form method="post" action="/auth/dashboard" class="flex flex-col gap-2 max-w-sm">
+      <form method="post" action={routes.auth.dashboard} class="flex flex-col gap-2 max-w-sm">
         <input type="hidden" name="action" value="2fa_enable" />
         <Input
           type="password"
@@ -281,7 +282,7 @@ function TwoFactorEnabled({ state }: { state: TotpState }) {
         ) : (
           <details name="2fa-action">
             <summary class={summaryClass}>{copy.dashboard_2fa_show_qr}</summary>
-            <form method="post" action="/auth/dashboard" class="flex flex-col gap-2 pt-2">
+            <form method="post" action={routes.auth.dashboard} class="flex flex-col gap-2 pt-2">
               <input type="hidden" name="action" value="get_totp_uri" />
               <Input
                 type="password"
@@ -300,7 +301,7 @@ function TwoFactorEnabled({ state }: { state: TotpState }) {
         ) : (
           <details name="2fa-action">
             <summary class={summaryClass}>{copy.dashboard_2fa_new_backup_codes}</summary>
-            <form method="post" action="/auth/dashboard" class="flex flex-col gap-2 pt-2">
+            <form method="post" action={routes.auth.dashboard} class="flex flex-col gap-2 pt-2">
               <input type="hidden" name="action" value="get_backup_codes" />
               <Input
                 type="password"
@@ -316,7 +317,7 @@ function TwoFactorEnabled({ state }: { state: TotpState }) {
 
         <details name="2fa-action">
           <summary class={summaryClass}>{copy.dashboard_2fa_disable}</summary>
-          <form method="post" action="/auth/dashboard" class="flex flex-col gap-2 pt-2">
+          <form method="post" action={routes.auth.dashboard} class="flex flex-col gap-2 pt-2">
             <input type="hidden" name="action" value="2fa_disable" />
             <Input
               type="password"
@@ -347,7 +348,7 @@ function VerifyTotpForm({
   intermediateEnable?: boolean;
 }) {
   return (
-    <form method="post" action="/auth/dashboard" class="flex flex-col gap-2 max-w-sm">
+    <form method="post" action={routes.auth.dashboard} class="flex flex-col gap-2 max-w-sm">
       <input type="hidden" name="action" value="2fa_totp_verify" />
       {totpURI && <input type="hidden" name="totp_uri" value={totpURI} />}
       {backupCodes && (
@@ -413,7 +414,7 @@ function SessionsSection({ sessions, current }: { sessions: Session[]; current: 
                     {new Date(session.lastLoggedIn).toLocaleString()}
                   </p>
                 </div>
-                <form method="post" action="/auth/dashboard">
+                <form method="post" action={routes.auth.dashboard}>
                   <input type="hidden" name="action" value="revoke_session" />
                   <input type="hidden" name="session" value={session.id} />
                   <Button variant="ghost" type="submit" class="text-xs px-3">
@@ -424,7 +425,7 @@ function SessionsSection({ sessions, current }: { sessions: Session[]; current: 
             ))}
           </div>
           {sessions.length > 1 && (
-            <form method="post" action="/auth/dashboard" class="mt-3">
+            <form method="post" action={routes.auth.dashboard} class="mt-3">
               <input type="hidden" name="action" value="revoke_session" />
               <input type="hidden" name="session" value="all" />
               <Button variant="ghost" type="submit">

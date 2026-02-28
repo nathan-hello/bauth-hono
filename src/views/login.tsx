@@ -2,6 +2,7 @@ import { copy } from "../lib/copy";
 import type { AuthError } from "../lib/auth-error";
 import { Layout } from "./layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts } from "./ui";
+import { routes } from "@/routes/routes";
 
 type LoginProps = {
   errors?: AuthError[];
@@ -12,7 +13,7 @@ export function LoginPage({ errors, email }: LoginProps) {
   return (
     <Layout title={copy.routes.login.title}>
       <Card>
-        <form class="max-w-full flex flex-col gap-4" method="post" action="/auth/login">
+        <form class="max-w-full flex flex-col gap-4" method="post" action={routes.auth.login}>
           <ErrorAlerts errors={errors} />
           <Input
             type="text"

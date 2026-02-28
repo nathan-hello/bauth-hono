@@ -9,18 +9,11 @@ StartLogging({
 
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
-import apiRoutes from "./routes/api";
 import { registerRoutes } from "./routes/index";
 
 const app = new Hono();
 
-// Static files
 app.use("/*", serveStatic({ root: "./public" }));
-
-// Better Auth API
-app.route("/", apiRoutes);
-
-// Pages
 registerRoutes(app);
 
 const port = Number(process.env.PORT) || 3005;

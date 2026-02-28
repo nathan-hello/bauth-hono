@@ -2,10 +2,15 @@ import type { Handler } from "hono";
 import { auth, validateUsername } from "../../server/auth";
 import { getAuthError, type AuthError } from "../../lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "../../server/telemetry";
-import { redirectIfSession, redirectWithHeaders, serverError } from "./redirect";
+import {
+  redirectIfSession,
+  redirectWithHeaders,
+  serverError,
+} from "./redirect";
 import { RegisterPage } from "../../views/register";
+import { routes } from "@/routes/routes";
 
-const tel = new Telemetry("route.register");
+const tel = new Telemetry(routes.auth.register);
 
 export const get: Handler = async (c) => {
   const result = await tel.task("GET", async () => {
@@ -35,14 +40,22 @@ export const post: Handler = async (c) => {
   }
 
   if (!username || !password || !repeat) {
-    return c.html(RegisterPage({ errors: [{ type: "INVALID_EMAIL_OR_PASSWORD" }], email }));
+    return c.html(
+      RegisterPage({ errors: [{ type: "INVALID_EMAIL_OR_PASSWORD" }], email }),
+    );
   }
 
   const result = await tel.task("SIGN_UP", async (span) => {
     tel.debug("ATTEMPT", safeRequestAttrs(c.req.raw, form));
 
     const { headers, response } = await auth.api.signUpEmail({
-      body: { username, password, email, name: username, displayUsername: username },
+      body: {
+        username,
+        password,
+        email,
+        name: username,
+        displayUsername: username,
+      },
       headers: c.req.raw.headers,
       returnHeaders: true,
     });
@@ -59,11 +72,15 @@ export const post: Handler = async (c) => {
   return c.html(RegisterPage({ errors: getAuthError(result.error), email }));
 };
 
-function parseRegister(data: Record<string, string | undefined>): AuthError[] | undefined {
+function parseRegister(
+  data: Record<string, string | undefined>,
+): AuthError[] | undefined {
   const errors: AuthError[] = [];
   if (!data.email) errors.push({ type: "INVALID_EMAIL" });
   if (!data.password) errors.push({ type: "INVALID_PASSWORD" });
-  if (!data.username || !validateUsername(data.username)) errors.push({ type: "INVALID_USERNAME" });
-  if (!data.repeat || data.password !== data.repeat) errors.push({ type: "password_mismatch" });
+  if (!data.username || !validateUsername(data.username))
+    errors.push({ type: "INVALID_USERNAME" });
+  if (!data.repeat || data.password !== data.repeat)
+    errors.push({ type: "password_mismatch" });
   return errors.length > 0 ? errors : undefined;
 }

@@ -1,8 +1,6 @@
-import { Hono } from "hono";
-import { auth } from "../server/auth";
-import { Telemetry } from "../server/telemetry";
-
-const app = new Hono();
+import type { Context } from "hono";
+import { auth } from "@/server/auth";
+import { Telemetry } from "@/server/telemetry";
 
 const tel = new Telemetry("api.auth");
 
@@ -40,36 +38,39 @@ function errorPage(traceId: string): Response {
   );
 }
 
-app.all("/api/auth/*", async (c) => {
-  const request = c.req.raw;
-  const result = await tel.task("HANDLE", async () => {
-    return await auth.handler(request);
-  });
+export async function post(c: Context) {
+  {
+    const request = c.req.raw;
+    const result = await tel.task("HANDLE", async () => {
+      return await auth.handler(request);
+    });
 
-  tel.info(`${request.method}: /api/auth`, async () => {
+    tel.info(request.method, async () => {
+      if (result.ok) {
+        const clone = result.data.clone();
+        return {
+          responseText: await clone.text(),
+          status: clone.status,
+          url: request.url,
+        };
+      } else {
+        const err =
+          result.error instanceof Error
+            ? result.error
+            : new Error(String(result.error));
+        return {
+          "http.url": request.url,
+          errorName: err.name,
+          errorMessage: err.message,
+          errorStack: err.stack,
+        };
+      }
+    });
+
     if (result.ok) {
-      const clone = result.data.clone();
-      return {
-        responseText: await clone.text(),
-        status: clone.status,
-        url: request.url,
-      };
-    } else {
-      const err = result.error instanceof Error ? result.error : new Error(String(result.error));
-      return {
-        "http.url": request.url,
-        errorName: err.name,
-        errorMessage: err.message,
-        errorStack: err.stack,
-      };
+      return result.data;
     }
-  });
 
-  if (result.ok) {
-    return result.data;
+    return errorPage(result.traceId);
   }
-
-  return errorPage(result.traceId);
-});
-
-export default app;
+}

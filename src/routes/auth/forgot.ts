@@ -5,8 +5,9 @@ import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "../../server/telemetry";
 import { redirectIfSession, redirectWithHeaders, serverError } from "./redirect";
 import { ForgotPage, type ForgotStep } from "../../views/forgot";
+import { routes } from "@/routes/routes";
 
-const tel = new Telemetry("route.forgot");
+const tel = new Telemetry(routes.auth.forgot);
 
 export const get: Handler = async (c) => {
   const result = await tel.task("GET", async () => {

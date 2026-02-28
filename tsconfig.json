@@ -10,8 +10,7 @@
     "skipLibCheck": true,
     "noEmit": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@server/*": ["./src/server/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"]

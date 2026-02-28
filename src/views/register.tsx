@@ -2,6 +2,7 @@ import { copy } from "../lib/copy";
 import type { AuthError } from "../lib/auth-error";
 import { Layout } from "./layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts } from "./ui";
+import { routes } from "@/routes/routes";
 
 type RegisterProps = {
   errors?: AuthError[];
@@ -14,7 +15,7 @@ export function RegisterPage({ errors, email }: RegisterProps) {
       <Card>
         <div class="max-w-full flex flex-col gap-4 m-0">
           <ErrorAlerts errors={errors} />
-          <form method="post" action="/auth/register" class="flex flex-col gap-y-4">
+          <form method="post" action={routes.auth.register} class="flex flex-col gap-y-4">
             <input type="hidden" name="action" value="register" />
             <Input type="text" name="username" required placeholder={copy.input_username} />
             <Input

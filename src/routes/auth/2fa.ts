@@ -1,13 +1,14 @@
 import type { Handler } from "hono";
-import { auth } from "../../server/auth";
-import { dotenv } from "../../server/env";
-import { getAuthError } from "../../lib/auth-error";
-import { Telemetry, safeRequestAttrs } from "../../server/telemetry";
+import { auth } from "@/server/auth";
+import { dotenv } from "@/server/env";
+import { getAuthError } from "@/lib/auth-error";
+import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { redirectIfSession, redirectWithHeaders, serverError } from "./redirect";
-import { TwoFactorPage } from "../../views/2fa";
+import { TwoFactorPage } from "@/views/2fa";
 import { parse } from "cookie";
+import { routes } from "@/routes/routes";
 
-const tel = new Telemetry("route.2fa");
+const tel = new Telemetry(routes.auth.twoFactor);
 
 export const get: Handler = async (c) => {
   const result = await tel.task("GET", async () => {
