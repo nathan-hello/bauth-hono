@@ -1,5 +1,9 @@
 import { trace, SpanStatusCode, type Span, context } from "@opentelemetry/api";
-import { SeverityNumber, type AnyValue } from "@opentelemetry/api-logs";
+import {
+  LogAttributes,
+  SeverityNumber,
+  type AnyValue,
+} from "@opentelemetry/api-logs";
 import { getLoggerProvider } from "@/server/telemetry/sdk";
 
 export type TelemetryLogSchema = {
@@ -33,14 +37,16 @@ export function safeRequestAttrs(request: Request, form?: FormData) {
 
   if (form) {
     for (const [key, value] of form.entries()) {
-      attrs[`form.${key}`] = SENSITIVE_KEYS.has(key) ? "[REDACTED]" : String(value);
+      attrs[`form.${key}`] = SENSITIVE_KEYS.has(key)
+        ? "[REDACTED]"
+        : String(value);
     }
   }
 
   return attrs;
 }
 
-type Attrs<T = Record<string, AnyValue>> = T | (() => T | Promise<T>);
+type Attrs<T = LogAttributes> = T | (() => T | Promise<T>);
 
 export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
   private tracer;
@@ -70,7 +76,11 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
           return result
             .then((data): TaskResult<R> => {
               span.setStatus({ code: SpanStatusCode.OK });
-              return { ok: true as const, data, traceId: span.spanContext().traceId };
+              return {
+                ok: true as const,
+                data,
+                traceId: span.spanContext().traceId,
+              };
             })
             .catch((err): TaskResult<R> => {
               this.handleError(span, name, err);
@@ -85,7 +95,11 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
 
         span.setStatus({ code: SpanStatusCode.OK });
         span.end();
-        return { ok: true as const, data: result, traceId: span.spanContext().traceId };
+        return {
+          ok: true as const,
+          data: result,
+          traceId: span.spanContext().traceId,
+        };
       } catch (err) {
         this.handleError(span, name, err);
         span.end();
@@ -141,7 +155,9 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
     if (typeof attributes === "function") {
       const result = attributes();
       if (result instanceof Promise) {
-        result.then((resolved) => this.emit(body, severityNumber, severityText, resolved));
+        result.then((resolved) =>
+          this.emit(body, severityNumber, severityText, resolved),
+        );
         return;
       }
       this.emit(body, severityNumber, severityText, result);
@@ -154,7 +170,7 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
     body: string,
     severityNumber: SeverityNumber,
     severityText: string,
-    attributes?: any,
+    attributes?: LogAttributes,
   ) {
     this.logger.emit({
       body,

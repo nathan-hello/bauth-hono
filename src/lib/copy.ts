@@ -182,6 +182,7 @@ export const copy = {
   dashboard_2fa_verify_prompt: "Verify with a code from your app.",
   dashboard_2fa_code_placeholder: "6-digit code",
   dashboard_2fa_verify_button: "Verify Code",
+  dashboard_2fa_open_totp_link: "Click to open in authenticator app.",
 
   dashboard_backup_codes_title: "Backup Codes",
   dashboard_backup_codes_copied: "Copied",
@@ -191,8 +192,17 @@ export const copy = {
   dashboard_sessions_heading: "Sessions",
   dashboard_session_current: "Current",
   dashboard_session_revoke: "Revoke",
-  dashboard_session_revoke_all: "Revoke All Other Sessions",
+  dashboard_session_revoke_all: "Revoke All Sessions",
   dashboard_sessions_empty: "No active sessions",
+
+  dashboard_delete_account_heading: "Danger Zone",
+  dashboard_delete_account_button: "Delete Account",
+  delete_confirm_button: "I'm sure. Delete my account",
+  delete_title: "Delete Account",
+  delete_section_header_password_only: "Enter your password to verify deleting your account.",
+  delete_section_header: "Enter your password and 2FA to verify deleting your account.",
+  delete_section_2fa_totp: "Authenticator App (TOTP) Passcode",
+  delete_section_2fa_email: "Email OTP",
 
   email_otp_subject: "One time passcode",
   email_2fa_subject: "One time passcode",

@@ -1,4 +1,8 @@
-import { emailOtp as EmailOtpTemplate, email2fa as Email2faTemplate, emailVerification as EmailVerificationTemplate } from "@/email/templates";
+import {
+  EmailOtp as EmailOtpTemplate,
+  Email2fa as Email2faTemplate,
+} from "@/views/email/two-factor";
+import { EmailVerification as EmailVerificationTemplate } from "@/views/email/verification";
 import { copy } from "@/lib/copy";
 import { Resend } from "resend";
 import { Telemetry } from "@/server/telemetry";
@@ -47,12 +51,22 @@ export const auth = betterAuth({
             from: dotenv.FROM_EMAIL,
             to: data.user.email,
             subject: copy.email_2fa_subject,
-            html: Email2faTemplate(data.user.email, data.otp, dotenv.PRODUCTION_URL),
+            html: Email2faTemplate({
+              email: data.user.email,
+              otp: data.otp,
+              url: dotenv.PRODUCTION_URL,
+            }).toString(),
           });
           if (response.error) {
-            tel.error("RESEND_ERROR", { error: response.error, headers: response.headers });
+            tel.error("RESEND_ERROR", {
+              error: response.error,
+              headers: response.headers,
+            });
           } else {
-            tel.info("RESEND_SUCCESS", { id: response.data.id, headers: response.headers });
+            tel.info("RESEND_SUCCESS", {
+              id: response.data.id,
+              headers: response.headers,
+            });
           }
         },
       },
@@ -71,12 +85,22 @@ export const auth = betterAuth({
           from: dotenv.FROM_EMAIL,
           to: data.email,
           subject: copy.email_otp_subject,
-          html: EmailOtpTemplate(data.email, data.otp, dotenv.PRODUCTION_URL),
+          html: EmailOtpTemplate({
+            email: data.email,
+            otp: data.otp,
+            url: dotenv.PRODUCTION_URL,
+          }).toString(),
         });
         if (response.error) {
-          tel.error("RESEND_ERROR", { error: response.error, headers: response.headers });
+          tel.error("RESEND_ERROR", {
+            error: response.error,
+            headers: response.headers,
+          });
         } else {
-          tel.info("RESEND_SUCCESS", { id: response.data.id, headers: response.headers });
+          tel.info("RESEND_SUCCESS", {
+            id: response.data.id,
+            headers: response.headers,
+          });
         }
       },
     }),
@@ -101,6 +125,8 @@ export const auth = betterAuth({
 
   advanced: {
     cookiePrefix: dotenv.COOKIE_PREFIX,
+    // This is neccesary because the browser
+    useSecureCookies: process.env.NODE_ENV !== "development",
   },
 
   onAPIError: {
@@ -136,17 +162,31 @@ export const auth = betterAuth({
         from: dotenv.FROM_EMAIL,
         to: data.user.email,
         subject: copy.email_verification_subject,
-        html: EmailVerificationTemplate(data.user.email, data.url, dotenv.PRODUCTION_URL),
+        html: EmailVerificationTemplate({
+          email: data.user.email,
+          verificationLink: data.url,
+          url: dotenv.PRODUCTION_URL,
+        }).toString(),
       });
       if (response.error) {
-        tel.error("RESEND_ERROR", { error: response.error, headers: response.headers });
+        tel.error("RESEND_ERROR", {
+          error: response.error,
+          headers: response.headers,
+        });
       } else {
-        tel.info("RESEND_SUCCESS", { id: response.data.id, headers: response.headers });
+        tel.info("RESEND_SUCCESS", {
+          id: response.data.id,
+          headers: response.headers,
+        });
       }
     },
   },
 
-  trustedOrigins: [dotenv.PRODUCTION_URL, "https://localhost:5173", "http://localhost:5173"],
+  trustedOrigins: [
+    dotenv.PRODUCTION_URL,
+    "https://localhost:5173",
+    "http://localhost:5173",
+  ],
 
   account: {
     accountLinking: {

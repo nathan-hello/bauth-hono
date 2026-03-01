@@ -4,7 +4,7 @@ import { getAuthError } from "@/lib/auth-error";
 import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { redirectWithHeaders } from "@/routes/auth/redirect";
-import { LogoutPage } from "@/views/logout";
+import { LogoutPage } from "@/views/auth/logout";
 import { routes } from "@/routes/routes";
 
 const tel = new Telemetry(routes.auth.logout);

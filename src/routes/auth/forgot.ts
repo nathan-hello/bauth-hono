@@ -4,7 +4,7 @@ import { AppError, getAuthError } from "@/lib/auth-error";
 import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
-import { ForgotPage, type ForgotStep } from "@/views/forgot";
+import { ForgotPage, type ForgotStep } from "@/views/auth/forgot";
 import { routes } from "@/routes/routes";
 
 const tel = new Telemetry(routes.auth.forgot);

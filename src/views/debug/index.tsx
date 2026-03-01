@@ -1,6 +1,6 @@
 import { copy } from "@/lib/copy";
-import { Layout } from "@/views/layout";
-import { Card, ButtonLink } from "@/views/ui";
+import { Layout } from "@/views/components/layout";
+import { Card, ButtonLink } from "@/views/components/ui";
 
 type HomeProps = {
   session: {
@@ -8,7 +8,7 @@ type HomeProps = {
   } | null;
 };
 
-export function HomePage({ session }: HomeProps) {
+export function DebugHomePage({ session }: HomeProps) {
   return (
     <Layout title={copy.routes.home.title}>
       <Card>
@@ -22,6 +22,7 @@ export function HomePage({ session }: HomeProps) {
         </div>
 
         <nav class="flex flex-col gap-2">
+          <ButtonLink href="/debug/email">Email</ButtonLink>
           {session ? (
             <>
               <ButtonLink href="/auth/dashboard">{copy.routes.dashboard.title}</ButtonLink>
@@ -41,7 +42,7 @@ export function HomePage({ session }: HomeProps) {
         {session && (
           <details class="text-xs">
             <summary class="cursor-pointer text-fg-muted">{copy.home_debug}</summary>
-            <pre class="select-text mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 text-[10px] leading-relaxed">
+            <pre class="mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 text-[10px] leading-relaxed">
               {JSON.stringify(session, null, 2)}
             </pre>
           </details>
