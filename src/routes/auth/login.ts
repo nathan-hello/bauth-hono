@@ -9,6 +9,7 @@ import { routes } from "@/routes/routes";
 const tel = new Telemetry(routes.auth.login);
 
 export const get: Handler = async (c) => {
+  console.log("asdf");
   const result = await tel.task("GET", async (span) => {
     tel.debug("REQUEST", safeRequestAttrs(c.req.raw));
     const existing = await redirectIfSession(c.req.raw);

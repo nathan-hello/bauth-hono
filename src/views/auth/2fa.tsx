@@ -1,7 +1,17 @@
 import { copy } from "@/lib/copy";
 import type { AuthError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
-import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, FormAlert } from "@/views/components/ui";
+import {
+  Card,
+  Input,
+  Button,
+  FormFooter,
+  TextLink,
+  ErrorAlerts,
+  FormAlert,
+  Form,
+  Label,
+} from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 export type TwoFactorState = {
@@ -20,18 +30,20 @@ export function TwoFactorPage({ state }: TwoFactorProps) {
   return (
     <Layout title={copy.routes["2fa"].title}>
       <Card>
-        <div class="max-w-full flex flex-col gap-4 m-0">
-          <ErrorAlerts errors={state?.errors} />
+        <Label center for="verify-form">
+          {verificationType === "totp"
+            ? copy.twofa_prompt_totp
+            : copy.twofa_prompt_email}
+        </Label>
 
-          {state?.resentEmail && (
-            <FormAlert color="success">{copy.twofa_resent_email}</FormAlert>
-          )}
+        <ErrorAlerts errors={state?.errors} />
 
-          {verificationType === "email" && <EmailVerificationForm />}
-          {verificationType === "totp" && <TotpVerificationForm />}
+        {state?.resentEmail && (
+          <FormAlert color="success">{copy.twofa_resent_email}</FormAlert>
+        )}
 
-          <VerificationTypeSwitcher currentType={verificationType} />
-        </div>
+        {verificationType === "email" && <EmailVerificationForm />}
+        {verificationType === "totp" && <TotpVerificationForm />}
       </Card>
     </Layout>
   );
@@ -40,8 +52,10 @@ export function TwoFactorPage({ state }: TwoFactorProps) {
 function EmailVerificationForm() {
   return (
     <>
-      <form method="post" action={routes.auth.twoFactor} class="flex flex-col gap-y-4">
-        <input type="hidden" name="action" value="verify-email" />
+      <Form id="verify-form" method="post" action={routes.auth.twoFactor}>
+        <input type="hidden" name="action" value="verify" />
+        <input type="hidden" name="type" value="email" />
+
         <Input
           autofocus
           name="code"
@@ -52,19 +66,20 @@ function EmailVerificationForm() {
           autocomplete="one-time-code"
         />
         <Button type="submit">{copy.button_continue}</Button>
+      </Form>
+
+      <form method="post" action={routes.auth.twoFactor}>
+        <input type="hidden" name="action" value="resend-email" />
+        <Button variant="ghost" type="submit">
+          {copy.code_resend}
+        </Button>
       </form>
 
-      <FormFooter>
-        <form method="post" action={routes.auth.twoFactor}>
-          <input type="hidden" name="action" value="resend-email" />
-          <button type="submit" class="underline underline-offset-2 font-semibold bg-transparent border-0 cursor-pointer text-fg p-0 text-xs">
-            {copy.code_resend}
-          </button>
-        </form>
-        <TextLink href="/auth/login">
-          {copy.code_return} {copy.login.toLowerCase()}
-        </TextLink>
-      </FormFooter>
+      <VerificationTypeSwitcher currentType={"email"} />
+
+      <TextLink href="/auth/login">
+        {copy.code_return} {copy.login.toLowerCase()}
+      </TextLink>
     </>
   );
 }
@@ -72,7 +87,7 @@ function EmailVerificationForm() {
 function TotpVerificationForm() {
   return (
     <>
-      <form method="post" action={routes.auth.twoFactor} class="flex flex-col gap-y-4">
+      <Form id="twofa-totp-form" method="post" action={routes.auth.twoFactor}>
         <input type="hidden" name="action" value="verify-totp" />
         <Input
           autofocus
@@ -84,7 +99,9 @@ function TotpVerificationForm() {
           autocomplete="one-time-code"
         />
         <Button type="submit">{copy.button_continue}</Button>
-      </form>
+      </Form>
+
+      <VerificationTypeSwitcher currentType={"totp"} />
 
       <FormFooter>
         <TextLink href="/auth/login">
@@ -95,25 +112,32 @@ function TotpVerificationForm() {
   );
 }
 
-export function VerificationTypeSwitcher({ currentType }: { currentType: "totp" | "email" }) {
-  return (
-    <div class="mt-4 text-center">
-      {currentType === "email" && (
-        <form method="post" action={routes.auth.twoFactor}>
-          <input type="hidden" name="action" value="switch-totp" />
-          <button type="submit" class="underline underline-offset-2 font-semibold bg-transparent border-0 cursor-pointer text-fg p-0 text-sm">
-            {copy.twofa_switch_totp}
-          </button>
-        </form>
-      )}
-      {currentType === "totp" && (
-        <form method="post" action={routes.auth.twoFactor}>
-          <input type="hidden" name="action" value="switch-email" />
-          <button type="submit" class="underline underline-offset-2 font-semibold bg-transparent border-0 cursor-pointer text-fg p-0 text-sm">
-            {copy.twofa_switch_email}
-          </button>
-        </form>
-      )}
-    </div>
-  );
+export function VerificationTypeSwitcher({
+  currentType,
+}: {
+  currentType: "totp" | "email";
+}) {
+  if (currentType === "email") {
+    return (
+      <form method="post" action={routes.auth.twoFactor}>
+        <input type="hidden" name="action" value="switch" />
+        <input type="hidden" name="to" value="totp" />
+        <Button variant="ghost" type="submit">
+          {copy.twofa_switch_to_totp}
+        </Button>
+      </form>
+    );
+  }
+  if (currentType === "totp") {
+    return (
+      <form method="post" action={routes.auth.twoFactor}>
+        <input type="hidden" name="action" value="switch" />
+        <input type="hidden" name="to" value="email" />
+        <Button variant="ghost" type="submit">
+          {copy.twofa_switch_to_email}
+        </Button>
+      </form>
+    );
+  }
+  return null;
 }

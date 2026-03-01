@@ -16,7 +16,7 @@ export function Input(props: Record<string, any>) {
 type ButtonVariant = "primary" | "ghost" | "danger";
 
 const buttonBase =
-  "h-10 cursor-pointer font-medium text-sm flex gap-3 items-center justify-center px-4";
+  "h-10 w-full cursor-pointer font-medium text-sm flex gap-3 items-center justify-center px-4";
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary: "bg-primary text-surface border-0 disabled:bg-primary/50",
@@ -53,7 +53,7 @@ export function TextLink(props: Record<string, any>) {
   return (
     <a
       {...rest}
-      class={`underline underline-offset-2 font-semibold bg-transparent border-0 cursor-pointer text-fg p-0 ${cls ?? ""}`}
+      class={`mx-auto underline underline-offset-2 font-semibold bg-transparent border-0 cursor-pointer text-fg p-0 ${cls ?? ""}`}
     />
   );
 }
@@ -76,9 +76,23 @@ export function FormFooter(props: { children: Child }) {
   );
 }
 
-export function Label(props: { for?: string; children: Child }) {
+export function Label(props: {
+  for?: string;
+  children: Child;
+  center?: boolean;
+  unmuted?: boolean;
+}) {
   return (
-    <label for={props.for} class="flex gap-3 flex-col text-xs text-fg-muted">
+    <label
+      for={props.for}
+      class={
+        "flex gap-3 flex-col" +
+        " " +
+        (props?.center ? "mx-auto text-center" : "") +
+        " " +
+        (props?.unmuted ? "text-fg" : "text-fg-muted")
+      }
+    >
       {props.children}
     </label>
   );
@@ -116,7 +130,7 @@ export function FormAlert({
       Svg = CircleCheckmark();
       break;
     case "warning":
-      bg = "bg-warning";
+      bg = "bg-surface";
       fg = "text-warning";
       Svg = null;
       break;
@@ -124,7 +138,7 @@ export function FormAlert({
 
   return (
     <div
-      class={`h-10 flex items-center ${bg} ${fg} text-left text-sm gap-2`}
+      class={`h-10 flex items-center ${bg} ${fg} text-left text-sm gap-2 pl-2`}
     >
       {Svg}
       <span>{children}</span>

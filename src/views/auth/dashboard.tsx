@@ -1,5 +1,5 @@
 import { copy } from "@/lib/copy";
-import type { AuthError } from "@/lib/auth-error";
+import { AppError, type AuthError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
 import {
   Input,
@@ -136,11 +136,7 @@ function PasswordSection({ success }: { success?: boolean }) {
       {success && (
         <FormAlert color="success">{copy.dashboard_password_changed}</FormAlert>
       )}
-      <Form
-        method="post"
-        action={routes.auth.dashboard}
-        class="flex flex-col gap-2 max-w-sm"
-      >
+      <Form method="post" action={routes.auth.dashboard}>
         <input type="hidden" name="action" value={actionName.change_password} />
         <Label for="current">{copy.dashboard_password_current_label}</Label>
         <Input
@@ -201,11 +197,7 @@ function TwoFactorDisabled() {
     <Section>
       <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
       <p>{copy.dashboard_2fa_description}</p>
-      <Form
-        method="post"
-        action={routes.auth.dashboard}
-        class="flex flex-col gap-2 max-w-sm"
-      >
+      <Form method="post" action={routes.auth.dashboard}>
         <input
           type="hidden"
           name="action"
@@ -225,24 +217,24 @@ function TwoFactorDisabled() {
 }
 
 function TwoFactorSetup({ state }: { state: TotpState }) {
+  if (!state.totpURI || !state.backupCodes || state.backupCodes.length === 0) {
+    throw new AppError("totp_uri_not_found");
+  }
+
   return (
     <Section>
       <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
       <FormAlert color="warning">{copy.dashboard_2fa_setup_prompt}</FormAlert>
-      {state.totpURI && (
-        <div class="mb-5">
-          <TwoFactorTotpViewer secret={state.totpURI} />
-          <VerifyTotpForm
-            errors={state.errors}
-            totpURI={state.totpURI}
-            backupCodes={state.backupCodes}
-            intermediateEnable
-          />
-        </div>
-      )}
-      {state.backupCodes && state.backupCodes.length > 0 && (
-        <BackupCodesDisplay codes={state.backupCodes} />
-      )}
+      <Section>
+        <TwoFactorTotpViewer secret={state.totpURI} />
+        <VerifyTotpForm
+          errors={state.errors}
+          totpURI={state.totpURI}
+          backupCodes={state.backupCodes}
+          intermediateEnable
+        />
+      </Section>
+      <BackupCodesDisplay codes={state.backupCodes} />
     </Section>
   );
 }
@@ -267,7 +259,7 @@ async function TwoFactorTotpViewer({ secret }: { secret: string }) {
   }
   const manual = parseOtpauthUri(secret);
   return (
-    <div class="flex flex-col border [&:has(#t1:checked)_#c1]:block [&:has(#t2:checked)_#c2]:block [&:has(#t3:checked)_#c3]:block">
+    <div class="[&:has(#t1:checked)_#c1]:flex [&:has(#t2:checked)_#c2]:flex [&:has(#t3:checked)_#c3]:flex">
       <input type="radio" name="tabs" id="t1" class="hidden" checked />
       <input type="radio" name="tabs" id="t2" class="hidden" />
       <input type="radio" name="tabs" id="t3" class="hidden" />
@@ -283,36 +275,32 @@ async function TwoFactorTotpViewer({ secret }: { secret: string }) {
         </label>
       </div>
       <TwoFactorTotpViewerDetails id="c1">
-        <Button class="m-auto p-4">
-          {copy.dashboard_2fa_open_totp_link}
-        </Button>{" "}
+        <Button>{copy.dashboard_2fa_open_totp_link}</Button>
       </TwoFactorTotpViewerDetails>
       <TwoFactorTotpViewerDetails id="c2">
-        <div class="bg-white p-4 [&_svg]:size-full">
+        <div class="[&_svg]:bg-white [&_svg]:p-2">
           {raw(generateQrSvg(secret))}
         </div>
       </TwoFactorTotpViewerDetails>
       <TwoFactorTotpViewerDetails id="c3">
-        <div class="flex flex-col gap-2 break-all">
+        <div class="flex flex-col text-fg text-lg gap-2 break-all [&_pre]:whitespace-pre-wrap">
           <div>
             <strong>{copy.totp_manual_secret}</strong> <br />{" "}
-            <span class="font-mono w-32 whitespace-pre-wrap break-all">
-              {manual.secret}
-            </span>
+            <pre>{manual.secret}</pre>
           </div>
           <div>
             <strong>{copy.totp_manual_alg}</strong> <br />{" "}
-            <span class="font-mono">{manual.algorithm}</span>
+            <pre>{manual.algorithm}</pre>
           </div>
           <div>
             <strong>{copy.totp_manual_period}</strong> <br />{" "}
-            <span class="font-mono">
+            <pre>
               {manual.period} {copy.totp_manual_period_seconds}
-            </span>
+            </pre>
           </div>
           <div>
             <strong>{copy.totp_manual_digits}</strong> <br />{" "}
-            <span class="font-mono">{manual.digits}</span>
+            <pre>{manual.digits}</pre>
           </div>
         </div>
       </TwoFactorTotpViewerDetails>
@@ -328,7 +316,10 @@ function TwoFactorTotpViewerDetails({
   children: Child;
 }) {
   return (
-    <div id={id} class="hidden bg-white min-h-64 flex flex-col">
+    <div
+      id={id}
+      class="hidden h-72 w-full justify-center items-center overflow-y-auto"
+    >
       {children}
     </div>
   );
@@ -506,9 +497,9 @@ function SessionsSection({
   return (
     <Section>
       <SectionHeading>{copy.dashboard_sessions_heading}</SectionHeading>
-      <div class="divide-y divide-border-muted">
+      <Section>
         {sessions.map((session) => (
-          <div class="flex items-center justify-between py-2.5 first:pt-0 gap-4">
+          <Form method="post" action={routes.auth.dashboard}>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <p class="text-sm truncate">{session.ipAddress}</p>
@@ -520,25 +511,23 @@ function SessionsSection({
                 {new Date(session.updatedAt).toLocaleString()}
               </p>
             </div>
-            <Form method="post" action={routes.auth.dashboard}>
-              <input
-                type="hidden"
-                name="action"
-                value={actionName.revoke_session}
-              />
-              <input type="hidden" name="session" value={session.id} />
-              <Button variant="ghost" type="submit">
-                {copy.dashboard_session_revoke}
-              </Button>
-            </Form>
-          </div>
+            <input
+              type="hidden"
+              name="action"
+              value={actionName.revoke_session}
+            />
+            <input type="hidden" name="session" value={session.token} />
+            <Button variant="ghost" type="submit">
+              {copy.dashboard_session_revoke}
+            </Button>
+          </Form>
         ))}
-      </div>
+      </Section>
       <Form method="post" action={routes.auth.dashboard}>
         <input type="hidden" name="action" value={actionName.revoke_session} />
         <input type="hidden" name="session" value="all" />
         <Button variant="ghost" type="submit">
-          {copy.dashboard_session_revoke_all}
+          {copy.dashboard_session_revoke_other_sessions}
         </Button>
       </Form>
     </Section>

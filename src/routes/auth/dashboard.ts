@@ -8,7 +8,6 @@ import {
   type DashboardActionData,
 } from "@/views/auth/dashboard";
 import { redirects, routes } from "@/routes/routes";
-import { APIError } from "better-auth";
 
 const tel = new Telemetry("route.dashboard");
 
@@ -49,12 +48,12 @@ export const post: Handler = async (c) => {
   const result = await tel.task("POST", async (span) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
-    const loaded = await getLoaderData(c.req.raw.headers);
-    if (!loaded) {
+    const getLoaderForLogs = await getLoaderData(c.req.raw.headers);
+    if (!getLoaderForLogs) {
       return redirects.ToLogin;
     }
 
-    span.setAttribute("user.id", loaded.user.id);
+    span.setAttribute("user.id", getLoaderForLogs.user.id);
 
     if (!action || !checkAction(action)) {
       tel.warn("ACTION_NOT_FOUND", { action });
@@ -68,14 +67,22 @@ export const post: Handler = async (c) => {
 
     tel.debug("ACTION_RESULT", {
       result: {
-        data: JSON.stringify(result?.data),
+        data: result?.data,
         headers: JSON.stringify(result?.headers),
       },
     });
 
+    const headersForLoader = result?.headers
+      ? convertSetCookiesToCookies(c.req.raw.headers, result.headers)
+      : c.req.raw.headers;
+    const loaderAfterSuccess = await getLoaderData(headersForLoader);
+    if (!loaderAfterSuccess) {
+      return redirects.ToLogin;
+    }
+
     const html = DashboardPage({
       actionData: result?.data,
-      loaderData: loaded,
+      loaderData: loaderAfterSuccess,
     });
 
     if (result?.headers) {
@@ -89,8 +96,8 @@ export const post: Handler = async (c) => {
 
   if (result.ok) return result.data;
 
-  const loaded = await getLoaderData(c.req.raw.headers);
-  if (!loaded) {
+  const loaderAfterError = await getLoaderData(c.req.raw.headers);
+  if (!loaderAfterError) {
     return redirects.ToLogin;
   }
 
@@ -99,7 +106,7 @@ export const post: Handler = async (c) => {
       actionData: {
         errors: getAuthError(result.error),
       },
-      loaderData: loaded,
+      loaderData: loaderAfterError,
     }),
   );
 };
@@ -136,11 +143,11 @@ async function RevokeSession(
   request: Request,
   form: FormData,
 ): Promise<{ headers: Headers } | null> {
-  const which = form.get("session")?.toString();
-  if (!which) {
+  const token = form.get("session")?.toString();
+  if (!token) {
     return null;
   }
-  if (which === "all") {
+  if (token === "all") {
     const result = await auth.api.revokeOtherSessions({
       headers: request.headers,
       returnHeaders: true,
@@ -151,8 +158,9 @@ async function RevokeSession(
 
     return { headers: result.headers };
   }
+
   const result = await auth.api.revokeSession({
-    body: { token: which },
+    body: { token: token },
     headers: request.headers,
     returnHeaders: true,
   });
@@ -317,6 +325,42 @@ async function TwoFactorGetTotpUri(
       },
     },
   };
+}
+
+/**
+ * Set-Cookie -> Cookie converter function.
+ *
+ * This is necessary for when the auth.api returns Headers. Those headers
+ * are given a Set-Cookie header. For the loader right after the auth.api
+ * call, we tell Better Auth about the newly generated cookies, instead of
+ * the original request's Cookies, as those have a now-invalid session token.
+ */
+function convertSetCookiesToCookies(
+  orginalRequestHeaders: Headers,
+  newlyCreatedSetCookieHeaders: Headers,
+): Headers {
+  const setCookies = newlyCreatedSetCookieHeaders.getSetCookie();
+  if (setCookies.length === 0) return orginalRequestHeaders;
+
+  const cookies = new Map<string, string>();
+  // Gets all of the original cookies
+  for (const part of (orginalRequestHeaders.get("cookie") || "").split(";")) {
+    const eq = part.indexOf("=");
+    if (eq > 0) cookies.set(part.slice(0, eq).trim(), part.slice(eq + 1));
+  }
+  // Gets the newly created cookies. If there is a conflict, this will win.
+  // I.e., if session_token is present in the original cookies, this will
+  // overwrite.
+  for (const sc of setCookies) {
+    const nameValue = sc.split(";")[0];
+    const eq = nameValue.indexOf("=");
+    if (eq > 0)
+      cookies.set(nameValue.slice(0, eq).trim(), nameValue.slice(eq + 1));
+  }
+
+  const merged = new Headers(orginalRequestHeaders);
+  merged.set("cookie", [...cookies].map(([k, v]) => `${k}=${v}`).join("; "));
+  return merged;
 }
 
 async function TwoFactorGetBackupCodes(
