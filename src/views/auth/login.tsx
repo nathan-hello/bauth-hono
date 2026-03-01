@@ -1,7 +1,15 @@
 import { copy } from "@/lib/copy";
 import type { AuthError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
-import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts } from "@/views/components/ui";
+import {
+  Card,
+  Input,
+  Button,
+  FormFooter,
+  TextLink,
+  ErrorAlerts,
+  Form,
+} from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type LoginProps = {
@@ -13,7 +21,7 @@ export function LoginPage({ errors, email }: LoginProps) {
   return (
     <Layout title={copy.routes.login.title}>
       <Card>
-        <form class="max-w-full flex flex-col gap-4" method="post" action={routes.auth.login}>
+        <Form method="post" action={routes.auth.login}>
           <ErrorAlerts errors={errors} />
           <Input
             type="text"
@@ -32,13 +40,10 @@ export function LoginPage({ errors, email }: LoginProps) {
           />
           <Button type="submit">{copy.button_continue}</Button>
           <FormFooter>
-            <span>
-              {copy.register_prompt}{" "}
-              <TextLink href="/auth/register">{copy.register}</TextLink>
-            </span>
+            <TextLink href="/auth/register">{copy.register_prompt}</TextLink>
             <TextLink href="/auth/forgot">{copy.change_prompt}</TextLink>
           </FormFooter>
-        </form>
+        </Form>
       </Card>
     </Layout>
   );

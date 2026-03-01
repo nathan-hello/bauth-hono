@@ -3,7 +3,11 @@ import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { getAuthError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
+import {
+  redirectIfSession,
+  redirectWithHeaders,
+  serverError,
+} from "@/routes/auth/redirect";
 import { TwoFactorPage } from "@/views/auth/2fa";
 import { parse } from "cookie";
 import { routes } from "@/routes/routes";
@@ -41,17 +45,19 @@ export const post: Handler = async (c) => {
   const result = await tel.task(action?.toUpperCase() ?? "POST", async () => {
     tel.debug("FORM_SUBMITTED", safeRequestAttrs(c.req.raw, form));
 
-    if (action === "switch-totp") {
-      return c.html(TwoFactorPage({ state: { verificationType: "totp" } }));
-    }
-
-    if (action === "switch-email") {
-      await auth.api.sendTwoFactorOTP({
-        body: { trustDevice: true },
-        headers: c.req.raw.headers,
-      });
-      tel.info("2FA_EMAIL_OTP_SENT");
-      return c.html(TwoFactorPage({ state: { verificationType: "email" } }));
+    if (action === "switch") {
+      const to = form.get("to")?.toString();
+      if (to === "email") {
+        await auth.api.sendTwoFactorOTP({
+          body: { trustDevice: true },
+          headers: c.req.raw.headers,
+        });
+        tel.info("2FA_EMAIL_OTP_SENT");
+        return c.html(TwoFactorPage({ state: { verificationType: "email" } }));
+      }
+      if (to === "totp") {
+        return c.html(TwoFactorPage({ state: { verificationType: "totp" } }));
+      }
     }
 
     if (action === "resend-email") {
@@ -60,12 +66,17 @@ export const post: Handler = async (c) => {
         headers: c.req.raw.headers,
       });
       tel.info("2FA_EMAIL_OTP_RESENT");
-      return c.html(TwoFactorPage({ state: { verificationType: "email", resentEmail: status } }));
+      return c.html(
+        TwoFactorPage({
+          state: { verificationType: "email", resentEmail: status },
+        }),
+      );
     }
 
     if (action === "verify-totp") {
       const code = form.get("code")?.toString();
-      if (!code) return c.html(TwoFactorPage({ state: { verificationType: "totp" } }));
+      if (!code)
+        return c.html(TwoFactorPage({ state: { verificationType: "totp" } }));
       const { headers } = await auth.api.verifyTOTP({
         headers: c.req.raw.headers,
         body: { code, trustDevice: true },
@@ -77,7 +88,8 @@ export const post: Handler = async (c) => {
 
     if (action === "verify-email") {
       const code = form.get("code")?.toString();
-      if (!code) return c.html(TwoFactorPage({ state: { verificationType: "email" } }));
+      if (!code)
+        return c.html(TwoFactorPage({ state: { verificationType: "email" } }));
       const { headers } = await auth.api.verifyTwoFactorOTP({
         headers: c.req.raw.headers,
         body: { code, trustDevice: true },
@@ -93,8 +105,14 @@ export const post: Handler = async (c) => {
   if (result.ok) return result.data;
 
   const verificationType =
-    action === "verify-email" || action === "switch-email" || action === "resend-email"
+    action === "verify-email" ||
+    action === "switch-email" ||
+    action === "resend-email"
       ? ("email" as const)
       : ("totp" as const);
-  return c.html(TwoFactorPage({ state: { verificationType, errors: getAuthError(result.error) } }));
+  return c.html(
+    TwoFactorPage({
+      state: { verificationType, errors: getAuthError(result.error) },
+    }),
+  );
 };

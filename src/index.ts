@@ -22,9 +22,14 @@ StartLogging({
 });
 
 import { Hono } from "hono";
+import { trimTrailingSlash } from "hono/trailing-slash";
 import { serveStatic } from "hono/bun";
 
 const app = new Hono();
+
+// Allow trailing slashes. E.g.: /auth/login and /auth/login/
+// become the same route. Browsers like qutebrowser need this.
+app.use(trimTrailingSlash());
 
 app.use("/*", serveStatic({ root: "./public" }));
 

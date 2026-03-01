@@ -30,7 +30,10 @@ export const ERROR_COPY: Partial<Record<AuthError["type"], string>> = {
   ID_TOKEN_NOT_SUPPORTED: "",
   INVALID_EMAIL: "Invalid email.",
   INVALID_EMAIL_OR_PASSWORD: "Invalid credentials.",
-  INVALID_PASSWORD: "Password does not meet requirements.",
+  // This error is for both if the password on registration does
+  // not meet requirements, and in other checks like 2fa-enable where
+  // you get the password icorrent. 
+  INVALID_PASSWORD: "Invalid password.",
   INVALID_TOKEN: "",
   PASSWORD_TOO_LONG: "",
   PASSWORD_TOO_SHORT: "",
@@ -51,7 +54,7 @@ export const ERROR_COPY: Partial<Record<AuthError["type"], string>> = {
   INVALID_BACKUP_CODE: "",
   INVALID_CODE: "Two factor code is invalid.",
   INVALID_DISPLAY_USERNAME: "",
-  INVALID_TWO_FACTOR_COOKIE: "",
+  INVALID_TWO_FACTOR_COOKIE: "Login expired. Log out and log back in again.",
   INVALID_USERNAME_OR_PASSWORD: "",
   OTP_EXPIRED: "",
   OTP_HAS_EXPIRED: "OTP has expired.",
@@ -139,9 +142,11 @@ export const copy = {
   forgot_email_prompt: "Enter your email to reset your password.",
   forgot_code_prompt: "Enter the code sent to your email.",
 
+  twofa_prompt_email: "Enter the code sent to your email",
+  twofa_prompt_totp: "Enter the code shown in your authenticator app (TOTP).",
   twofa_resent_email: "Verification code resent to your email",
-  twofa_switch_totp: "Use authenticator app instead",
-  twofa_switch_email: "Use email verification instead",
+  twofa_switch_to_totp: "Use authenticator app instead",
+  twofa_switch_to_email: "Use email verification instead",
 
   dashboard_title: "Account Settings",
   dashboard_password_changed: "Password changed successfully",
@@ -167,7 +172,7 @@ export const copy = {
 
   dashboard_2fa_heading: "Two-Factor Authentication",
   dashboard_2fa_description:
-    "Use an authenticator app (TOTP) or email codes as a second factor. TOTP must be set up first before email 2FA can be used.",
+    "Use an authenticator app (TOTP) for two factor authentication.",
   dashboard_2fa_enable: "Enable 2FA",
   dashboard_2fa_enabled_badge: "Enabled",
   dashboard_2fa_disabled_badge: "Disabled",
@@ -192,7 +197,7 @@ export const copy = {
   dashboard_sessions_heading: "Sessions",
   dashboard_session_current: "Current",
   dashboard_session_revoke: "Revoke",
-  dashboard_session_revoke_all: "Revoke All Sessions",
+  dashboard_session_revoke_other_sessions: "Revoke Other Sessions",
   dashboard_sessions_empty: "No active sessions",
 
   dashboard_delete_account_heading: "Danger Zone",
