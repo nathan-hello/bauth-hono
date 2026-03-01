@@ -3,7 +3,7 @@ import { auth } from "@/server/auth";
 import { AppError, getAuthError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
-import { LoginPage } from "@/views/login";
+import { LoginPage } from "@/views/auth/login";
 import { routes } from "@/routes/routes";
 
 const tel = new Telemetry(routes.auth.login);

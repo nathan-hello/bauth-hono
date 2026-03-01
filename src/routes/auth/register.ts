@@ -7,7 +7,7 @@ import {
   redirectWithHeaders,
   serverError,
 } from "@/routes/auth/redirect";
-import { RegisterPage } from "@/views/register";
+import { RegisterPage } from "@/views/auth/register";
 import { routes } from "@/routes/routes";
 
 const tel = new Telemetry(routes.auth.register);

@@ -1,7 +1,7 @@
 {
   "name": "bauth-hono",
   "scripts": {
-    "dev": "bun run --no-cache --hot src/index.ts",
+    "dev": "trap 'kill 0' SIGINT; NODE_ENV=development bun --watch src/index.ts & bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --watch & wait",
     "start": "NODE_ENV=production bun run src/index.ts",
     "build:css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --minify",
     "dev:css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --watch",

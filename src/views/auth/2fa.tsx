@@ -1,12 +1,12 @@
 import { copy } from "@/lib/copy";
 import type { AuthError } from "@/lib/auth-error";
-import { Layout } from "@/views/layout";
-import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, FormAlert } from "@/views/ui";
+import { Layout } from "@/views/components/layout";
+import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, FormAlert } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 export type TwoFactorState = {
   errors?: AuthError[];
-  verificationType?: "totp" | "email";
+  verificationType: "totp" | "email";
   resentEmail?: boolean;
 };
 
@@ -24,7 +24,7 @@ export function TwoFactorPage({ state }: TwoFactorProps) {
           <ErrorAlerts errors={state?.errors} />
 
           {state?.resentEmail && (
-            <FormAlert color="success" message={copy.twofa_resent_email} />
+            <FormAlert color="success">{copy.twofa_resent_email}</FormAlert>
           )}
 
           {verificationType === "email" && <EmailVerificationForm />}
@@ -95,9 +95,9 @@ function TotpVerificationForm() {
   );
 }
 
-function VerificationTypeSwitcher({ currentType }: { currentType: "totp" | "email" }) {
+export function VerificationTypeSwitcher({ currentType }: { currentType: "totp" | "email" }) {
   return (
-    <div class="mt-4">
+    <div class="mt-4 text-center">
       {currentType === "email" && (
         <form method="post" action={routes.auth.twoFactor}>
           <input type="hidden" name="action" value="switch-totp" />

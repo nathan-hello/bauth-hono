@@ -1,4 +1,5 @@
 export const routes = {
+  index: "/",
   auth: {
     api: "/auth/api",
     login: "/auth/login",
@@ -7,15 +8,18 @@ export const routes = {
     register: "/auth/register",
     twoFactor: "/auth/2fa",
     dashboard: "/auth/dashboard",
+    delete: "/auth/delete",
   },
   debug: {
     email: "/debug/email",
-    home: "/debug/session",
+    home: "/debug",
   },
 };
 
 export const redirects = {
+  ToLogin: Response.redirect(routes.auth.login, 302),
+  AfterDeleteAcccount: routes.auth.delete + "?email=true",
   afterSuccess: {
-    default: "/",
+    default: "/debug",
   },
 };

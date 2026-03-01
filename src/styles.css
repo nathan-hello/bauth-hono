@@ -1,5 +1,9 @@
 @import "tailwindcss" source("../src");
 
+@view-transition {
+  navigation: "auto";
+}
+
 @theme {
   /* surfaces */
   --color-surface: #282828;
