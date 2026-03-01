@@ -15,20 +15,22 @@ export function Layout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="stylesheet" href="/styles.css" />
-        <script
+        {/**
+         * This removes POST requests from the history stack. If you hit F5 without this after a form submission,
+         * the browser will show a pop up confirming form resubmission. No one has ever intended to do this ever.
+         * It has been deleted because now responses to POST requests no longer refresh the page.
+         **/
+        /*** <script
           dangerouslySetInnerHTML={{
             __html: `
-          /** 
-          * This removes POST requests from the history stack. If you hit F5 without this after a form submission,
-          * the browser will show a pop up confirming form resubmission. No one has ever intended to do this ever.
-          **/
 
             if (history.replaceState) {
               history.replaceState(null,'',location.href)
             }
               `,
           }}
-        />
+        /> ***/}
+
         <script
           type="speculationrules"
           dangerouslySetInnerHTML={{

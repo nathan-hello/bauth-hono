@@ -1,6 +1,7 @@
 import type { Child, JSX, PropsWithChildren } from "hono/jsx";
 import { copy } from "@/lib/copy";
 import type { AuthError } from "@/lib/auth-error";
+import { CircleCheckmark, Exclamation } from "@/views/components/svg";
 
 export function Input(props: Record<string, any>) {
   const { class: cls, ...rest } = props;
@@ -60,7 +61,7 @@ export function TextLink(props: Record<string, any>) {
 export function Card(props: { children: Child; class?: string }) {
   return (
     <div
-      class={`lg:w-lg xl:w-xl flex flex-col gap-6 p-4 bg-surface opacity-95 ${props.class ?? ""}`}
+      class={`w-full max-w-3xl flex flex-col gap-6 p-4 bg-surface opacity-95 ${props.class ?? ""}`}
     >
       {props.children}
     </div>
@@ -98,47 +99,34 @@ export function FormAlert({
   color,
 }: {
   children: Child;
-  color: "danger" | "success";
+  color: "danger" | "success" | "warning";
 }) {
-  const isSuccess = color === "success";
-  const bg = isSuccess ? "bg-success-bg" : "bg-error-bg";
-  const fg = isSuccess ? "text-success-fg" : "text-error-fg";
+  let bg: string;
+  let fg: string;
+  let Svg: Child;
+  switch (color) {
+    case "danger":
+      bg = "bg-error-bg";
+      fg = "text-error-fg";
+      Svg = Exclamation();
+      break;
+    case "success":
+      bg = "bg-success-bg";
+      fg = "text-success-fg";
+      Svg = CircleCheckmark();
+      break;
+    case "warning":
+      bg = "bg-warning";
+      fg = "text-warning";
+      Svg = null;
+      break;
+  }
 
   return (
     <div
-      class={`h-10 flex items-center px-4 ${bg} ${fg} text-left text-xs gap-2`}
+      class={`h-10 flex items-center ${bg} ${fg} text-left text-sm gap-2`}
     >
-      {isSuccess ? (
-        <svg
-          class="w-4 h-4"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-          />
-        </svg>
-      ) : (
-        <svg
-          class="w-4 h-4"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
-          />
-        </svg>
-      )}
+      {Svg}
       <span>{children}</span>
     </div>
   );
@@ -147,7 +135,7 @@ export function FormAlert({
 export function ErrorAlerts({ errors }: { errors?: AuthError[] }) {
   if (!errors || errors.length === 0) return null;
   return (
-          <div class="px-6 py-4 flex flex-col gap-2">
+    <div class="px-6 py-4 flex flex-col gap-2">
       {errors.map((error) => (
         <FormAlert color="danger">
           {error.type ? copy.error[error.type] : copy.error.generic_error}
@@ -197,5 +185,13 @@ export function SectionHeading({
       </h2>
       {right}
     </div>
+  );
+}
+
+export function Header({ children }: { children: Child }) {
+  return (
+    <header class="px-6 pt-6 pb-5 border-b border-border">
+      <p class="uppercase tracking-[0.3em] mb-1">{children}</p>
+    </header>
   );
 }

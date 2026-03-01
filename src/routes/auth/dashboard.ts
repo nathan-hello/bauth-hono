@@ -8,6 +8,7 @@ import {
   type DashboardActionData,
 } from "@/views/auth/dashboard";
 import { redirects, routes } from "@/routes/routes";
+import { APIError } from "better-auth";
 
 const tel = new Telemetry("route.dashboard");
 
@@ -66,8 +67,10 @@ export const post: Handler = async (c) => {
       await actions[action](c.req.raw, form);
 
     tel.debug("ACTION_RESULT", {
-      data: JSON.stringify(result?.data),
-      headers: JSON.stringify(result?.headers),
+      result: {
+        data: JSON.stringify(result?.data),
+        headers: JSON.stringify(result?.headers),
+      },
     });
 
     const html = DashboardPage({
@@ -142,6 +145,10 @@ async function RevokeSession(
       headers: request.headers,
       returnHeaders: true,
     });
+    if (!result.response.status) {
+      throw new AppError("generic_error");
+    }
+
     return { headers: result.headers };
   }
   const result = await auth.api.revokeSession({
@@ -149,6 +156,10 @@ async function RevokeSession(
     headers: request.headers,
     returnHeaders: true,
   });
+
+  if (!result.response.status) {
+    throw new AppError("generic_error");
+  }
   return { headers: result.headers };
 }
 

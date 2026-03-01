@@ -12,6 +12,8 @@ import {
   SectionHeading,
   Section,
   ButtonLink,
+  Header,
+  Card,
 } from "@/views/components/ui";
 import type { Child } from "hono/jsx";
 import { raw } from "hono/html";
@@ -49,32 +51,26 @@ type DashboardProps = {
 export function DashboardPage({ actionData, loaderData }: DashboardProps) {
   return (
     <Layout title={copy.routes.dashboard.title}>
-      <div class="w-full max-w-3xl mx-auto py-6 px-4">
-        <div class="bg-surface text-fg">
-          <header class="px-6 pt-6 pb-5 border-b border-border">
-            <p class="uppercase tracking-[0.3em] mb-1">
-              {copy.dashboard_title}
-            </p>
-          </header>
-          <ErrorAlerts errors={actionData?.errors} />
-          <div class="divide-y divide-border">
-            <EmailSection
-              email={loaderData.user}
-              verificationSent={actionData?.email_verify?.sent}
-            />
-            <PasswordSection />
-            <TwoFactorSection
-              state={actionData?.totp}
-              userEnabled={loaderData.user.twoFactorEnabled}
-            />
-            <SessionsSection
-              sessions={loaderData.sessions}
-              current={loaderData.session}
-            />
-            <DeleteAccount />
-          </div>
+      <Card>
+        <Header>{copy.dashboard_title}</Header>
+        <ErrorAlerts errors={actionData?.errors} />
+        <div class="divide-y divide-border">
+          <EmailSection
+            email={loaderData.user}
+            verificationSent={actionData?.email_verify?.sent}
+          />
+          <PasswordSection />
+          <TwoFactorSection
+            state={actionData?.totp}
+            userEnabled={loaderData.user.twoFactorEnabled}
+          />
+          <SessionsSection
+            sessions={loaderData.sessions}
+            current={loaderData.session}
+          />
+          <DeleteAccount />
         </div>
-      </div>
+      </Card>
     </Layout>
   );
 }
@@ -100,7 +96,7 @@ function EmailSection({
   return (
     <Section>
       <SectionHeading>{copy.dashboard_email_heading}</SectionHeading>
-      <p class="text-sm mb-5">{email.email}</p>
+      <p>{email.email}</p>
       <Form method="post" action={routes.auth.dashboard}>
         <input type="hidden" name="action" value={actionName.email_change} />
         <Input
@@ -204,7 +200,7 @@ function TwoFactorDisabled() {
   return (
     <Section>
       <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
-      <p class="text-sm text-fg-muted mb-4">{copy.dashboard_2fa_description}</p>
+      <p>{copy.dashboard_2fa_description}</p>
       <Form
         method="post"
         action={routes.auth.dashboard}
@@ -232,7 +228,7 @@ function TwoFactorSetup({ state }: { state: TotpState }) {
   return (
     <Section>
       <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
-      <p class="text-sm text-warning mb-4">{copy.dashboard_2fa_setup_prompt}</p>
+      <FormAlert color="warning">{copy.dashboard_2fa_setup_prompt}</FormAlert>
       {state.totpURI && (
         <div class="mb-5">
           <TwoFactorTotpViewer secret={state.totpURI} />
@@ -342,7 +338,7 @@ function TwoFactorEnabled({ state }: { state?: TotpState }) {
   return (
     <Section>
       <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
-      <p class="text-sm text-success mb-4">{copy.dashboard_2fa_active}</p>
+      <FormAlert color="success">{copy.dashboard_2fa_active}</FormAlert>
       <div class="flex flex-col gap-2 mt-5 pt-5 border-t border-border-muted max-w-sm">
         {state?.totpURI ? (
           <div class="mb-5">
