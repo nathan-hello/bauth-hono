@@ -5,6 +5,7 @@ import {
   type AnyValue,
 } from "@opentelemetry/api-logs";
 import { getLoggerProvider } from "@/server/telemetry/sdk";
+import { AppError, getAuthError } from "@/lib/auth-error";
 
 export type TelemetryLogSchema = {
   info: [string, Record<string, AnyValue>];
@@ -15,7 +16,7 @@ export type TelemetryLogSchema = {
 
 export type TaskResult<R> =
   | { ok: true; traceId: string; data: R }
-  | { ok: false; traceId: string; error: unknown };
+  | { ok: false; traceId: string; error: AppError[] };
 
 const SENSITIVE_KEYS = new Set([
   "password",
@@ -86,7 +87,7 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
               this.handleError(span, name, err);
               return {
                 ok: false as const,
-                error: err,
+                error: getAuthError(err),
                 traceId: span.spanContext().traceId,
               };
             })
@@ -105,7 +106,7 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
         span.end();
         return {
           ok: false as const,
-          error: err,
+          error: getAuthError(err),
           traceId: span.spanContext().traceId,
         };
       }

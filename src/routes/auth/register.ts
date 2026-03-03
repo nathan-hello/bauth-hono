@@ -1,6 +1,5 @@
 import type { Handler } from "hono";
 import { auth, validateUsername } from "@/server/auth";
-import { getAuthError, type AuthError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import {
   redirectIfSession,
@@ -9,6 +8,7 @@ import {
 } from "@/routes/auth/redirect";
 import { RegisterPage } from "@/views/auth/register";
 import { routes } from "@/routes/routes";
+import { AppError } from "@/lib/auth-error";
 
 const tel = new Telemetry(routes.auth.register);
 
@@ -34,19 +34,18 @@ export const post: Handler = async (c) => {
     return c.html(RegisterPage({}));
   }
 
-  const errs = parseRegister({ username, email, password, repeat });
-  if (errs) {
-    return c.html(RegisterPage({ errors: errs, email }));
-  }
+  const result = await tel.task("POST", async (span) => {
 
-  if (!username || !password || !repeat) {
-    return c.html(
-      RegisterPage({ errors: [{ type: "INVALID_EMAIL_OR_PASSWORD" }], email }),
-    );
-  }
+    const errs = parseRegister({ username, email, password, repeat });
+    if (errs) {
+      throw errs;
+    }
 
-  const result = await tel.task("SIGN_UP", async (span) => {
-    tel.debug("ATTEMPT", safeRequestAttrs(c.req.raw, form));
+    if (!username || !password || !repeat) {
+      throw new AppError("INVALID_EMAIL_OR_PASSWORD");
+    }
+
+    tel.debug("attrs", safeRequestAttrs(c.req.raw, form));
 
     const { headers, response } = await auth.api.signUpEmail({
       body: {
@@ -64,23 +63,28 @@ export const post: Handler = async (c) => {
       span.setAttribute("user.id", response.user.id);
     }
 
-    tel.info("SIGN_UP_SUCCESS");
     return redirectWithHeaders(headers, "/auth/dashboard");
   });
 
   if (result.ok) return result.data;
-  return c.html(RegisterPage({ errors: getAuthError(result.error), email }));
+  return c.html(RegisterPage({ errors: result.error, email }));
 };
 
 function parseRegister(
   data: Record<string, string | undefined>,
-): AuthError[] | undefined {
-  const errors: AuthError[] = [];
-  if (!data.email) errors.push({ type: "INVALID_EMAIL" });
-  if (!data.password) errors.push({ type: "INVALID_PASSWORD" });
-  if (!data.username || !validateUsername(data.username))
-    errors.push({ type: "INVALID_USERNAME" });
-  if (!data.repeat || data.password !== data.repeat)
-    errors.push({ type: "password_mismatch" });
+): AppError[] | undefined {
+  const errors: AppError[] = [];
+  if (!data.email) {
+    errors.push(new AppError("INVALID_EMAIL"));
+  }
+  if (!data.password) {
+    errors.push(new AppError("INVALID_PASSWORD"));
+  }
+  if (!data.username || !validateUsername(data.username)) {
+    errors.push(new AppError("INVALID_USERNAME"));
+  }
+  if (!data.repeat || data.password !== data.repeat) {
+    errors.push(new AppError("password_mismatch"));
+  }
   return errors.length > 0 ? errors : undefined;
 }

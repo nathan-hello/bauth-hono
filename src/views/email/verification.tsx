@@ -1,8 +1,6 @@
 import { copy } from "@/lib/copy";
 import { EmailLayout } from "@/views/email/layout";
 
-import {jsx} from "hono/jsx"
-
 export function EmailVerification({ email, verificationLink, url }: { email: string; verificationLink: string; url: string }) {
   const fullLink = url + verificationLink;
   return (

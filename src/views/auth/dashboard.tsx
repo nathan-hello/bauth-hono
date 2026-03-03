@@ -1,5 +1,5 @@
 import { copy } from "@/lib/copy";
-import { AppError, type AuthError } from "@/lib/auth-error";
+import { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
 import {
   Input,
@@ -23,7 +23,7 @@ import { BAuthSession } from "@/lib/types";
 import { actionName } from "@/routes/auth/dashboard";
 
 export type DashboardActionData = {
-  errors?: AuthError[];
+  errors?: AppError[];
   change_password?: { success: boolean };
   email_verify?: { sent: boolean };
   totp?: TotpState;
@@ -36,11 +36,10 @@ export type DashboardLoaderData = BAuthSession & {
 type TotpState = {
   intermediateEnable?: boolean;
   totpURI?: string;
-  qrSvg?: string;
   backupCodes?: string[];
   userEnabled: boolean;
   verified?: boolean;
-  errors?: AuthError[];
+  errors?: AppError[];
 };
 
 type DashboardProps = {
@@ -419,7 +418,7 @@ function VerifyTotpForm({
   intermediateEnable,
 }: {
   success?: boolean;
-  errors?: AuthError[];
+  errors?: AppError[];
   optionalCopy?: boolean;
   totpURI?: string;
   backupCodes?: string[];

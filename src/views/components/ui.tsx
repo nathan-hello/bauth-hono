@@ -1,6 +1,6 @@
 import type { Child, JSX, PropsWithChildren } from "hono/jsx";
 import { copy } from "@/lib/copy";
-import type { AuthError } from "@/lib/auth-error";
+import type { AppError } from "@/lib/auth-error";
 import { CircleCheckmark, Exclamation } from "@/views/components/svg";
 
 export function Input(props: Record<string, any>) {
@@ -146,14 +146,12 @@ export function FormAlert({
   );
 }
 
-export function ErrorAlerts({ errors }: { errors?: AuthError[] }) {
+export function ErrorAlerts({ errors }: { errors?: AppError[] }) {
   if (!errors || errors.length === 0) return null;
   return (
     <div class="px-6 py-4 flex flex-col gap-2">
       {errors.map((error) => (
-        <FormAlert color="danger">
-          {error.type ? copy.error[error.type] : copy.error.generic_error}
-        </FormAlert>
+        <FormAlert color="danger">{error.code}</FormAlert>
       ))}
     </div>
   );

@@ -1,7 +1,7 @@
 import { copy } from "@/lib/copy";
 import { actionName } from "@/routes/auth/delete";
 import { routes } from "@/routes/routes";
-import { TwoFactorState, VerificationTypeSwitcher } from "@/views/auth/2fa";
+import { TwoFactorState } from "@/views/auth/2fa";
 import { Layout } from "@/views/components/layout";
 import {
   Button,
@@ -12,7 +12,6 @@ import {
   Input,
   Label,
   Section,
-  SectionHeading,
 } from "@/views/components/ui";
 
 export function DeleteAccountPage({ state }: { state?: TwoFactorState }) {
@@ -26,7 +25,7 @@ export function DeleteAccountPage({ state }: { state?: TwoFactorState }) {
               ? copy.delete_section_header
               : copy.delete_section_header_password_only}
           </Label>
-          <Form method="post" action={routes.auth.dashboard}>
+          <Form method="post" action={routes.auth.delete}>
             <input
               type="hidden"
               name="action"
@@ -44,13 +43,19 @@ export function DeleteAccountPage({ state }: { state?: TwoFactorState }) {
 
             {state && (
               <>
-                <Label for={state.verificationType}>
+                <Label for="otp">
                   {state.verificationType === "email"
                     ? copy.delete_section_2fa_email
                     : copy.delete_section_2fa_totp}
                 </Label>
+                <input
+                  type="hidden"
+                  name="otp-type"
+                  value={state.verificationType}
+                />
                 <Input
-                  name={state.verificationType}
+                  id="otp"
+                  name="otp"
                   minlength={6}
                   maxlength={6}
                   required
@@ -60,16 +65,68 @@ export function DeleteAccountPage({ state }: { state?: TwoFactorState }) {
                 <VerificationTypeSwitcher
                   currentType={state.verificationType}
                 />
-                <br/>
+                <br />
               </>
             )}
-            <Button variant="danger">{copy.delete_confirm_button}</Button>
+            <Button type="submit" variant="danger">
+              {copy.delete_confirm_button}
+            </Button>
           </Form>
         </Section>
         <Section>
-          <ButtonLink variant="primary">Back to safety</ButtonLink>
+          <ButtonLink href={routes.auth.dashboard} variant="primary">
+            {copy.delete_go_back}
+          </ButtonLink>
         </Section>
       </Card>
     </Layout>
   );
+}
+
+export function DeleteSuccessPage() {
+  return (
+    <Layout title={copy.routes.dashboard.title}>
+      <Card>
+        <Header>{copy.delete_title}</Header>
+        <Section>
+          <Label center unmuted>
+            {copy.delete_success_header}
+          </Label>
+        </Section>
+        <Section>
+          <ButtonLink href={routes.index}>{copy.go_home}</ButtonLink>
+        </Section>
+      </Card>
+    </Layout>
+  );
+}
+
+function VerificationTypeSwitcher({
+  currentType = "totp",
+}: {
+  currentType: "totp" | "email" | undefined;
+}) {
+  if (currentType === "email") {
+    return (
+      <Form method="post" action={routes.auth.delete}>
+        <input type="hidden" name="action" value={actionName.switch_otp} />
+        <input type="hidden" name="to" value="totp" />
+        <Button variant="ghost" type="submit">
+          {copy.twofa_switch_to_totp}
+        </Button>
+      </Form>
+    );
+  }
+  if (currentType === "totp") {
+    return (
+      <Form method="post" action={routes.auth.delete}>
+        <input type="hidden" name="action" value={actionName.switch_otp} />
+        <input type="hidden" name="to" value="email" />
+        <Button variant="ghost" type="submit">
+          {copy.twofa_switch_to_email}
+        </Button>
+      </Form>
+    );
+  }
+  return null;
 }

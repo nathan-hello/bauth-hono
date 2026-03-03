@@ -1,20 +1,11 @@
-import type { Context, Handler } from "hono";
+import type { Handler } from "hono";
 import { auth } from "@/server/auth";
-import { getAuthError } from "@/lib/auth-error";
-import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { redirectWithHeaders } from "@/routes/auth/redirect";
 import { LogoutPage } from "@/views/auth/logout";
 import { routes } from "@/routes/routes";
 
 const tel = new Telemetry(routes.auth.logout);
-
-function handleSignOutError(c: Context, error: unknown) {
-  if (error instanceof APIError && error.body?.code === "FAILED_TO_GET_SESSION") {
-    return Response.redirect("/", 302);
-  }
-  return c.html(LogoutPage({ errors: getAuthError(error) }));
-}
 
 export const get: Handler = async (c) => {
   const result = await tel.task("GET", async () => {
@@ -33,8 +24,13 @@ export const get: Handler = async (c) => {
     return redirectWithHeaders(headers, "/");
   });
 
-  if (result.ok) return result.data;
-  return handleSignOutError(c, result.error);
+  if (result.ok) {
+    return result.data;
+  }
+  if (result.error[0].code === "FAILED_TO_GET_SESSION") {
+    return Response.redirect("/", 302);
+  }
+  return c.html(LogoutPage({ errors: result.error }));
 };
 
 export const post: Handler = async (c) => {
@@ -52,6 +48,12 @@ export const post: Handler = async (c) => {
     return redirectWithHeaders(headers, "/");
   });
 
-  if (result.ok) return result.data;
-  return handleSignOutError(c, result.error);
+  if (result.ok) {
+    return result.data;
+  }
+
+  if (result.error[0].code === "FAILED_TO_GET_SESSION") {
+    return Response.redirect("/", 302);
+  }
+  return c.html(LogoutPage({ errors: result.error }));
 };

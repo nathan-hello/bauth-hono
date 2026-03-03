@@ -1,9 +1,13 @@
 import type { Handler } from "hono";
 import { auth } from "@/server/auth";
-import { AppError, getAuthError } from "@/lib/auth-error";
+import { AppError } from "@/lib/auth-error";
 import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
+import {
+  redirectIfSession,
+  redirectWithHeaders,
+  serverError,
+} from "@/routes/auth/redirect";
 import { ForgotPage, type ForgotStep } from "@/views/auth/forgot";
 import { routes } from "@/routes/routes";
 
@@ -30,7 +34,9 @@ export const post: Handler = async (c) => {
   const repeat = form.get("repeat")?.toString();
 
   if (!step || !["start", "code", "update", "try-again"].includes(step)) {
-    return c.html(ForgotPage({ step: "start", errors: [{ type: "generic_error" }] }));
+    return c.html(
+      ForgotPage({ step: "start", errors: [new AppError("generic_error")] }),
+    );
   }
 
   const result = await tel.task(step.toUpperCase(), async () => {
@@ -65,8 +71,12 @@ export const post: Handler = async (c) => {
     }
 
     if (step === "update") {
-      if (!password || !repeat || password !== repeat) throw new AppError("password_mismatch");
-      if (!email || !code) throw new AppError("generic_error", "missing email or code");
+      if (!password || !repeat || password !== repeat)
+        throw new AppError("password_mismatch");
+      if (!email) {
+        throw new AppError("field_missing_email");
+      }
+      if (!code) throw new AppError("field_missing_code");
 
       const { headers, response } = await auth.api.resetPasswordEmailOTP({
         headers: c.req.raw.headers,
@@ -74,7 +84,7 @@ export const post: Handler = async (c) => {
         returnHeaders: true,
       });
       if (!response.success) {
-        throw new AppError("generic_error", "resetPasswordEmailOTP returned success=false");
+        throw new AppError("generic_error");
       }
 
       tel.info("PASSWORD_RESET", { email });
@@ -85,8 +95,16 @@ export const post: Handler = async (c) => {
   });
 
   if (result.ok) return result.data;
-  if (result.error instanceof APIError && result.error.body?.code === "TOO_MANY_ATTEMPTS") {
-    return c.html(ForgotPage({ step: "try-again", errors: [{ type: "TOO_MANY_ATTEMPTS" }] }));
+  if (
+    result.error instanceof APIError &&
+    result.error.body?.code === "TOO_MANY_ATTEMPTS"
+  ) {
+    return c.html(
+      ForgotPage({
+        step: "try-again",
+        errors: [new AppError("TOO_MANY_ATTEMPTS")],
+      }),
+    );
   }
-  return c.html(ForgotPage({ step, errors: getAuthError(result.error), email }));
+  return c.html(ForgotPage({ step, errors: result.error, email }));
 };

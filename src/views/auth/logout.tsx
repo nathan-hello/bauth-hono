@@ -1,11 +1,11 @@
 import { copy } from "@/lib/copy";
-import type { AuthError } from "@/lib/auth-error";
+import type { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
 import { Card, Button, FormFooter, TextLink, ErrorAlerts } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type LogoutProps = {
-  errors?: AuthError[];
+  errors?: AppError[];
 };
 
 export function LogoutPage({ errors }: LogoutProps) {
