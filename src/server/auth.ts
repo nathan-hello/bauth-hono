@@ -1,8 +1,4 @@
-import {
-  EmailOtp as EmailOtpTemplate,
-  Email2fa as Email2faTemplate,
-} from "@/views/email/two-factor";
-import { EmailVerification as EmailVerificationTemplate } from "@/views/email/verification";
+import * as emails from "@/views/email/two-factor";
 import { copy } from "@/lib/copy";
 import { Resend } from "resend";
 import { Telemetry } from "@/server/telemetry";
@@ -32,8 +28,7 @@ export const auth = betterAuth({
   user: {
     changeEmail: {
       enabled: true,
-      sendChangeEmailVerification: async (data) => {},
-      sendChangeEmailConfirmation: async (data) => {},
+      sendChangeEmailConfirmation: async (data, _request) => {},
     },
     deleteUser: {
       enabled: true,
@@ -52,20 +47,64 @@ export const auth = betterAuth({
       otpOptions: {
         storeOTP: "plain",
         sendOTP: async (data, _request) => {
-          tel.info("SEND_OTP", {
-            "user.email": data.user.email,
-            "user.id": data.user.id,
-            channel: "email-otp",
+          const result = await tel.task("SEND_2FA_OTP", async (span) => {
+            span.setAttributes({
+              "user.email": data.user.email,
+              "user.id": data.user.id,
+              channel: "email-otp",
+            });
+            const response = await resend.emails.send({
+              from: dotenv.FROM_EMAIL,
+              to: data.user.email,
+              subject: copy.email_2fa_subject,
+              html: emails
+                .Email2fa({
+                  email: data.user.email,
+                  otp: data.otp,
+                  url: dotenv.PRODUCTION_URL,
+                })
+                .toString(),
+            });
+            if (response.error) {
+              throw response.error;
+            }
+            return response;
+          });
+          if (result.ok) {
+            tel.debug("RESEND_SUCCESS", {
+              emailId: result.data.data.id,
+              headers: result.data.headers,
+            });
+            return;
+          }
+          tel.error("RESEND_ERROR", {
+            error: result.error,
+          });
+        },
+      },
+    }),
+
+    emailOTP({
+      expiresIn: 60 * 15,
+      overrideDefaultEmailVerification: true,
+      sendVerificationOTP: async (data, _request) => {
+        const result = await tel.task("SEND_EMAIL_OTP_SIGNIN", async (span) => {
+          span.setAttributes({
+            "user.email": data.email,
+            type: data.type,
+            channel: "email-signin",
           });
           const response = await resend.emails.send({
             from: dotenv.FROM_EMAIL,
-            to: data.user.email,
-            subject: copy.email_2fa_subject,
-            html: Email2faTemplate({
-              email: data.user.email,
-              otp: data.otp,
-              url: dotenv.PRODUCTION_URL,
-            }).toString(),
+            to: data.email,
+            subject: copy.email_otp_subject,
+            html: emails
+              .EmailOtp({
+                email: data.email,
+                otp: data.otp,
+                url: dotenv.PRODUCTION_URL,
+              })
+              .toString(),
           });
           if (response.error) {
             tel.error("RESEND_ERROR", {
@@ -78,40 +117,7 @@ export const auth = betterAuth({
               headers: response.headers,
             });
           }
-        },
-      },
-    }),
-
-    emailOTP({
-      expiresIn: 60 * 15,
-      overrideDefaultEmailVerification: true,
-      sendVerificationOTP: async (data, _request) => {
-        tel.info("SEND_OTP", {
-          "user.email": data.email,
-          type: data.type,
-          channel: "email-signin",
         });
-        const response = await resend.emails.send({
-          from: dotenv.FROM_EMAIL,
-          to: data.email,
-          subject: copy.email_otp_subject,
-          html: EmailOtpTemplate({
-            email: data.email,
-            otp: data.otp,
-            url: dotenv.PRODUCTION_URL,
-          }).toString(),
-        });
-        if (response.error) {
-          tel.error("RESEND_ERROR", {
-            error: response.error,
-            headers: response.headers,
-          });
-        } else {
-          tel.info("RESEND_SUCCESS", {
-            id: response.data.id,
-            headers: response.headers,
-          });
-        }
       },
     }),
   ],
@@ -135,7 +141,10 @@ export const auth = betterAuth({
 
   advanced: {
     cookiePrefix: dotenv.COOKIE_PREFIX,
-    // This is neccesary because the browser
+    // This is neccesary because the browser treats localhost as
+    // "secure" but it doesn't actually use https, so any session
+    // tokens in dev will not work because better-auth will give
+    // a __Secure. cookie by default.
     useSecureCookies: process.env.NODE_ENV !== "development",
   },
 
@@ -172,11 +181,13 @@ export const auth = betterAuth({
         from: dotenv.FROM_EMAIL,
         to: data.user.email,
         subject: copy.email_verification_subject,
-        html: EmailVerificationTemplate({
-          email: data.user.email,
-          verificationLink: data.url,
-          url: dotenv.PRODUCTION_URL,
-        }).toString(),
+        html: emails
+          .EmailVerification({
+            email: data.user.email,
+            verificationLink: data.url,
+            url: dotenv.PRODUCTION_URL,
+          })
+          .toString(),
       });
       if (response.error) {
         tel.error("RESEND_ERROR", {
