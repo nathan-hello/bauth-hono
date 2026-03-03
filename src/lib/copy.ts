@@ -1,12 +1,34 @@
-import type { AuthError } from "@/lib/auth-error";
+import type { TErrorCodes } from "@/lib/auth-error";
 
-export const ERROR_COPY: Partial<Record<AuthError["type"], string>> = {
+export const ERROR_COPY: Record<TErrorCodes, string> = {
   password_mismatch: "Passwords do not match.",
   totp_uri_not_found: "",
   generic_error: "Something wrong happened.",
   otp_failed: "Verification failed.",
   code_invalid: "Invalid verification code.",
+  field_missing_code: "Missing OTP",
+  field_missing_email: "Missing email",
+  field_missing_password: "Missing password",
+  field_missing_password_repeat: "Missing password",
 
+  ASYNC_VALIDATION_NOT_SUPPORTED: "",
+  CALLBACK_URL_REQUIRED: "",
+  CROSS_SITE_NAVIGATION_LOGIN_BLOCKED: "",
+  EMAIL_ALREADY_VERIFIED: "",
+  EMAIL_MISMATCH: "",
+  FAILED_TO_CREATE_VERIFICATION: "",
+  FIELD_NOT_ALLOWED: "",
+  INVALID_CALLBACK_URL: "",
+  INVALID_ERROR_CALLBACK_URL: "",
+  INVALID_NEW_USER_CALLBACK_URL: "",
+  INVALID_ORIGIN: "",
+  INVALID_REDIRECT_URL: "",
+  LINKED_ACCOUNT_ALREADY_EXISTS: "",
+  MISSING_FIELD: "",
+  MISSING_OR_NULL_ORIGIN: "",
+  SESSION_NOT_FRESH: "",
+  VALIDATION_ERROR: "",
+  VERIFICATION_EMAIL_NOT_ENABLED: "",
   INVALID_USERNAME: "Username is invalid.",
   USERNAME_IS_TOO_SHORT: "Username is too short.",
   USERNAME_TOO_SHORT: "Username is too short.",
@@ -32,7 +54,7 @@ export const ERROR_COPY: Partial<Record<AuthError["type"], string>> = {
   INVALID_EMAIL_OR_PASSWORD: "Invalid credentials.",
   // This error is for both if the password on registration does
   // not meet requirements, and in other checks like 2fa-enable where
-  // you get the password icorrent. 
+  // you get the password icorrent.
   INVALID_PASSWORD: "Invalid password.",
   INVALID_TOKEN: "",
   PASSWORD_TOO_LONG: "",
@@ -91,6 +113,8 @@ const routes: Record<RouteKey, RouteMeta> = {
 
 export const copy = {
   error: { ...ERROR_COPY },
+  trace_id: "Trace ID",
+
   routes,
 
   home_signed_in_as: "Signed in as",
@@ -192,7 +216,8 @@ export const copy = {
   dashboard_backup_codes_title: "Backup Codes",
   dashboard_backup_codes_copied: "Copied",
   dashboard_backup_codes_copy_all: "Copy All",
-  dashboard_backup_codes_save: "Save these somewhere safe. Each code works once.",
+  dashboard_backup_codes_save:
+    "Save these somewhere safe. Each code works once.",
 
   dashboard_sessions_heading: "Sessions",
   dashboard_session_current: "Current",
@@ -204,16 +229,21 @@ export const copy = {
   dashboard_delete_account_button: "Delete Account",
   delete_confirm_button: "I'm sure. Delete my account",
   delete_title: "Delete Account",
-  delete_section_header_password_only: "Enter your password to verify deleting your account.",
-  delete_section_header: "Enter your password and 2FA to verify deleting your account.",
+  delete_section_header_password_only:
+    "Enter your password to verify deleting your account.",
+  delete_section_header:
+    "Enter your password and 2FA to verify deleting your account.",
   delete_section_2fa_totp: "Authenticator App (TOTP) Passcode",
   delete_section_2fa_email: "Email OTP",
+  delete_go_back: "Back to safety",
+  delete_success_header: "Your account has been successfully deleted.",
 
   email_otp_subject: "One time passcode",
   email_2fa_subject: "One time passcode",
   email_verification_subject: "Email verification",
   email_otp_body: "Your one-time login code for",
-  email_otp_expiry: "This code expires in 15 minutes. Do not share it with anyone.",
+  email_otp_expiry:
+    "This code expires in 15 minutes. Do not share it with anyone.",
   email_2fa_body: "Your two-factor authentication code for",
   email_2fa_expiry: "This code expires shortly. Do not share it with anyone.",
   email_verify_body: "Click the link below to verify the email address",
@@ -225,7 +255,7 @@ export const copy = {
   email_footer_suffix: "to review your account.",
 
   error_default: "An unexpected error occurred.",
-  error_go_home: "Go home",
+  go_home: "Go home",
 };
 
 export type Copy = typeof copy;

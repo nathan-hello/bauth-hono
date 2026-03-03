@@ -1,7 +1,6 @@
 import type { Handler } from "hono";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
-import { getAuthError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import {
   redirectIfSession,
@@ -112,7 +111,7 @@ export const post: Handler = async (c) => {
       : ("totp" as const);
   return c.html(
     TwoFactorPage({
-      state: { verificationType, errors: getAuthError(result.error) },
+      state: { verificationType, errors: result.error },
     }),
   );
 };

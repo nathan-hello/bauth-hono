@@ -1,19 +1,26 @@
 import type { Handler } from "hono";
 import { auth } from "@/server/auth";
-import { AppError, getAuthError } from "@/lib/auth-error";
+import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
+import {
+  redirectIfSession,
+  redirectWithHeaders,
+  serverError,
+} from "@/routes/auth/redirect";
 import { LoginPage } from "@/views/auth/login";
 import { routes } from "@/routes/routes";
 
 const tel = new Telemetry(routes.auth.login);
 
 export const get: Handler = async (c) => {
-  console.log("asdf");
   const result = await tel.task("GET", async (span) => {
     tel.debug("REQUEST", safeRequestAttrs(c.req.raw));
     const existing = await redirectIfSession(c.req.raw);
-    if (existing) return existing;
+    if (existing) {
+      span.setAttribute("user.id", existing.userId);
+      return existing.response;
+    }
+
     return c.html(LoginPage({}));
   });
   if (result.ok) return result.data;
@@ -26,7 +33,12 @@ export const post: Handler = async (c) => {
   const password = form.get("password")?.toString();
 
   if (!email || !password) {
-    return c.html(LoginPage({ errors: [{ type: "INVALID_EMAIL_OR_PASSWORD" }], email: email || "" }));
+    return c.html(
+      LoginPage({
+        errors: [new AppError("INVALID_EMAIL_OR_PASSWORD")],
+        email: email || "",
+      }),
+    );
   }
 
   const isEmail = email.includes("@");
@@ -64,5 +76,5 @@ export const post: Handler = async (c) => {
   });
 
   if (result.ok) return result.data;
-  return c.html(LoginPage({ errors: getAuthError(result.error), email }));
+  return c.html(LoginPage({ errors: result.error, email }));
 };

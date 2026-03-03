@@ -9,6 +9,7 @@ export const routes = {
     twoFactor: "/auth/2fa",
     dashboard: "/auth/dashboard",
     delete: "/auth/delete",
+    deleteSuccess: "/auth/delete/success",
   },
   debug: {
     email: "/debug/email",
@@ -18,7 +19,7 @@ export const routes = {
 
 export const redirects = {
   ToLogin: Response.redirect(routes.auth.login, 302),
-  AfterDeleteAcccount: routes.auth.delete + "?email=true",
+  AfterDeleteAcccount: routes.auth.deleteSuccess,
   afterSuccess: {
     default: "/debug",
   },

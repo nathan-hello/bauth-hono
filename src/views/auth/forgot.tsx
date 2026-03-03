@@ -1,5 +1,5 @@
 import { copy } from "@/lib/copy";
-import type { AuthError } from "@/lib/auth-error";
+import type { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
@@ -7,7 +7,7 @@ import { routes } from "@/routes/routes";
 export type ForgotStep = "start" | "code" | "update" | "try-again";
 
 type ForgotProps = {
-  errors?: AuthError[];
+  errors?: AppError[];
   email?: string;
   code?: string;
   step: ForgotStep;
