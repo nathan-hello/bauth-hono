@@ -5,7 +5,7 @@ import {
   type AnyValue,
 } from "@opentelemetry/api-logs";
 import { getLoggerProvider } from "@/server/telemetry/sdk";
-import { AppError, TErrorCodes } from "@/lib/auth-error";
+import { AppError, TErrorCodes, ResendErrorCodes } from "@/lib/auth-error";
 import { APIError } from "better-auth";
 import { ERROR_COPY } from "@/lib/copy";
 
@@ -193,9 +193,11 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
  * this function with a known AppError | AppError[] should simply not
  * do that.
  */
-export function getAuthError<T>(
-  e: T extends AppError ? never : T extends AppError[] ? never : unknown,
-): AppError[] {
+
+export function getAuthError<T>(e: unknown): AppError[] {
+  if (e === null) {
+    return [];
+  }
   if (e instanceof AppError) {
     return [e];
   }
@@ -208,6 +210,15 @@ export function getAuthError<T>(
     if (typeof code === "string" && code in ERROR_COPY) {
       return [new AppError(code as TErrorCodes)];
     }
+  }
+
+  if (
+    typeof e === "object" &&
+    "name" in e &&
+    typeof e.name === "string" &&
+    ResendErrorCodes.includes(e.name as any)
+  ) {
+    return [new AppError(e.name as (typeof ResendErrorCodes)[number])];
   }
 
   return [new AppError("generic_error")];

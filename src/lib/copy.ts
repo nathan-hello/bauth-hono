@@ -1,6 +1,30 @@
 import type { TErrorCodes } from "@/lib/auth-error";
 
 export const ERROR_COPY: Record<TErrorCodes, string> = {
+  // Resend email errors
+  invalid_idempotency_key: "",
+  validation_error: "",
+  missing_api_key: "",
+  restricted_api_key: "",
+  invalid_api_key: "",
+  not_found: "",
+  method_not_allowed: "",
+  invalid_idempotent_request: "",
+  concurrent_idempotent_requests: "",
+  invalid_attachment: "",
+  invalid_from_address: "",
+  invalid_access: "",
+  invalid_parameter: "",
+  invalid_region: "",
+  missing_required_field: "",
+  monthly_quota_exceeded: "",
+  daily_quota_exceeded: "",
+  rate_limit_exceeded: "",
+  security_error: "",
+  application_error: "",
+  internal_server_error: "",
+
+  // Internally made errors
   password_mismatch: "Passwords do not match.",
   totp_uri_not_found: "",
   generic_error: "Something wrong happened.",
@@ -11,6 +35,7 @@ export const ERROR_COPY: Record<TErrorCodes, string> = {
   field_missing_password: "Missing password",
   field_missing_password_repeat: "Missing password",
 
+  // Better Auth errors
   ASYNC_VALIDATION_NOT_SUPPORTED: "",
   CALLBACK_URL_REQUIRED: "",
   CROSS_SITE_NAVIGATION_LOGIN_BLOCKED: "",
@@ -200,7 +225,8 @@ export const copy = {
   dashboard_2fa_enable: "Enable 2FA",
   dashboard_2fa_enabled_badge: "Enabled",
   dashboard_2fa_disabled_badge: "Disabled",
-  dashboard_2fa_setup_prompt: "Verify using your authenticator app to complete setup.",
+  dashboard_2fa_setup_prompt:
+    "Verify using your authenticator app to complete setup.",
   dashboard_2fa_active: "Two-factor authentication is active.",
   dashboard_2fa_success: "Success!",
   dashboard_2fa_show_qr: "Show QR Code",
@@ -249,6 +275,12 @@ export const copy = {
   email_verify_body: "Click the link below to verify the email address",
   email_footer_prefix:
     "If you did not initiate this request, you can safely ignore this email. If you believe your account has been compromised,",
+
+  email_change_body:
+    "Click the link below to confirm changing your email address.",
+  email_change_from: "From",
+  email_change_to: "to",
+
   email_footer_reset: "reset your password",
   email_footer_middle: "or go to your",
   email_footer_dashboard: "dashboard",
