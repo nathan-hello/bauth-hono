@@ -14,6 +14,8 @@ import {
   ButtonLink,
   Header,
   Card,
+  Divider,
+  Details,
 } from "@/views/components/ui";
 import type { Child } from "hono/jsx";
 import { raw } from "hono/html";
@@ -53,7 +55,7 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
       <Card>
         <Header>{copy.dashboard_title}</Header>
         <ErrorAlerts errors={actionData?.errors} />
-        <div class="divide-y divide-border">
+        <Divider>
           <EmailSection
             email={loaderData.user}
             verificationSent={actionData?.email_verify?.sent}
@@ -68,7 +70,7 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
             current={loaderData.session}
           />
           <DeleteAccount />
-        </div>
+        </Divider>
       </Card>
     </Layout>
   );
@@ -171,9 +173,6 @@ function PasswordSection({ success }: { success?: boolean }) {
     </Section>
   );
 }
-
-const summaryClass =
-  "cursor-pointer list-none text-sm font-medium py-2 px-3 border border-border text-fg [&::-webkit-details-marker]:hidden";
 
 function TwoFactorSection({
   userEnabled,
@@ -325,86 +324,81 @@ function TwoFactorTotpViewerDetails({
 }
 
 function TwoFactorEnabled({ state }: { state?: TotpState }) {
+  if (state?.totpURI) {
+    return (
+      <Section>
+        <TwoFactorTotpViewer secret={state.totpURI} />
+        <VerifyTotpForm
+          success={state.verified}
+          errors={state.errors}
+          alreadyVerified
+          totpURI={state.totpURI}
+        />
+        <br />
+        <ButtonLink href={routes.auth.dashboard}>{copy.go_back}</ButtonLink>
+      </Section>
+    );
+  }
+
+  if (state?.backupCodes && state.backupCodes.length > 0) {
+    return (
+      <Section>
+        <BackupCodesDisplay codes={state.backupCodes} />
+        <ButtonLink href={routes.auth.dashboard}>{copy.go_back}</ButtonLink>
+      </Section>
+    );
+  }
   return (
     <Section>
       <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
       <FormAlert color="success">{copy.dashboard_2fa_active}</FormAlert>
-      <div class="flex flex-col gap-2 mt-5 pt-5 border-t border-border-muted max-w-sm">
-        {state?.totpURI ? (
-          <div class="mb-5">
-            <TwoFactorTotpViewer secret={state.totpURI} />
-            <VerifyTotpForm
-              success={state.verified}
-              errors={state.errors}
-              optionalCopy
-              totpURI={state.totpURI}
-            />
-          </div>
-        ) : (
-          <details name="2fa-action">
-            <summary class={summaryClass}>{copy.dashboard_2fa_show_qr}</summary>
-            <Form method="post" action={routes.auth.dashboard}>
-              <input
-                type="hidden"
-                name="action"
-                value={actionName.get_totp_uri}
-              />
-              <Input
-                type="password"
-                name="password"
-                placeholder={copy.input_password}
-                required
-                autocomplete="current-password"
-              />
-              <Button type="submit">{copy.dashboard_2fa_show_qr}</Button>
-            </Form>
-          </details>
-        )}
-        {state?.backupCodes && state.backupCodes.length > 0 ? (
-          <BackupCodesDisplay codes={state.backupCodes} />
-        ) : (
-          <details name="2fa-action">
-            <summary class={summaryClass}>
-              {copy.dashboard_2fa_new_backup_codes}
-            </summary>
-            <Form method="post" action={routes.auth.dashboard}>
-              <input
-                type="hidden"
-                name="action"
-                value={actionName.get_backup_codes}
-              />
-              <Input
-                type="password"
-                name="password"
-                placeholder={copy.input_password}
-                required
-                autocomplete="current-password"
-              />
-              <Button type="submit">
-                {copy.dashboard_2fa_new_backup_codes}
-              </Button>
-            </Form>
-          </details>
-        )}
-        <details name="2fa-action">
-          <summary class={summaryClass}>{copy.dashboard_2fa_disable}</summary>
-          <Form method="post" action={routes.auth.dashboard}>
-            <input
-              type="hidden"
-              name="action"
-              value={actionName.two_factor_disable}
-            />
-            <Input
-              type="password"
-              name="password"
-              placeholder={copy.input_password}
-              required
-              autocomplete="current-password"
-            />
-            <Button type="submit">{copy.dashboard_2fa_disable}</Button>
-          </Form>
-        </details>
-      </div>
+      <Details title={copy.dashboard_2fa_show_qr} name="2fa-action">
+        <Form method="post" action={routes.auth.dashboard}>
+          <input type="hidden" name="action" value={actionName.get_totp_uri} />
+          <Input
+            type="password"
+            name="password"
+            placeholder={copy.input_password}
+            required
+            autocomplete="current-password"
+          />
+          <Button type="submit">{copy.dashboard_2fa_show_qr}</Button>
+        </Form>
+      </Details>
+      <Details title={copy.dashboard_2fa_new_backup_codes} name="2fa-action">
+        <Form method="post" action={routes.auth.dashboard}>
+          <input
+            type="hidden"
+            name="action"
+            value={actionName.get_backup_codes}
+          />
+          <Input
+            type="password"
+            name="password"
+            placeholder={copy.input_password}
+            required
+            autocomplete="current-password"
+          />
+          <Button type="submit">{copy.dashboard_2fa_new_backup_codes}</Button>
+        </Form>
+      </Details>
+      <Details title={copy.dashboard_2fa_disable} name="2fa-action">
+        <Form method="post" action={routes.auth.dashboard}>
+          <input
+            type="hidden"
+            name="action"
+            value={actionName.two_factor_disable}
+          />
+          <Input
+            type="password"
+            name="password"
+            placeholder={copy.input_password}
+            required
+            autocomplete="current-password"
+          />
+          <Button type="submit">{copy.dashboard_2fa_disable}</Button>
+        </Form>
+      </Details>
     </Section>
   );
 }
@@ -412,14 +406,14 @@ function TwoFactorEnabled({ state }: { state?: TotpState }) {
 function VerifyTotpForm({
   success,
   errors,
-  optionalCopy,
+  alreadyVerified,
   totpURI,
   backupCodes,
   intermediateEnable,
 }: {
   success?: boolean;
   errors?: AppError[];
-  optionalCopy?: boolean;
+  alreadyVerified?: boolean;
   totpURI?: string;
   backupCodes?: string[];
   intermediateEnable?: boolean;
@@ -439,11 +433,16 @@ function VerifyTotpForm({
           value={JSON.stringify(backupCodes)}
         />
       )}
+      <input
+        type="hidden"
+        name="already-verified"
+        value={alreadyVerified ? "true" : "false"}
+      />
       {intermediateEnable && (
         <input type="hidden" name="intermediate_enable" value="true" />
       )}
       <Label for="totp_code">
-        {optionalCopy
+        {alreadyVerified
           ? copy.dashboard_2fa_optional_verify
           : copy.dashboard_2fa_verify_prompt}
       </Label>
@@ -501,7 +500,7 @@ function SessionsSection({
           <Form method="post" action={routes.auth.dashboard}>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <p class="text-sm truncate">{session.ipAddress}</p>
+                <p>{session.ipAddress}</p>
                 {session.id === current.id && (
                   <Badge color="blue">{copy.dashboard_session_current}</Badge>
                 )}
@@ -522,13 +521,19 @@ function SessionsSection({
           </Form>
         ))}
       </Section>
-      <Form method="post" action={routes.auth.dashboard}>
-        <input type="hidden" name="action" value={actionName.revoke_session} />
-        <input type="hidden" name="session" value="all" />
-        <Button variant="ghost" type="submit">
-          {copy.dashboard_session_revoke_other_sessions}
-        </Button>
-      </Form>
+      {sessions.length > 1 && (
+        <Form method="post" action={routes.auth.dashboard}>
+          <input
+            type="hidden"
+            name="action"
+            value={actionName.revoke_session}
+          />
+          <input type="hidden" name="session" value="all" />
+          <Button variant="ghost" type="submit">
+            {copy.dashboard_session_revoke_other_sessions}
+          </Button>
+        </Form>
+      )}
     </Section>
   );
 }

@@ -5,7 +5,9 @@ import {
   type AnyValue,
 } from "@opentelemetry/api-logs";
 import { getLoggerProvider } from "@/server/telemetry/sdk";
-import { AppError, getAuthError } from "@/lib/auth-error";
+import { AppError, TErrorCodes } from "@/lib/auth-error";
+import { APIError } from "better-auth";
+import { ERROR_COPY } from "@/lib/copy";
 
 export type TelemetryLogSchema = {
   info: [string, Record<string, AnyValue>];
@@ -181,4 +183,32 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
       context: context.active(),
     });
   }
+}
+
+/**
+ * Specifically disallow AppError from being passed to this function.
+ * There are catches in the function for when this happens, which is
+ * just for the try/catch inside of Telemetry.task, as all catches are
+ * typed as unknown so Typescript can't check it. Anyone trying to call
+ * this function with a known AppError | AppError[] should simply not
+ * do that.
+ */
+export function getAuthError<T>(
+  e: T extends AppError ? never : T extends AppError[] ? never : unknown,
+): AppError[] {
+  if (e instanceof AppError) {
+    return [e];
+  }
+  if (Array.isArray(e) && e[0] instanceof AppError) {
+    return e;
+  }
+
+  if (e instanceof APIError) {
+    const code = e.body?.code;
+    if (typeof code === "string" && code in ERROR_COPY) {
+      return [new AppError(code as TErrorCodes)];
+    }
+  }
+
+  return [new AppError("generic_error")];
 }

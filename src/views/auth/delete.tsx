@@ -17,6 +17,7 @@ import {
 export function DeleteAccountPage({ state }: { state?: TwoFactorState }) {
   return (
     <Layout title={copy.routes.dashboard.title}>
+      <TwoFactorSwitchHiddenForm currentType={state?.verificationType} />
       <Card>
         <Header>{copy.delete_title}</Header>
         <Section>
@@ -62,15 +63,16 @@ export function DeleteAccountPage({ state }: { state?: TwoFactorState }) {
                   placeholder={copy.input_code}
                   autocomplete="one-time-code"
                 />
-                <VerificationTypeSwitcher
-                  currentType={state.verificationType}
-                />
-                <br />
+
+                <TwoFactorSwitch currentType={state?.verificationType} />
               </>
             )}
+
             <Button type="submit" variant="danger">
               {copy.delete_confirm_button}
             </Button>
+
+            <br />
           </Form>
         </Section>
         <Section>
@@ -101,32 +103,39 @@ export function DeleteSuccessPage() {
   );
 }
 
-function VerificationTypeSwitcher({
+function TwoFactorSwitchHiddenForm({
+  currentType,
+}: {
+  currentType: "totp" | "email" | undefined;
+}) {
+  if (currentType === undefined) {
+    return null;
+  }
+  return (
+    <Form id={actionName.switch_otp} method="post" action={routes.auth.delete}>
+      <input type="hidden" name="action" value={actionName.switch_otp} />
+      <input
+        type="hidden"
+        name="to"
+        value={currentType === "email" ? "totp" : "email"}
+      />
+    </Form>
+  );
+}
+
+function TwoFactorSwitch({
   currentType = "totp",
 }: {
   currentType: "totp" | "email" | undefined;
 }) {
-  if (currentType === "email") {
-    return (
-      <Form method="post" action={routes.auth.delete}>
-        <input type="hidden" name="action" value={actionName.switch_otp} />
-        <input type="hidden" name="to" value="totp" />
-        <Button variant="ghost" type="submit">
-          {copy.twofa_switch_to_totp}
-        </Button>
-      </Form>
-    );
+  if (!currentType) {
+    return null;
   }
-  if (currentType === "totp") {
-    return (
-      <Form method="post" action={routes.auth.delete}>
-        <input type="hidden" name="action" value={actionName.switch_otp} />
-        <input type="hidden" name="to" value="email" />
-        <Button variant="ghost" type="submit">
-          {copy.twofa_switch_to_email}
-        </Button>
-      </Form>
-    );
-  }
-  return null;
+  return (
+    <Button form={actionName.switch_otp} variant="ghost" type="submit">
+      {currentType === "email"
+        ? copy.twofa_switch_to_totp
+        : copy.twofa_switch_to_email}
+    </Button>
+  );
 }

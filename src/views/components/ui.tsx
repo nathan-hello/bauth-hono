@@ -1,14 +1,19 @@
 import type { Child, JSX, PropsWithChildren } from "hono/jsx";
 import { copy } from "@/lib/copy";
 import type { AppError } from "@/lib/auth-error";
-import { CircleCheckmark, Exclamation } from "@/views/components/svg";
+import {
+  ChevronDown,
+  ChevronRight,
+  CircleCheckmark,
+  Exclamation,
+} from "@/views/components/svg";
 
 export function Input(props: Record<string, any>) {
   const { class: cls, ...rest } = props;
   return (
     <input
       {...rest}
-      class={`w-full h-10 px-4 bg-surface-raised border border-border text-fg text-sm outline-none focus:border-fg-muted ${cls ?? ""}`}
+      class={`w-full h-12 px-4 bg-surface-raised border border-border text-fg outline-none focus:border-fg-muted ${cls ?? ""}`}
     />
   );
 }
@@ -16,7 +21,7 @@ export function Input(props: Record<string, any>) {
 type ButtonVariant = "primary" | "ghost" | "danger";
 
 const buttonBase =
-  "h-10 w-full cursor-pointer font-medium text-sm flex gap-3 items-center justify-center px-4";
+  "h-12 w-full cursor-pointer flex items-center justify-center";
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary: "bg-primary text-surface border-0 disabled:bg-primary/50",
@@ -48,13 +53,20 @@ export function ButtonLink(
   );
 }
 
-export function TextLink(props: Record<string, any>) {
-  const { class: cls, ...rest } = props;
+export function TextLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: Child;
+}) {
   return (
     <a
-      {...rest}
-      class={`mx-auto underline underline-offset-2 font-semibold bg-transparent border-0 cursor-pointer text-fg p-0 ${cls ?? ""}`}
-    />
+      href={href}
+      class="mx-auto underline underline-offset-2 font-semibold text-fg text-base"
+    >
+      {children}
+    </a>
   );
 }
 
@@ -102,7 +114,7 @@ export function Form(props: PropsWithChildren<JSX.IntrinsicElements["form"]>) {
   const { children, class: _className, ...rest } = props;
 
   return (
-    <form class="flex flex-col gap-2 pt-2" {...rest}>
+    <form class="flex flex-col gap-4 pt-4" {...rest}>
       {children}
     </form>
   );
@@ -138,7 +150,7 @@ export function FormAlert({
 
   return (
     <div
-      class={`h-10 flex items-center ${bg} ${fg} text-left text-sm gap-2 pl-2`}
+      class={`h-12 flex items-center ${bg} ${fg} text-left text-base gap-2 pl-2`}
     >
       {Svg}
       <span>{children}</span>
@@ -149,9 +161,9 @@ export function FormAlert({
 export function ErrorAlerts({ errors }: { errors?: AppError[] }) {
   if (!errors || errors.length === 0) return null;
   return (
-    <div class="px-6 py-4 flex flex-col gap-2">
+    <div class="flex flex-col gap-2">
       {errors.map((error) => (
-        <FormAlert color="danger">{error.code}</FormAlert>
+        <FormAlert color="danger">{error.copy}</FormAlert>
       ))}
     </div>
   );
@@ -192,7 +204,7 @@ export function SectionHeading({
 }) {
   return (
     <div class="flex items-center justify-between mb-4 justify-content-center">
-      <h2 class="text-xs font-semibold uppercase tracking-[0.15em] text-fg-faint">
+      <h2 class="text-base font-semibold uppercase tracking-[0.15em] text-fg-faint">
         {children}
       </h2>
       {right}
@@ -205,5 +217,33 @@ export function Header({ children }: { children: Child }) {
     <header class="px-6 pt-6 pb-5 border-b border-border">
       <p class="uppercase tracking-[0.3em] mb-1">{children}</p>
     </header>
+  );
+}
+
+export function Divider({ children }: { children: Child }) {
+  return <div class="divide-t divide-border-2">{children}</div>;
+}
+
+export function Details({
+  name,
+  title,
+  children,
+}: {
+  name: string;
+  title: string;
+  children: Child;
+}) {
+  return (
+    <details
+      name={name}
+      className="group my-4 border border-border text-fg py-2 px-3"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between focus:outline-none">
+        <span>{title}</span>
+        <ChevronRight group />
+        <ChevronDown group />
+      </summary>
+      <div className="mt-2">{children}</div>
+    </details>
   );
 }

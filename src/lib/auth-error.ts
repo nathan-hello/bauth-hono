@@ -1,6 +1,6 @@
-import { ERROR_COPY } from "@/lib/copy";
 import { APIError } from "better-auth";
 import { auth } from "@/server/auth";
+import { ERROR_COPY } from "@/lib/copy";
 
 export type AuthApiErrors = keyof (typeof auth)["$ERROR_CODES"];
 
@@ -22,13 +22,6 @@ const AppErrorCodes = [
   "INVALID_OTP_CODE",
 ] as const;
 
-const ErrorCodes = [
-  ...AppErrorCodes,
-  ...Object.keys(
-    auth.$ERROR_CODES ? auth.$ERROR_CODES : { ERROR_CODES_NOT_FOUND: true },
-  ),
-];
-
 export type TErrorCodes = (typeof AppErrorCodes)[number] | AuthApiErrors;
 
 export class AppError extends Error {
@@ -36,16 +29,18 @@ export class AppError extends Error {
   [key: string]: any;
 
   readonly code: TErrorCodes;
+  readonly copy: string;
 
   constructor(code: TErrorCodes) {
     super(code);
 
-    if (!ErrorCodes.includes(code)) {
+    if (![...AppErrorCodes, ...Object.keys(auth.$ERROR_CODES)].includes(code)) {
       this.code = "generic_error";
     }
 
     this.code = code;
     this.name = "AppError";
+    this.copy = ERROR_COPY[this.code];
   }
 
   public override toString(): string {
@@ -69,32 +64,4 @@ export function errorAttrs(error: unknown): Record<string, string> {
     return { type: error.name, message: error.message };
   }
   return { type: "unknown", message: String(error) };
-}
-
-/**
- * Specifically disallow AppError from being passed to this function.
- * There are catches in the function for when this happens, which is
- * just for the try/catch inside of Telemetry.task, as all catches are
- * typed as unknown so Typescript can't check it. Anyone trying to call
- * this function with a known AppError | AppError[] should simply not
- * do that.
- */
-export function getAuthError<T>(
-  e: T extends AppError ? never : T extends AppError[] ? never : unknown,
-): AppError[] {
-  if (e instanceof AppError) {
-    return [e];
-  }
-  if (Array.isArray(e) && e[0] instanceof AppError) {
-    return e;
-  }
-
-  if (e instanceof APIError) {
-    const code = e.body?.code;
-    if (typeof code === "string" && code in ERROR_COPY) {
-      return [new AppError(code as TErrorCodes)];
-    }
-  }
-
-  return [new AppError("generic_error")];
 }

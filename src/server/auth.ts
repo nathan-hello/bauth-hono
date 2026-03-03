@@ -29,6 +29,16 @@ export function validateUsername(username: string) {
 export const auth = betterAuth({
   baseURL: dotenv.PRODUCTION_URL,
   secret: dotenv.BETTER_AUTH_SECRET,
+  user: {
+    changeEmail: {
+      enabled: true,
+      sendChangeEmailVerification: async (data) => {},
+      sendChangeEmailConfirmation: async (data) => {},
+    },
+    deleteUser: {
+      enabled: true,
+    },
+  },
   plugins: [
     passkey({ rpID: dotenv.PRODUCTION_URL, rpName: dotenv.PRODUCTION_URL }),
 
