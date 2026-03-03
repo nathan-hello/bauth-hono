@@ -40,7 +40,7 @@ export function Layout({
           }}
         />
       </head>
-      <body class="font-sans bg-[url('/carpark.webp')] bg-center bg-cover bg-fixed min-h-screen p-4 flex items-center justify-start flex-col text-fg">
+      <body class="font-sans bg-[url('/carpark.webp')] bg-center bg-cover bg-fixed min-h-screen p-4 flex items-center justify-center flex-col text-fg text-xl">
         <a href="/">
           <img
             src="/favicon.svg"

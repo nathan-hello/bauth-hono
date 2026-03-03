@@ -65,7 +65,7 @@ export const ERROR_COPY: Record<TErrorCodes, string> = {
   USER_ALREADY_EXISTS: "There is already an account with this email.",
   USER_ALREADY_HAS_PASSWORD: "",
   USER_EMAIL_NOT_FOUND: "",
-  USER_NOT_FOUND: "User not found.",
+  USER_NOT_FOUND: "Invalid credentials.",
   USERNAME_IS_ALREADY_TAKEN: "Username is taken.",
   UNABLE_TO_CREATE_SESSION: "",
   AUTHENTICATION_FAILED: "",
@@ -77,7 +77,7 @@ export const ERROR_COPY: Record<TErrorCodes, string> = {
   INVALID_CODE: "Two factor code is invalid.",
   INVALID_DISPLAY_USERNAME: "",
   INVALID_TWO_FACTOR_COOKIE: "Login expired. Log out and log back in again.",
-  INVALID_USERNAME_OR_PASSWORD: "",
+  INVALID_USERNAME_OR_PASSWORD: "Invalid credentials.",
   OTP_EXPIRED: "",
   OTP_HAS_EXPIRED: "OTP has expired.",
   OTP_NOT_ENABLED: "",
@@ -200,7 +200,7 @@ export const copy = {
   dashboard_2fa_enable: "Enable 2FA",
   dashboard_2fa_enabled_badge: "Enabled",
   dashboard_2fa_disabled_badge: "Disabled",
-  dashboard_2fa_setup_prompt: "Verify using the QR code to complete setup.",
+  dashboard_2fa_setup_prompt: "Verify using your authenticator app to complete setup.",
   dashboard_2fa_active: "Two-factor authentication is active.",
   dashboard_2fa_success: "Success!",
   dashboard_2fa_show_qr: "Show QR Code",
@@ -256,6 +256,7 @@ export const copy = {
 
   error_default: "An unexpected error occurred.",
   go_home: "Go home",
+  go_back: "Back",
 };
 
 export type Copy = typeof copy;

@@ -8,6 +8,7 @@ import {
   FormFooter,
   TextLink,
   ErrorAlerts,
+  Form,
 } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
@@ -22,10 +23,9 @@ export function RegisterPage({ errors, email }: RegisterProps) {
       <Card>
         <div class="max-w-full flex flex-col gap-4 m-0">
           <ErrorAlerts errors={errors} />
-          <form
+          <Form
             method="post"
             action={routes.auth.register}
-            class="flex flex-col gap-y-4"
           >
             <input type="hidden" name="action" value="register" />
             <Input
@@ -57,12 +57,9 @@ export function RegisterPage({ errors, email }: RegisterProps) {
             />
             <Button type="submit">{copy.button_continue}</Button>
             <FormFooter>
-              <span>
-                {copy.login_prompt}{" "}
-                <TextLink href="/auth/login">{copy.login}</TextLink>
-              </span>
+                <TextLink href={routes.auth.login}>{copy.login_prompt}</TextLink>
             </FormFooter>
-          </form>
+          </Form>
         </div>
       </Card>
       <RegisterEmailDevInfo />

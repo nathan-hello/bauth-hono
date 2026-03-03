@@ -35,3 +35,41 @@ export function Exclamation() {
     </svg>
   );
 }
+
+export function ChevronRight({ group }: { group?: boolean }) {
+  return (
+    <svg
+      /* Default: block. If group open: hidden. */
+      className={`block h-5 w-5 ${group ? "group-open:hidden " : ""}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="m9 5 7 7-7 7"
+      />
+    </svg>
+  );
+}
+
+export function ChevronDown({ group }: { group?: boolean }) {
+  return (
+    <svg
+      /* Default: hidden. If group open: block. */
+      className={`block h-5 w-5 ${group ? "group-open:block hidden" : ""}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="m19 9-7 7-7-7"
+      />
+    </svg>
+  );
+}

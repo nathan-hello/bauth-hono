@@ -76,5 +76,6 @@ export const post: Handler = async (c) => {
   });
 
   if (result.ok) return result.data;
+  console.log(JSON.stringify(result.error));
   return c.html(LoginPage({ errors: result.error, email }));
 };

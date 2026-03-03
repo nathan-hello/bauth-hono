@@ -1,7 +1,13 @@
 import { copy } from "@/lib/copy";
 import type { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
-import { Card, Button, FormFooter, TextLink, ErrorAlerts } from "@/views/components/ui";
+import {
+  Card,
+  Button,
+  FormFooter,
+  TextLink,
+  ErrorAlerts,
+} from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type LogoutProps = {
@@ -20,10 +26,7 @@ export function LogoutPage({ errors }: LogoutProps) {
           <ErrorAlerts errors={errors} />
           <Button type="submit">{copy.button_continue}</Button>
           <FormFooter>
-            <span>
-              {copy.code_return}{" "}
-              <TextLink href="/auth/login">{copy.login.toLowerCase()}</TextLink>
-            </span>
+            <TextLink href="/auth/login">{copy.login}</TextLink>
           </FormFooter>
         </form>
       </Card>

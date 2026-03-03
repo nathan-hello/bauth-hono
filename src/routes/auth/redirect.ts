@@ -1,4 +1,5 @@
 import { copy } from "@/lib/copy";
+import { BAuthSession } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { ErrorPage } from "@/views/components/error";
 
@@ -14,6 +15,20 @@ export async function redirectIfSession(
     return null;
   }
   return null;
+}
+
+export async function redirectIfNoSession(
+  request: Request,
+): Promise<BAuthSession | { response: Response }> {
+  try {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (session === null) {
+      return { response: Response.redirect("/auth/login", 302) };
+    }
+    return session;
+  } catch (error) {
+    return { response: Response.redirect("/auth/login", 302) };
+  }
 }
 
 export function redirectWithHeaders(

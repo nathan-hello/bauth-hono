@@ -9,6 +9,7 @@ import {
 } from "@/views/auth/dashboard";
 import { redirects, routes } from "@/routes/routes";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
+import { redirectIfNoSession } from "@/routes/auth/redirect";
 
 const tel = new Telemetry("route.dashboard");
 
@@ -32,6 +33,10 @@ async function getLoaderData(
 
 export const get: Handler = async (c) => {
   const result = await tel.task("GET", async (span) => {
+    const r = await redirectIfNoSession(c.req.raw);
+    if ("response" in r) {
+      return r.response;
+    }
     const loaded = await getLoaderData(c.req.raw.headers);
     if (!loaded) {
       return redirects.ToLogin;
@@ -253,12 +258,18 @@ async function PasswordChange(
   };
 }
 
+// TODO(nate): update this so when someone tries to verify
+// using the Show QR Code and fails, it doesn't close the
+// details and shows the error message near the input instead
+// at the top of the page.
 async function TwoFactorTotpVerify(
   request: Request,
   form: FormData,
 ): Promise<{ headers: Headers; data: DashboardActionData } | null> {
   const code = form.get("totp_code")?.toString();
   const totpURI = form.get("totp_uri")?.toString();
+  const alreadyVerified = form.get("already-verified")?.toString();
+
   if (!code || !totpURI) {
     return null;
   }
@@ -267,12 +278,13 @@ async function TwoFactorTotpVerify(
     headers: request.headers,
     returnHeaders: true,
   });
+
   return {
     headers: result.headers,
     data: {
       totp: {
         verified: true,
-        totpURI: totpURI,
+        totpURI: alreadyVerified === "true" ? totpURI : undefined,
         userEnabled: true,
       },
     },
