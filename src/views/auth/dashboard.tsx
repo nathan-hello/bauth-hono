@@ -418,26 +418,22 @@ function SessionsSection({
     return (
         <Section>
             <SectionHeading>{copy.dashboard_sessions_heading}</SectionHeading>
-            <Section>
-                {sessions.map((session) => (
-                    <Form method="post" action={routes.auth.dashboard}>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
-                                <p>{session.ipAddress}</p>
-                                {session.id === current.id && (
-                                    <Badge color="blue">{copy.dashboard_session_current}</Badge>
-                                )}
-                            </div>
-                            <p class="text-xs text-fg-muted mt-0.5">{new Date(session.updatedAt).toLocaleString()}</p>
+            {sessions.map((session) => (
+                <Form method="post" action={routes.auth.dashboard}>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            {session.id === current.id && <Badge color="blue">{copy.dashboard_session_current}</Badge>}
+                            <p>{session.ipAddress}</p>
                         </div>
-                        <input type="hidden" name="action" value={actionName.revoke_session} />
-                        <input type="hidden" name="session" value={session.token} />
-                        <Button variant="ghost" type="submit">
-                            {copy.dashboard_session_revoke}
-                        </Button>
-                    </Form>
-                ))}
-            </Section>
+                        <Label>{new Date(session.updatedAt).toLocaleString()}</Label>
+                    </div>
+                    <input type="hidden" name="action" value={actionName.revoke_session} />
+                    <input type="hidden" name="session" value={session.token} />
+                    <Button variant="ghost" type="submit">
+                        {copy.dashboard_session_revoke}
+                    </Button>
+                </Form>
+            ))}
             {sessions.length > 1 && (
                 <Form method="post" action={routes.auth.dashboard}>
                     <input type="hidden" name="action" value={actionName.revoke_session} />
