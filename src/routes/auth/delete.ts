@@ -23,8 +23,11 @@ export async function get(c: Context) {
     if (!session) {
         return redirects.ToLogin;
     }
+    const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
+    const hasCredential = accounts.some((a) => a.providerId === "credential");
     return c.html(
         DeleteAccountPage({
+            hasCredential,
             state: session.user.twoFactorEnabled ? { verificationType: "totp" } : undefined,
         }),
     );
@@ -35,6 +38,8 @@ export async function post(c: Context) {
     if (!session) {
         return redirects.ToLogin;
     }
+    const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
+    const hasCredential = accounts.some((a) => a.providerId === "credential");
     const form = await c.req.formData();
 
     const result = await tel.task("POST", async (span) => {
@@ -62,11 +67,15 @@ export async function post(c: Context) {
             return c.html(DeleteSuccessPage(), r.headers ? { headers: r.headers } : undefined);
         }
 
-        return c.html(DeleteAccountPage({ state: r.data }), r.headers ? { headers: r.headers } : undefined);
+        return c.html(
+            DeleteAccountPage({ hasCredential, state: r.data }),
+            r.headers ? { headers: r.headers } : undefined,
+        );
     }
 
     return c.html(
         DeleteAccountPage({
+            hasCredential,
             state: {
                 verificationType: session.user.twoFactorEnabled
                     ? getOtpType(form.get("otp-type")?.toString())
@@ -102,11 +111,14 @@ async function SwitchOtp(request: Request, form: FormData): Promise<ActionResult
 }
 
 async function DeleteAccount(request: Request, form: FormData): Promise<ActionResult> {
-    const password = form.get("password")?.toString();
-    if (!password) throw new AppError("INVALID_PASSWORD");
-
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) return null;
+
+    const accounts = await auth.api.listUserAccounts({ headers: request.headers });
+    const hasCredential = accounts.some((a) => a.providerId === "credential");
+
+    const password = form.get("password")?.toString();
+    if (hasCredential && !password) throw new AppError("INVALID_PASSWORD");
 
     let headersForDelete = request.headers;
 
@@ -117,7 +129,7 @@ async function DeleteAccount(request: Request, form: FormData): Promise<ActionRe
     }
 
     const result = await auth.api.deleteUser({
-        body: { password },
+        body: { password: password || undefined },
         headers: headersForDelete,
         returnHeaders: true,
     });

@@ -43,6 +43,7 @@ const AppErrorCodes = [
     "field_missing_password",
     "field_missing_password_repeat",
     "oauth_no_url_given_by_provider",
+    "internal_field_unknown_oauth_provider",
     // Better Auth codes that don't match $ERROR_CODES exactly
     "USERNAME_IS_TOO_SHORT",
     "USERNAME_IS_TOO_LONG",

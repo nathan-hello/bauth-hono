@@ -105,21 +105,31 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
     }
 
     private handleError(span: Span, name: string, error: unknown): void {
-        const message = error instanceof Error ? error.message : String(error);
         const errorName = error instanceof Error ? error.name : "UnknownError";
-        const attrs: Record<string, string> = { error: errorName, message };
+        const attrs: Record<string, string | number> = { creator: errorName };
+
+        try {
+            attrs.full = JSON.stringify(error);
+        } catch {
+            attrs.full = "Unable to JSON.stringify the error. String() attempt: " + String(error);
+        }
 
         if (
             error != null &&
             typeof error === "object" &&
             "code" in error &&
-            typeof (error as Record<string, unknown>).code === "string"
+            (typeof error.code === "string" || typeof error.code === "number")
         ) {
-            attrs.code = (error as Record<string, unknown>).code as string;
+            attrs.code = error.code;
         }
 
-        span.setStatus({ code: SpanStatusCode.ERROR, message });
-        this.emit(`Task Error: ${name}`, SeverityNumber.ERROR, "ERROR", attrs);
+        if (error != null && typeof error === "object" && "message" in error && typeof error.message === "string") {
+            attrs.message = error.message;
+        }
+
+        span.setStatus({ code: SpanStatusCode.ERROR });
+
+        this.emit(name, SeverityNumber.ERROR, "ERROR", attrs);
     }
 
     debug(body: T["debug"][0], attributes?: Attrs<T["debug"][1]>) {
@@ -170,8 +180,8 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
  * this function with a known AppError | AppError[] should simply not
  * do that.
  */
-
-export function getAuthError<T>(e: unknown): AppError[] {
+function getAuthError(e: unknown): AppError[] {
+    console.log("getAuthError", JSON.stringify(e));
     if (e === null) {
         return [];
     }
@@ -185,7 +195,7 @@ export function getAuthError<T>(e: unknown): AppError[] {
     if (e instanceof APIError) {
         const code = e.body?.code;
         if (typeof code === "string" && code in ERROR_COPY) {
-            return [new AppError(code as TErrorCodes)];
+            return [new AppError(code as keyof typeof ERROR_COPY)];
         }
     }
 

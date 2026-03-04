@@ -9,7 +9,6 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import * as schema from "@/server/drizzle/schema";
 import { passkey } from "@better-auth/passkey";
 import { username, twoFactor, emailOTP } from "better-auth/plugins";
-import { routes } from "@/routes/routes";
 
 const resend = new Resend(dotenv.RESEND_ACCESS_TOKEN);
 
@@ -26,10 +25,49 @@ export function validateUsername(username: string) {
 export const auth = betterAuth({
     baseURL: dotenv.PRODUCTION_URL,
     secret: dotenv.BETTER_AUTH_SECRET,
+
+    emailVerification: {
+        sendOnSignUp: true,
+        autoSignInAfterVerification: true,
+        expiresIn: 60 * 60 * 24,
+        sendVerificationEmail: async (data, _request) => {
+            const result = await tel.task("EMAIL", async (span) => {
+                span.setAttributes({
+                    "user.email": data.user.email,
+                    "user.id": data.user.id,
+                    channel: "verify-email",
+                });
+                const response = await resend.emails.send({
+                    from: dotenv.FROM_EMAIL,
+                    to: data.user.email,
+                    subject: copy.email_verification_subject,
+                    html: emails
+                        .EmailVerification({
+                            email: data.user.email,
+                            verificationLink: data.url,
+                            url: dotenv.PRODUCTION_URL,
+                        })
+                        .toString(),
+                });
+                if (response.error) {
+                    throw response.error;
+                }
+                return response;
+            });
+
+            if (result.ok) {
+                tel.info("RESEND_SUCCESS", {
+                    id: result.data.data.id,
+                    headers: result.data.headers,
+                });
+            }
+        },
+    },
+
     user: {
         changeEmail: {
             enabled: true,
-            sendChangeEmailConfirmation: async (data, _request) => {},
+            updateEmailWithoutVerification: true,
         },
         deleteUser: {
             enabled: true,
@@ -37,12 +75,10 @@ export const auth = betterAuth({
     },
     plugins: [
         passkey({ rpID: dotenv.PRODUCTION_URL, rpName: dotenv.PRODUCTION_URL }),
-
         username({
             usernameValidator: validateUsername,
             displayUsernameValidator: validateUsername,
         }),
-
         twoFactor({
             issuer: dotenv.PRODUCTION_URL,
             otpOptions: {
@@ -76,15 +112,10 @@ export const auth = betterAuth({
                             emailId: result.data.data.id,
                             headers: result.data.headers,
                         });
-                        return;
                     }
-                    tel.error("RESEND_ERROR", {
-                        error: result.error,
-                    });
                 },
             },
         }),
-
         emailOTP({
             expiresIn: 60 * 15,
             overrideDefaultEmailVerification: true,
@@ -117,12 +148,7 @@ export const auth = betterAuth({
                         id: result.data.data.id,
                         headers: result.data.headers,
                     });
-                    return;
                 }
-                tel.error("RESEND_ERROR", {
-                    error: result.error,
-                    data: result,
-                });
             },
         }),
     ],
@@ -133,11 +159,7 @@ export const auth = betterAuth({
             clientId: optionalEnv.GOOGLE_CLIENT_ID ?? "",
             clientSecret: optionalEnv.GOOGLE_CLIENT_SECRET ?? "",
             accessType: "offline",
-            // This is to prevent the UX where you don't know if you
-            // signed up using X oauth, so you think you're signing
-            // in but you're actually making a new account with the
-            // same email address...
-            disableImplicitSignUp: true,
+            disableImplicitSignUp: false,
             display: "page",
         },
         apple: {
@@ -145,11 +167,7 @@ export const auth = betterAuth({
             clientId: optionalEnv.APPLE_CLIENT_ID ?? "",
             clientSecret: optionalEnv.APPLE_CLIENT_SECRET ?? "",
             accessType: "offline",
-            // This is to prevent the UX where you don't know if you
-            // signed up using X oauth, so you think you're signing
-            // in but you're actually making a new account with the
-            // same email address...
-            disableImplicitSignUp: true,
+            disableImplicitSignUp: false,
             display: "page",
         },
     },
@@ -198,41 +216,6 @@ export const auth = betterAuth({
         autoSignIn: true,
         requireEmailVerification: false,
         revokeSessionsOnPasswordReset: true,
-    },
-
-    emailVerification: {
-        sendOnSignUp: true,
-        autoSignInAfterVerification: true,
-        expiresIn: 60 * 60 * 24,
-        sendVerificationEmail: async (data, _request) => {
-            tel.info("SEND_VERIFICATION_EMAIL", {
-                "user.email": data.user.email,
-                "user.id": data.user.id,
-            });
-            const response = await resend.emails.send({
-                from: dotenv.FROM_EMAIL,
-                to: data.user.email,
-                subject: copy.email_verification_subject,
-                html: emails
-                    .EmailVerification({
-                        email: data.user.email,
-                        verificationLink: data.url,
-                        url: dotenv.PRODUCTION_URL,
-                    })
-                    .toString(),
-            });
-            if (response.error) {
-                tel.error("RESEND_ERROR", {
-                    error: response.error,
-                    headers: response.headers,
-                });
-            } else {
-                tel.info("RESEND_SUCCESS", {
-                    id: response.data.id,
-                    headers: response.headers,
-                });
-            }
-        },
     },
 
     trustedOrigins: [dotenv.PRODUCTION_URL, "https://localhost:5173", "http://localhost:5173"],

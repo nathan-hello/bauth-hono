@@ -58,7 +58,7 @@ export function Label(props: { for?: string; children: Child; center?: boolean; 
         <label
             for={props.for}
             class={
-                "flex gap-3 flex-col" +
+                "flex gap-3 py-2 flex-col" +
                 " " +
                 (props?.center ? "mx-auto text-center" : "") +
                 " " +
@@ -70,11 +70,11 @@ export function Label(props: { for?: string; children: Child; center?: boolean; 
     );
 }
 
-export function Form(props: PropsWithChildren<JSX.IntrinsicElements["form"]>) {
-    const { children, class: _className, ...rest } = props;
+export function Form(props: PropsWithChildren<JSX.IntrinsicElements["form"]> & { flexRow?: true }) {
+    const { children, class: _className, flexRow, ...rest } = props;
 
     return (
-        <form class="flex flex-col gap-4 pt-4" {...rest}>
+        <form class={`flex gap-4 pt-4 ${flexRow ? "flex-row" : "flex-col"}`} {...rest}>
             {children}
         </form>
     );
@@ -129,7 +129,9 @@ export function Badge({ children, color }: { children: Child; color: "green" | "
         gray: "bg-surface-overlay text-fg-muted",
     };
     return (
-        <span class={`text-sm uppercase tracking-wider px-2 py-0.5 font-medium ${styles[color]}`}>{children}</span>
+        <span class={`max-w-fit text-center text-sm uppercase tracking-wider px-2 py-0.5 font-medium ${styles[color]}`}>
+            {children}
+        </span>
     );
 }
 

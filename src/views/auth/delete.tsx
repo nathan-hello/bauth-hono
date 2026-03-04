@@ -5,7 +5,21 @@ import { TwoFactorState } from "@/views/auth/2fa";
 import { Layout } from "@/views/components/layout";
 import { Button, ButtonLink, Card, Form, Header, Input, Label, Section } from "@/views/components/ui";
 
-export function DeleteAccountPage({ state }: { state?: TwoFactorState }) {
+export function DeleteAccountPage({
+    hasCredential,
+    state,
+}: {
+    hasCredential: boolean;
+    state?: TwoFactorState;
+}) {
+    const headerCopy = hasCredential
+        ? state
+            ? copy.delete_section_header
+            : copy.delete_section_header_password_only
+        : state
+          ? copy.delete_section_header_2fa_only
+          : copy.delete_section_header_confirm;
+
     return (
         <Layout title={copy.routes.dashboard.title}>
             <TwoFactorSwitchHiddenForm currentType={state?.verificationType} />
@@ -13,19 +27,24 @@ export function DeleteAccountPage({ state }: { state?: TwoFactorState }) {
                 <Header>{copy.delete_title}</Header>
                 <Section>
                     <Label center unmuted>
-                        {state ? copy.delete_section_header : copy.delete_section_header_password_only}
+                        {headerCopy}
                     </Label>
                     <Form method="post" action={routes.auth.delete}>
                         <input type="hidden" name="action" value={actionName.delete_account} />
-                        <Label for="current">{copy.input_password}</Label>
-                        <Input
-                            type="password"
-                            name="password"
-                            id="password"
-                            placeholder={copy.dashboard_password_current_placeholder}
-                            required
-                            autocomplete="current-password"
-                        />
+
+                        {hasCredential && (
+                            <>
+                                <Label for="password">{copy.input_password}</Label>
+                                <Input
+                                    type="password"
+                                    name="password"
+                                    id="password"
+                                    placeholder={copy.dashboard_password_current_placeholder}
+                                    required
+                                    autocomplete="current-password"
+                                />
+                            </>
+                        )}
 
                         {state && (
                             <>
