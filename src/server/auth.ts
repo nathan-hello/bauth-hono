@@ -1,4 +1,4 @@
-import * as emails from "@/views/email/two-factor";
+import * as emails from "@/views/email/emails";
 import { copy } from "@/lib/copy";
 import { Resend } from "resend";
 import { Telemetry } from "@/server/telemetry";

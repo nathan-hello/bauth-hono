@@ -129,12 +129,12 @@ export function Badge({ children, color }: { children: Child; color: "green" | "
         gray: "bg-surface-overlay text-fg-muted",
     };
     return (
-        <span class={`text-[10px] uppercase tracking-wider px-2 py-0.5 font-medium ${styles[color]}`}>{children}</span>
+        <span class={`text-sm uppercase tracking-wider px-2 py-0.5 font-medium ${styles[color]}`}>{children}</span>
     );
 }
 
 export function Section({ children }: { children: Child }) {
-    return <section class="px-6 py-5">{children}</section>;
+    return <section class="px-6 py-5 border-b border-border">{children}</section>;
 }
 
 export function SectionHeading({ children, right }: { children: Child; right?: Child }) {
