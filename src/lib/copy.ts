@@ -34,6 +34,9 @@ export const ERROR_COPY: Record<TErrorCodes, string> = {
     field_missing_email: "Missing email",
     field_missing_password: "Missing password",
     field_missing_password_repeat: "Missing password",
+    internal_field_missing_oauth: "500",
+    oauth_no_url_given_by_provider: "500",
+    internal_field_missing_action: "500",
 
     // Better Auth errors
     ASYNC_VALIDATION_NOT_SUPPORTED: "",

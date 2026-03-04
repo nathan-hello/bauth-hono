@@ -31,6 +31,10 @@ function loadEnv<const K extends string>(...keys: K[]): Record<K, string> {
     return process.env as Record<K, string>;
 }
 
+function loadOptionalEnv<const K extends string>(...keys: K[]): Partial<Record<K, string>> {
+    return process.env as Partial<Record<K, string>>;
+}
+
 export const dotenv = loadEnv(
     "BETTER_AUTH_SECRET",
     "COOKIE_PREFIX",
@@ -41,4 +45,11 @@ export const dotenv = loadEnv(
     "OTEL_TRACES_URL",
     "PRODUCTION_URL",
     "RESEND_ACCESS_TOKEN",
+);
+
+export const optionalEnv = loadOptionalEnv(
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "APPLE_CLIENT_ID",
+    "APPLE_CLIENT_SECRET",
 );
