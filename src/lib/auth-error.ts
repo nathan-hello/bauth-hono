@@ -36,10 +36,13 @@ const AppErrorCodes = [
     "password_mismatch",
     "otp_failed",
     "code_invalid",
+    "internal_field_missing_oauth",
+    "internal_field_missing_action",
     "field_missing_code",
     "field_missing_email",
     "field_missing_password",
     "field_missing_password_repeat",
+    "oauth_no_url_given_by_provider",
     // Better Auth codes that don't match $ERROR_CODES exactly
     "USERNAME_IS_TOO_SHORT",
     "USERNAME_IS_TOO_LONG",

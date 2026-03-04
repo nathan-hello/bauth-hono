@@ -3,7 +3,7 @@ import type { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
-import { OauthButtons, OauthViaScripts } from "@/views/components/oauth";
+import { OauthButtons } from "@/views/components/oauth";
 
 type LoginProps = {
     errors?: AppError[];

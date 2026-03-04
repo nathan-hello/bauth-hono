@@ -1,9 +1,9 @@
-import type { Handler } from "hono";
+import type { Context, Handler } from "hono";
 import { auth, validateUsername } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
 import { RegisterPage } from "@/views/auth/register";
-import { routes } from "@/routes/routes";
+import { redirects, routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 
 const tel = new Telemetry(routes.auth.register);
@@ -21,6 +21,28 @@ export const get: Handler = async (c) => {
 
 export const post: Handler = async (c) => {
     const form = await c.req.formData();
+    const action = form.get("action")?.toString();
+
+    const result = await tel.task("POST", async (span) => {
+        if (!action) {
+            throw new AppError("internal_field_missing_action");
+        }
+        span.setAttribute("action", action);
+
+        if (action === "register") {
+            return await Register(c, form);
+        }
+        if (action === "oauth") {
+            return await RegisterOauth(c, form);
+        }
+    });
+
+    if (result.ok) return result.data;
+    const email = form.get("email")?.toString();
+    return c.html(RegisterPage({ errors: result.error, email }));
+};
+
+async function Register(c: Context, form: FormData) {
     const username = form.get("username")?.toString();
     const email = form.get("email")?.toString();
     const password = form.get("password")?.toString();
@@ -30,40 +52,53 @@ export const post: Handler = async (c) => {
         return c.html(RegisterPage({}));
     }
 
-    const result = await tel.task("POST", async (span) => {
-        const errs = parseRegister({ username, email, password, repeat });
-        if (errs) {
-            throw errs;
-        }
+    const errs = parseRegister({ username, email, password, repeat });
+    if (errs) {
+        throw errs;
+    }
 
-        if (!username || !password || !repeat) {
-            throw new AppError("INVALID_EMAIL_OR_PASSWORD");
-        }
+    if (!username || !password || !repeat) {
+        throw new AppError("INVALID_EMAIL_OR_PASSWORD");
+    }
 
-        tel.debug("attrs", safeRequestAttrs(c.req.raw, form));
+    tel.debug("attrs", safeRequestAttrs(c.req.raw, form));
 
-        const { headers, response } = await auth.api.signUpEmail({
-            body: {
-                username,
-                password,
-                email,
-                name: username,
-                displayUsername: username,
-            },
-            headers: c.req.raw.headers,
-            returnHeaders: true,
-        });
-
-        if (response?.user) {
-            span.setAttribute("user.id", response.user.id);
-        }
-
-        return redirectWithHeaders(headers, "/auth/dashboard");
+    const { headers, response } = await auth.api.signUpEmail({
+        body: {
+            username,
+            password,
+            email,
+            name: username,
+            displayUsername: username,
+        },
+        headers: c.req.raw.headers,
+        returnHeaders: true,
     });
 
-    if (result.ok) return result.data;
-    return c.html(RegisterPage({ errors: result.error, email }));
-};
+    if (response?.user) {
+        tel.info("new_user", { userId: response.user.id });
+    }
+
+    return redirectWithHeaders(headers, "/auth/dashboard");
+}
+
+async function RegisterOauth(c: Context, form: FormData) {
+    const provider = form.get("provider")?.toString();
+    if (!provider) {
+        throw new AppError("internal_field_missing_oauth");
+    }
+
+    const data = await auth.api.signInSocial({
+        headers: c.req.raw.headers,
+        body: { provider, callbackURL: redirects.AfterOauth(c), requestSignUp: true },
+    });
+
+    if (!data.url) {
+        throw new AppError("oauth_no_url_given_by_provider");
+    }
+
+    return c.redirect(data.url);
+}
 
 function parseRegister(data: Record<string, string | undefined>): AppError[] | undefined {
     const errors: AppError[] = [];

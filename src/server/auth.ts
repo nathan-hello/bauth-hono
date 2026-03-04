@@ -4,7 +4,7 @@ import { Resend } from "resend";
 import { Telemetry } from "@/server/telemetry";
 import { betterAuth } from "better-auth/minimal";
 import { db } from "@/server/drizzle/db";
-import { dotenv } from "@/server/env";
+import { dotenv, optionalEnv } from "@/server/env";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import * as schema from "@/server/drizzle/schema";
 import { passkey } from "@better-auth/passkey";
@@ -129,9 +129,9 @@ export const auth = betterAuth({
 
     socialProviders: {
         google: {
-            enabled: true,
-            clientId: "",
-            clientSecret: "",
+            enabled: optionalEnv.GOOGLE_CLIENT_ID && optionalEnv.GOOGLE_CLIENT_SECRET ? true : false,
+            clientId: optionalEnv.GOOGLE_CLIENT_ID ?? "",
+            clientSecret: optionalEnv.GOOGLE_CLIENT_SECRET ?? "",
             accessType: "offline",
             // This is to prevent the UX where you don't know if you
             // signed up using X oauth, so you think you're signing
@@ -142,9 +142,9 @@ export const auth = betterAuth({
             redirectURI: dotenv.PRODUCTION_URL + routes.auth.dashboard,
         },
         apple: {
-            enabled: true,
-            clientId: "",
-            clientSecret: "",
+            enabled: optionalEnv.APPLE_CLIENT_ID && optionalEnv.APPLE_CLIENT_SECRET ? true : false,
+            clientId: optionalEnv.APPLE_CLIENT_ID ?? "",
+            clientSecret: optionalEnv.APPLE_CLIENT_SECRET ?? "",
             accessType: "offline",
             // This is to prevent the UX where you don't know if you
             // signed up using X oauth, so you think you're signing

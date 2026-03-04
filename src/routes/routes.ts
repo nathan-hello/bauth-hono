@@ -1,3 +1,5 @@
+import { Context } from "hono";
+
 export const routes = {
     index: "/",
     auth: {
@@ -23,6 +25,9 @@ export const routes = {
 export const redirects = {
     ToLogin: Response.redirect(routes.auth.login, 302),
     AfterDeleteAcccount: routes.auth.deleteSuccess,
+    AfterOauth: (c: Context): string => {
+        return routes.auth.dashboard;
+    },
     afterSuccess: {
         default: "/debug",
     },
