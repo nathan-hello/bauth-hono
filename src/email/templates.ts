@@ -1,7 +1,7 @@
 import { copy } from "@/lib/copy";
 
 function layout(url: string, content: string): string {
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html>
 <body style="font-family:sans-serif;background-color:#ffffff;margin:0;padding:0">
   <br/>
@@ -34,28 +34,28 @@ function layout(url: string, content: string): string {
 }
 
 export function emailOtp(email: string, otp: string, url: string): string {
-  return layout(
-    url,
-    `<p style="font-size:15px;margin:0">${copy.email_otp_body} <strong>${email}</strong>:</p>
+    return layout(
+        url,
+        `<p style="font-size:15px;margin:0">${copy.email_otp_body} <strong>${email}</strong>:</p>
      <p style="font-size:32px;font-weight:bold;letter-spacing:0.15em;margin:16px 0">${otp}</p>
      <p style="font-size:14px;color:#666;margin:0">${copy.email_otp_expiry}</p>`,
-  );
+    );
 }
 
 export function email2fa(email: string, otp: string, url: string): string {
-  return layout(
-    url,
-    `<p style="font-size:15px;margin:0">${copy.email_2fa_body} <strong>${email}</strong>:</p>
+    return layout(
+        url,
+        `<p style="font-size:15px;margin:0">${copy.email_2fa_body} <strong>${email}</strong>:</p>
      <p style="font-size:32px;font-weight:bold;letter-spacing:0.15em;margin:16px 0">${otp}</p>
      <p style="font-size:14px;color:#666;margin:0">${copy.email_2fa_expiry}</p>`,
-  );
+    );
 }
 
 export function emailVerification(email: string, verificationLink: string, url: string): string {
-  const fullLink = url + verificationLink;
-  return layout(
-    url,
-    `<p style="font-size:15px;margin:0 0 16px">${copy.email_verify_body} <strong>${email}</strong>:</p>
+    const fullLink = url + verificationLink;
+    return layout(
+        url,
+        `<p style="font-size:15px;margin:0 0 16px">${copy.email_verify_body} <strong>${email}</strong>:</p>
      <a href="${fullLink}" style="color:#2563eb;font-size:14px">${fullLink}</a>`,
-  );
+    );
 }

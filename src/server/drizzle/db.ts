@@ -5,5 +5,5 @@ import { dotenv } from "@/server/env";
 
 const sqlite = new Database(dotenv.DB_FILE_NAME);
 export const db = drizzle(sqlite, {
-  schema,
+    schema,
 });

@@ -5,8 +5,8 @@ import { Telemetry } from "@/server/telemetry";
 const tel = new Telemetry("api.auth");
 
 function errorPage(traceId: string): Response {
-  return new Response(
-    `<!DOCTYPE html>
+    return new Response(
+        `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -34,43 +34,40 @@ function errorPage(traceId: string): Response {
   </div>
 </body>
 </html>`,
-    { status: 500, headers: { "Content-Type": "text/html" } },
-  );
+        { status: 500, headers: { "Content-Type": "text/html" } },
+    );
 }
 
 export async function post(c: Context) {
-  {
-    const request = c.req.raw;
-    const result = await tel.task("HANDLE", async () => {
-      return await auth.handler(request);
-    });
+    {
+        const request = c.req.raw;
+        const result = await tel.task("HANDLE", async () => {
+            return await auth.handler(request);
+        });
 
-    tel.info(request.method, async () => {
-      if (result.ok) {
-        const clone = result.data.clone();
-        return {
-          responseText: await clone.text(),
-          status: clone.status,
-          url: request.url,
-        };
-      } else {
-        const err =
-          result.error instanceof Error
-            ? result.error
-            : new Error(String(result.error));
-        return {
-          "http.url": request.url,
-          errorName: err.name,
-          errorMessage: err.message,
-          errorStack: err.stack,
-        };
-      }
-    });
+        tel.info(request.method, async () => {
+            if (result.ok) {
+                const clone = result.data.clone();
+                return {
+                    responseText: await clone.text(),
+                    status: clone.status,
+                    url: request.url,
+                };
+            } else {
+                const err = result.error instanceof Error ? result.error : new Error(String(result.error));
+                return {
+                    "http.url": request.url,
+                    errorName: err.name,
+                    errorMessage: err.message,
+                    errorStack: err.stack,
+                };
+            }
+        });
 
-    if (result.ok) {
-      return result.data;
+        if (result.ok) {
+            return result.data;
+        }
+
+        return errorPage(result.traceId);
     }
-
-    return errorPage(result.traceId);
-  }
 }

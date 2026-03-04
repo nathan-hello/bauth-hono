@@ -6,23 +6,23 @@ import type { MultiLogExporter } from "@/server/telemetry/exporters";
 let loggerProvider: LoggerProvider | null = null;
 
 export function getLoggerProvider(): LoggerProvider {
-  if (!loggerProvider) {
-    loggerProvider = new LoggerProvider();
-  }
-  return loggerProvider;
+    if (!loggerProvider) {
+        loggerProvider = new LoggerProvider();
+    }
+    return loggerProvider;
 }
 
 type LoggingConfig = {
-  tracesUrl: string;
-  exporters: MultiLogExporter;
+    tracesUrl: string;
+    exporters: MultiLogExporter;
 };
 
 export function StartLogging(config: LoggingConfig) {
-  loggerProvider = new LoggerProvider({
-    processors: [new SimpleLogRecordProcessor(config.exporters)],
-  });
+    loggerProvider = new LoggerProvider({
+        processors: [new SimpleLogRecordProcessor(config.exporters)],
+    });
 
-  new NodeSDK({
-    traceExporter: new OTLPTraceExporter({ url: config.tracesUrl }),
-  }).start();
+    new NodeSDK({
+        traceExporter: new OTLPTraceExporter({ url: config.tracesUrl }),
+    }).start();
 }

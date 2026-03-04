@@ -17,8 +17,8 @@ import * as debugEmail from "@/routes/debug/email";
 import { routes } from "@/routes/routes";
 
 StartLogging({
-  tracesUrl: dotenv.OTEL_TRACES_URL,
-  exporters: new MultiLogExporter([new PinoLogExporter(dotenv.LOG_FILE_PATH)]),
+    tracesUrl: dotenv.OTEL_TRACES_URL,
+    exporters: new MultiLogExporter([new PinoLogExporter(dotenv.LOG_FILE_PATH)]),
 });
 
 import { Hono } from "hono";
@@ -57,13 +57,13 @@ app.get(routes.auth.delete, accountDelete.get);
 app.post(routes.auth.delete, accountDelete.post);
 
 if (process.env.NODE_ENV === "development") {
-  app.get(routes.index, debugHome.get);
-  app.get(routes.debug.email, debugEmail.get);
+    app.get(routes.index, debugHome.get);
+    app.get(routes.debug.email, debugEmail.get);
 }
 
 const port = Number(process.env.PORT) || 3005;
 
 export default {
-  port,
-  fetch: app.fetch,
+    port,
+    fetch: app.fetch,
 };
