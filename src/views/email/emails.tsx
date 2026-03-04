@@ -33,7 +33,7 @@ export function EmailVerification({
     verificationLink: string;
     url: string;
 }) {
-    const fullLink = url + verificationLink;
+    const fullLink = verificationLink;
     return (
         <EmailLayout url={url}>
             <p style={{ fontSize: "15px", margin: "0 0 16px" }}>
@@ -57,7 +57,7 @@ export function EmailChangeVerification({
     verificationLink: string;
     url: string;
 }) {
-    const fullLink = url + verificationLink;
+    const fullLink = verificationLink;
     return (
         <EmailLayout url={url}>
             <p style={{ fontSize: "15px", margin: "0 0 16px" }}>{copy.email_change_body}</p>

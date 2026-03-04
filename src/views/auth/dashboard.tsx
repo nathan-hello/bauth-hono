@@ -59,15 +59,42 @@ type DashboardProps = {
 };
 
 export function DashboardPage({ actionData, loaderData }: DashboardProps) {
+    const hasCredential = loaderData.accounts.some((a) => a.providerId === "credential");
     return (
         <Layout title={copy.routes.dashboard.title}>
             <Card>
                 <Header>{copy.dashboard_title}</Header>
                 <ErrorAlerts errors={actionData?.errors} />
                 <Divider>
-                    <EmailSection email={loaderData.user} verificationSent={actionData?.email_verify?.sent} />
+                    <Section>
+                        <SectionHeading>{copy.dashboard_email_heading}</SectionHeading>
+                        {loaderData.user.emailVerified ? (
+                          
+                            <Badge color="blue">{copy.dashboard_email_verified_badge}</Badge>
+                        ) : (
+                            <Badge color="gray">{copy.dashboard_email_unverified_badge}</Badge>
+                        )}
+        
+                        <Label unmuted>{loaderData.user.email}</Label>
+                        {!loaderData.user.emailVerified && (
+                            <EmailResendVerification verificationSent={actionData?.email_verify?.sent} />
+                        )}
+                        <Details name="change" title="Change email">
+                            <EmailChange />
+                        </Details>
+                        <Details
+                            name="change"
+                            title={
+                                hasCredential ? copy.dashboard_password_change : copy.dashboard_password_set_description
+                            }
+                        >
+                            <PasswordSection
+                                accounts={loaderData.accounts}
+                                success={actionData?.change_password?.success}
+                            />
+                        </Details>
+                    </Section>
                     <LinkedAccountsSection accounts={loaderData.accounts} />
-                    <PasswordSection />
                     <TwoFactorSection state={actionData?.totp} userEnabled={loaderData.user.twoFactorEnabled} />
                     <SessionsSection sessions={loaderData.sessions} current={loaderData.session} />
                     <DeleteAccount />
@@ -88,45 +115,37 @@ function DeleteAccount() {
     );
 }
 
-function EmailSection({
-    email,
-    verificationSent,
-}: {
-    email: { email: string; emailVerified: boolean };
-    verificationSent?: boolean;
-}) {
+function EmailChange() {
     return (
-        <Section>
-            <SectionHeading>{copy.dashboard_email_heading}</SectionHeading>
-            <p>{email.email}</p>
-            <Form method="post" action={routes.auth.dashboard}>
-                <input type="hidden" name="action" value={actionName.email_change} />
-                <Input type="email" name="new_email" autocomplete="email" placeholder={copy.input_email} required />
-                <Button type="submit">{copy.dashboard_email_change}</Button>
-            </Form>
-            {!email.emailVerified && (
-                <Form method="post" action={routes.auth.dashboard}>
-                    <input type="hidden" name="action" value={actionName.email_resend_verification} />
-                    <Label>
-                        {verificationSent
-                            ? copy.dashboard_email_verification_sent
-                            : copy.dashboard_email_unverified_prompt}
-                    </Label>
-                    <Button disabled={verificationSent} type="submit">
-                        {copy.dashboard_email_resend_verification}
-                    </Button>
-                </Form>
-            )}
-        </Section>
+        <Form method="post" action={routes.auth.dashboard}>
+            <input type="hidden" name="action" value={actionName.email_change} />
+            <Input type="email" name="new_email" autocomplete="email" placeholder={copy.input_email} required />
+            <Button type="submit">{copy.dashboard_email_change}</Button>
+        </Form>
     );
 }
 
-function PasswordSection({ success }: { success?: boolean }) {
+function EmailResendVerification({ verificationSent }: { verificationSent: boolean | undefined }) {
     return (
-        <Section>
-            <SectionHeading>{copy.dashboard_password_heading}</SectionHeading>
-            {success && <FormAlert color="success">{copy.dashboard_password_changed}</FormAlert>}
+        <Form method="post" action={routes.auth.dashboard}>
+            <input type="hidden" name="action" value={actionName.email_resend_verification} />
+            <Label>
+                {verificationSent ? copy.dashboard_email_verification_sent : copy.dashboard_email_unverified_prompt}
+            </Label>
+            <Button variant="ghost" disabled={verificationSent} type="submit">
+                {copy.dashboard_email_resend_verification}
+            </Button>
+        </Form>
+    );
+}
+
+function PasswordSection({ accounts, success }: { accounts: LinkedAccount[]; success?: boolean }) {
+    const hasCredential = accounts.some((a) => a.providerId === "credential");
+
+    if (hasCredential) {
+        return (
             <Form method="post" action={routes.auth.dashboard}>
+                {success && <FormAlert color="success">{copy.dashboard_password_changed}</FormAlert>}
                 <input type="hidden" name="action" value={actionName.change_password} />
                 <Label for="current">{copy.dashboard_password_current_label}</Label>
                 <Input
@@ -157,7 +176,33 @@ function PasswordSection({ success }: { success?: boolean }) {
                 />
                 <Button type="submit">{copy.dashboard_password_change}</Button>
             </Form>
-        </Section>
+        );
+    }
+
+    return (
+        <Form method="post" action={routes.auth.dashboard}>
+            {success && <FormAlert color="success">{copy.dashboard_password_changed}</FormAlert>}
+            <input type="hidden" name="action" value={actionName.set_password} />
+            <Label for="new_password">{copy.dashboard_password_new_label}</Label>
+            <Input
+                type="password"
+                name="new_password"
+                id="new_password"
+                placeholder={copy.dashboard_password_new_placeholder}
+                required
+                autocomplete="new-password"
+            />
+            <Label for="new_password_repeat">{copy.dashboard_password_repeat_label}</Label>
+            <Input
+                type="password"
+                name="new_password_repeat"
+                id="new_password_repeat"
+                placeholder={copy.dashboard_password_repeat_placeholder}
+                required
+                autocomplete="new-password"
+            />
+            <Button type="submit">{copy.dashboard_password_set}</Button>
+        </Form>
     );
 }
 
@@ -171,40 +216,52 @@ function LinkedAccountsSection({ accounts }: { accounts: LinkedAccount[] }) {
         oauthProviders.push({ id: "apple", label: "Apple" });
     }
 
+    const hasCredentialAccount = accounts.some((a) => a.providerId === "credential");
+
     return (
         <Section>
             <SectionHeading>{copy.dashboard_linked_accounts_heading}</SectionHeading>
-            {accounts.map((account) => (
-                <Form method="post" action={routes.auth.dashboard}>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
+            <div class="grid grid-cols-8 items-center py-2">
+                <Badge color="blue">
+                    {hasCredentialAccount
+                        ? copy.dashboard_linked_accounts_linked
+                        : copy.dashboard_linked_accounts_unlinked}
+                </Badge>
+                <p class="col-span-6">{copy.dashboard_linked_accounts_credential}</p>
+                <div></div>
+            </div>
+
+            {accounts
+                .filter((a) => a.providerId !== "credential")
+                .map((account) => (
+                    <form flexRow method="post" action={routes.auth.dashboard}>
+                        <input type="hidden" name="action" value={actionName.unlink_account} />
+                        <input type="hidden" name="providerId" value={account.providerId} />
+                        <div class="grid grid-cols-8 items-center border-y border-border py-2 last:border-b-0">
                             <Badge color="blue">{copy.dashboard_linked_accounts_linked}</Badge>
-                            <p>
-                                {account.providerId === "credential"
-                                    ? copy.dashboard_linked_accounts_credential
-                                    : account.providerId.charAt(0).toUpperCase() + account.providerId.slice(1)}
+                            <p class="col-span-6">
+                                {account.providerId.charAt(0).toUpperCase() + account.providerId.slice(1)}
                             </p>
-                        </div>
-                    </div>
-                    {account.providerId !== "credential" && (
-                        <>
-                            <input type="hidden" name="action" value={actionName.unlink_account} />
-                            <input type="hidden" name="providerId" value={account.providerId} />
                             <Button variant="ghost" type="submit">
                                 {copy.dashboard_linked_accounts_unlink}
                             </Button>
-                        </>
-                    )}
-                </Form>
-            ))}
+                        </div>
+                    </form>
+                ))}
             {oauthProviders
                 .filter((p) => !linkedProviderIds.has(p.id))
                 .map((provider) => (
-                    <Form method="post" action={routes.auth.dashboard}>
+                    <form flexRow method="post" action={routes.auth.dashboard}>
                         <input type="hidden" name="action" value={actionName.link_account} />
                         <input type="hidden" name="provider" value={provider.id} />
-                        <Button type="submit">Link {provider.label}</Button>
-                    </Form>
+                        <div class="grid grid-cols-8 items-center border-y border-border py-2 last:border-b-0">
+                            <Badge color="yellow">{copy.dashboard_linked_accounts_unlinked}</Badge>
+                            <p class="col-span-6">{provider.label.charAt(0).toUpperCase() + provider.label.slice(1)}</p>
+                            <Button variant="ghost" type="submit">
+                                {copy.dashboard_linked_accounts_link}
+                            </Button>
+                        </div>
+                    </form>
                 ))}
         </Section>
     );
@@ -453,7 +510,7 @@ function BackupCodesDisplay({ codes }: { codes: string[] }) {
     return (
         <div class="bg-surface-raised p-4 mb-4">
             <div class="flex items-center justify-between mb-2">
-                <p class="text-xs font-semibold text-fg-faint uppercase tracking-[0.1em]">
+                <p class="text-xs font-semibold text-fg-faint uppercase tracking-widest">
                     {copy.dashboard_backup_codes_title}
                 </p>
             </div>

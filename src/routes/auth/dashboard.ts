@@ -126,6 +126,7 @@ function checkAction(a: string): a is keyof typeof actions {
 
 const actions = {
     change_password: PasswordChange,
+    set_password: SetPassword,
     revoke_session: RevokeSession,
     email_change: EmailChange,
     email_resend_verification: EmailVerificationResend,
@@ -140,6 +141,7 @@ const actions = {
 
 export const actionName: { [K in keyof typeof actions]: K } = {
     change_password: "change_password",
+    set_password: "set_password",
     revoke_session: "revoke_session",
     email_change: "email_change",
     email_resend_verification: "email_resend_verification",
@@ -247,6 +249,25 @@ async function PasswordChange(
             newPassword: newPass,
             revokeOtherSessions: true,
         },
+        headers: request.headers,
+        returnHeaders: true,
+    });
+    return {
+        headers: result.headers,
+        data: { change_password: { success: true } },
+    };
+}
+
+async function SetPassword(
+    request: Request,
+    form: FormData,
+): Promise<{ headers: Headers; data: DashboardActionData } | null> {
+    const newPass = form.get("new_password")?.toString();
+    const repeat = form.get("new_password_repeat")?.toString();
+    if (!newPass) throw new AppError("password_mismatch");
+    if (newPass !== repeat) throw new AppError("password_mismatch");
+    const result = await auth.api.setPassword({
+        body: { newPassword: newPass },
         headers: request.headers,
         returnHeaders: true,
     });
@@ -370,7 +391,7 @@ async function LinkAccount(
 ): Promise<{ redirectUrl: string; headers: Headers } | null> {
     const provider = form.get("provider")?.toString();
     if (!provider || (provider !== "google" && provider !== "apple")) {
-        return null;
+        throw new AppError("internal_field_unknown_oauth_provider");
     }
     const result = await auth.api.linkSocialAccount({
         headers: request.headers,
@@ -383,7 +404,7 @@ async function LinkAccount(
     if (result.response.url) {
         return { redirectUrl: result.response.url, headers: result.headers };
     }
-    return null;
+    throw new AppError("generic_error");
 }
 
 async function UnlinkAccount(request: Request, form: FormData): Promise<null> {

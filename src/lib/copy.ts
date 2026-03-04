@@ -37,6 +37,7 @@ export const ERROR_COPY: Record<TErrorCodes, string> = {
     internal_field_missing_oauth: "500",
     oauth_no_url_given_by_provider: "500",
     internal_field_missing_action: "500",
+    internal_field_unknown_oauth_provider: "500",
 
     // Better Auth errors
     ASYNC_VALIDATION_NOT_SUPPORTED: "",
@@ -213,6 +214,8 @@ export const copy = {
     dashboard_password_repeat_label: "Repeat New Password",
     dashboard_password_repeat_placeholder: "Repeat new password",
     dashboard_password_change: "Change Password",
+    dashboard_password_set: "Set Password",
+    dashboard_password_set_description: "Set a password to sign in with email.",
 
     dashboard_2fa_heading: "Two-Factor Authentication",
     dashboard_2fa_description: "Use an authenticator app (TOTP) for two factor authentication.",
@@ -238,7 +241,9 @@ export const copy = {
 
     dashboard_linked_accounts_heading: "Linked Accounts",
     dashboard_linked_accounts_linked: "Linked",
+    dashboard_linked_accounts_unlinked: "Not set",
     dashboard_linked_accounts_unlink: "Unlink",
+    dashboard_linked_accounts_link: "Link",
     dashboard_linked_accounts_credential: "Email & Password",
 
     dashboard_sessions_heading: "Sessions",
@@ -253,6 +258,8 @@ export const copy = {
     delete_title: "Delete Account",
     delete_section_header_password_only: "Enter your password to verify deleting your account.",
     delete_section_header: "Enter your password and 2FA to verify deleting your account.",
+    delete_section_header_2fa_only: "Enter your 2FA code to verify deleting your account.",
+    delete_section_header_confirm: "Are you sure you want to delete your account?",
     delete_section_2fa_totp: "Authenticator App (TOTP) Passcode",
     delete_section_2fa_email: "Email OTP",
     delete_go_back: "Back to safety",
@@ -269,6 +276,7 @@ export const copy = {
     email_footer_prefix:
         "If you did not initiate this request, you can safely ignore this email. If you believe your account has been compromised,",
 
+    email_change_subject: "Change email address",
     email_change_body: "Click the link below to confirm changing your email address.",
     email_change_from: "From",
     email_change_to: "to",
