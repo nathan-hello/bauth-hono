@@ -37,7 +37,7 @@ export function LoginPage({ errors, email }: LoginProps) {
                         <TextLink href="/auth/forgot">{copy.change_prompt}</TextLink>
                     </FormFooter>
                 </Form>
-                <OauthButtons />
+                <OauthButtons formAction={routes.auth.login} />
             </Card>
         </Layout>
     );

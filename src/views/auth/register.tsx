@@ -3,6 +3,7 @@ import type { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
+import { OauthButtons } from "@/views/components/oauth";
 
 type RegisterProps = {
     errors?: AppError[];
@@ -38,6 +39,7 @@ export function RegisterPage({ errors, email }: RegisterProps) {
                             <TextLink href={routes.auth.login}>{copy.login_prompt}</TextLink>
                         </FormFooter>
                     </Form>
+                        <OauthButtons formAction={routes.auth.register} />
                 </div>
             </Card>
             <RegisterEmailDevInfo />

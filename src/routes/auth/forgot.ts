@@ -3,7 +3,7 @@ import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
+import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes/auth/redirect";
 import { ForgotPage, type ForgotStep } from "@/views/auth/forgot";
 import { routes } from "@/routes/routes";
 
@@ -81,7 +81,7 @@ export const post: Handler = async (c) => {
             }
 
             tel.info("PASSWORD_RESET", { email });
-            return redirectWithHeaders(headers, "/");
+            return redirectWithSetCookies(headers, "/");
         }
 
         return c.html(ForgotPage({ step: "start" }));

@@ -23,6 +23,7 @@ import { routes } from "@/routes/routes";
 import { generateQrSvg } from "@/lib/qr";
 import { BAuthSession } from "@/lib/types";
 import { actionName } from "@/routes/auth/dashboard";
+import { auth } from "@/server/auth";
 
 export type DashboardActionData = {
     errors?: AppError[];
@@ -31,8 +32,16 @@ export type DashboardActionData = {
     totp?: TotpState;
 };
 
+export type LinkedAccount = {
+    id: string;
+    providerId: string;
+    accountId: string;
+    scopes?: string[];
+};
+
 export type DashboardLoaderData = BAuthSession & {
     sessions: BAuthSession["session"][];
+    accounts: LinkedAccount[];
 };
 
 type TotpState = {
@@ -57,6 +66,7 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                 <ErrorAlerts errors={actionData?.errors} />
                 <Divider>
                     <EmailSection email={loaderData.user} verificationSent={actionData?.email_verify?.sent} />
+                    <LinkedAccountsSection accounts={loaderData.accounts} />
                     <PasswordSection />
                     <TwoFactorSection state={actionData?.totp} userEnabled={loaderData.user.twoFactorEnabled} />
                     <SessionsSection sessions={loaderData.sessions} current={loaderData.session} />
@@ -147,6 +157,55 @@ function PasswordSection({ success }: { success?: boolean }) {
                 />
                 <Button type="submit">{copy.dashboard_password_change}</Button>
             </Form>
+        </Section>
+    );
+}
+
+function LinkedAccountsSection({ accounts }: { accounts: LinkedAccount[] }) {
+    const linkedProviderIds = new Set(accounts.map((a) => a.providerId));
+    const oauthProviders: { id: string; label: string }[] = [];
+    if (auth.options.socialProviders.google.enabled) {
+        oauthProviders.push({ id: "google", label: "Google" });
+    }
+    if (auth.options.socialProviders.apple.enabled) {
+        oauthProviders.push({ id: "apple", label: "Apple" });
+    }
+
+    return (
+        <Section>
+            <SectionHeading>{copy.dashboard_linked_accounts_heading}</SectionHeading>
+            {accounts.map((account) => (
+                <Form method="post" action={routes.auth.dashboard}>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <Badge color="blue">{copy.dashboard_linked_accounts_linked}</Badge>
+                            <p>
+                                {account.providerId === "credential"
+                                    ? copy.dashboard_linked_accounts_credential
+                                    : account.providerId.charAt(0).toUpperCase() + account.providerId.slice(1)}
+                            </p>
+                        </div>
+                    </div>
+                    {account.providerId !== "credential" && (
+                        <>
+                            <input type="hidden" name="action" value={actionName.unlink_account} />
+                            <input type="hidden" name="providerId" value={account.providerId} />
+                            <Button variant="ghost" type="submit">
+                                {copy.dashboard_linked_accounts_unlink}
+                            </Button>
+                        </>
+                    )}
+                </Form>
+            ))}
+            {oauthProviders
+                .filter((p) => !linkedProviderIds.has(p.id))
+                .map((provider) => (
+                    <Form method="post" action={routes.auth.dashboard}>
+                        <input type="hidden" name="action" value={actionName.link_account} />
+                        <input type="hidden" name="provider" value={provider.id} />
+                        <Button type="submit">Link {provider.label}</Button>
+                    </Form>
+                ))}
         </Section>
     );
 }

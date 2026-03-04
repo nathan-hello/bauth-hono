@@ -1,9 +1,9 @@
 import type { Context, Handler } from "hono";
 import { auth, validateUsername } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
+import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes/auth/redirect";
 import { RegisterPage } from "@/views/auth/register";
-import { redirects, routes } from "@/routes/routes";
+import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 
 const tel = new Telemetry(routes.auth.register);
@@ -79,7 +79,7 @@ async function Register(c: Context, form: FormData) {
         tel.info("new_user", { userId: response.user.id });
     }
 
-    return redirectWithHeaders(headers, "/auth/dashboard");
+    return redirectWithSetCookies(headers, "/auth/dashboard");
 }
 
 async function RegisterOauth(c: Context, form: FormData) {
@@ -90,14 +90,15 @@ async function RegisterOauth(c: Context, form: FormData) {
 
     const data = await auth.api.signInSocial({
         headers: c.req.raw.headers,
-        body: { provider, callbackURL: redirects.AfterOauth(c), requestSignUp: true },
+        body: { provider, requestSignUp: true },
+        returnHeaders: true,
     });
 
-    if (!data.url) {
+    if (!data.response.url) {
         throw new AppError("oauth_no_url_given_by_provider");
     }
 
-    return c.redirect(data.url);
+    return redirectWithSetCookies(data.headers, data.response.url);
 }
 
 function parseRegister(data: Record<string, string | undefined>): AppError[] | undefined {
