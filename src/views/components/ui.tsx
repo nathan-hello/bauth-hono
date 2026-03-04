@@ -1,5 +1,4 @@
 import type { Child, JSX, PropsWithChildren } from "hono/jsx";
-import { copy } from "@/lib/copy";
 import type { AppError } from "@/lib/auth-error";
 import { ChevronDown, ChevronRight, CircleCheckmark, Exclamation } from "@/views/components/svg";
 
@@ -160,15 +159,97 @@ export function Divider({ children }: { children: Child }) {
     return <div class="divide-t divide-border-2">{children}</div>;
 }
 
-export function Details({ name, title, children }: { name: string; title: string; children: Child }) {
+export function Details({ name, title, children }: { name: string; title: Child; children: Child }) {
     return (
-        <details name={name} className="group my-4 border border-border text-fg py-2 px-3">
-            <summary className="flex cursor-pointer list-none items-center justify-between focus:outline-none">
+        <details name={name} className="group border border-border text-fg py-2 px-3">
+            <summary className="flex cursor-pointer list-none items-center justify-between focus:outline-none [&::-webkit-details-marker]:hidden">
                 <span>{title}</span>
                 <ChevronRight group />
                 <ChevronDown group />
             </summary>
-            <div className="mt-2">{children}</div>
+            <div className="mt-2 border-t border-border pt-2">{children}</div>
         </details>
+    );
+}
+
+export function AccountRow({
+    name,
+    badge,
+    badgeColor,
+    label,
+    children,
+}: {
+    name: string;
+    badge: string;
+    badgeColor: "green" | "yellow" | "blue" | "gray";
+    label: string;
+    children: Child;
+}) {
+    return (
+        <Details
+            name={name}
+            title={
+                <span class="flex items-center gap-4">
+                    <Badge color={badgeColor}>{badge}</Badge>
+                    <span>{label}</span>
+                </span>
+            }
+        >
+            {children}
+        </Details>
+    );
+}
+
+export function BackupCodes({
+    title,
+    description,
+    codes,
+}: {
+    title: string;
+    description: string;
+    codes: string[];
+}) {
+    return (
+        <div class="bg-surface-raised p-4 mb-4">
+            <p class="text-xs font-semibold text-fg-faint uppercase tracking-widest mb-2">{title}</p>
+            <p class="text-xs text-fg-muted mb-3">{description}</p>
+            <div class="font-mono text-xs grid grid-cols-2 gap-1 select-all">
+                {codes.map((code) => (
+                    <span class="p-2 bg-surface text-fg text-center">{code}</span>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+export function TabGroup({
+    name,
+    tabs,
+}: {
+    name: string;
+    tabs: { id: string; label: string; children: Child }[];
+}) {
+    const rules = tabs
+        .map((t) => `#${name}-wrap:has(#${name}-${t.id}:checked) #${name}-c-${t.id} { display: flex; }`)
+        .join("\n");
+    return (
+        <div id={`${name}-wrap`}>
+            <style>{rules}</style>
+            {tabs.map((t, i) => (
+                <input type="radio" name={name} id={`${name}-${t.id}`} class="hidden" checked={i === 0} />
+            ))}
+            <div class="flex border-b">
+                {tabs.map((t) => (
+                    <label htmlFor={`${name}-${t.id}`} class="flex-1 p-2 cursor-pointer text-center">
+                        {t.label}
+                    </label>
+                ))}
+            </div>
+            {tabs.map((t) => (
+                <div id={`${name}-c-${t.id}`} class="hidden h-72 w-full justify-center items-center overflow-y-auto">
+                    {t.children}
+                </div>
+            ))}
+        </div>
     );
 }
