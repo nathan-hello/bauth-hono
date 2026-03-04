@@ -1,7 +1,7 @@
 import type { Handler } from "hono";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectWithHeaders } from "@/routes/auth/redirect";
+import { redirectWithSetCookies } from "@/routes/auth/redirect";
 import { LogoutPage } from "@/views/auth/logout";
 import { routes } from "@/routes/routes";
 
@@ -21,7 +21,7 @@ export const get: Handler = async (c) => {
         }
 
         tel.info("SIGN_OUT_SUCCESS");
-        return redirectWithHeaders(headers, "/");
+        return redirectWithSetCookies(headers, "/");
     });
 
     if (result.ok) {
@@ -45,7 +45,7 @@ export const post: Handler = async (c) => {
         }
 
         tel.info("SIGN_OUT_SUCCESS");
-        return redirectWithHeaders(headers, "/");
+        return redirectWithSetCookies(headers, "/");
     });
 
     if (result.ok) {

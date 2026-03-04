@@ -139,7 +139,6 @@ export const auth = betterAuth({
             // same email address...
             disableImplicitSignUp: true,
             display: "page",
-            redirectURI: dotenv.PRODUCTION_URL + routes.auth.dashboard,
         },
         apple: {
             enabled: optionalEnv.APPLE_CLIENT_ID && optionalEnv.APPLE_CLIENT_SECRET ? true : false,
@@ -152,7 +151,6 @@ export const auth = betterAuth({
             // same email address...
             disableImplicitSignUp: true,
             display: "page",
-            redirectURI: dotenv.PRODUCTION_URL + routes.auth.dashboard,
         },
     },
 

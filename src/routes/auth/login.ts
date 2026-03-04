@@ -2,7 +2,7 @@ import type { Handler } from "hono";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
+import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes/auth/redirect";
 import { LoginPage } from "@/views/auth/login";
 import { redirects, routes } from "@/routes/routes";
 import { Context } from "hono";
@@ -49,7 +49,8 @@ export const post: Handler = async (c) => {
 };
 
 async function LogIn(c: Context, form: FormData) {
-    const email = form.get("email")?.toString(); const password = form.get("password")?.toString();
+    const email = form.get("email")?.toString();
+    const password = form.get("password")?.toString();
     if (!email || !password) {
         return c.html(
             LoginPage({
@@ -81,11 +82,11 @@ async function LogIn(c: Context, form: FormData) {
 
     if ("twoFactorRedirect" in response) {
         tel.info("2FA_REDIRECT");
-        return redirectWithHeaders(headers, "/auth/2fa");
+        return redirectWithSetCookies(headers, "/auth/2fa");
     }
 
     tel.info("SIGN_IN_SUCCESS");
-    return redirectWithHeaders(headers, "/");
+    return redirectWithSetCookies(headers, "/");
 }
 
 async function LogInOauth(c: Context, form: FormData) {
@@ -96,12 +97,13 @@ async function LogInOauth(c: Context, form: FormData) {
 
     const data = await auth.api.signInSocial({
         headers: c.req.raw.headers,
-        body: { provider, callbackURL: redirects.AfterOauth(c), requestSignUp: false },
+        body: { provider, requestSignUp: false },
+        returnHeaders: true,
     });
 
-    if (!data.url) {
+    if (!data.response.url) {
         throw new AppError("oauth_no_url_given_by_provider");
     }
 
-    return c.redirect(data.url);
+    return redirectWithSetCookies(data.headers, data.response.url);
 }

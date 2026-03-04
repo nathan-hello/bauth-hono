@@ -176,7 +176,6 @@ function AppleScript() {
 function GoogleScript() {
     return (
         <>
-            {" "}
             <div
                 id="g_id_onload"
                 data-client_id="YOUR_GOOGLE_CLIENT_ID"

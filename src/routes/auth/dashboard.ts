@@ -5,7 +5,7 @@ import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { DashboardLoaderData, DashboardPage, type DashboardActionData } from "@/views/auth/dashboard";
 import { redirects, routes } from "@/routes/routes";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
-import { redirectIfNoSession } from "@/routes/auth/redirect";
+import { redirectIfNoSession, redirectWithSetCookies } from "@/routes/auth/redirect";
 
 const tel = new Telemetry("route.dashboard");
 
@@ -14,10 +14,12 @@ async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | nu
     if (!session) return null;
 
     const allSessions = await auth.api.listSessions({ headers });
+    const accounts = await auth.api.listUserAccounts({ headers });
     const ret = {
         user: session.user,
         session: session.session,
         sessions: allSessions,
+        accounts,
     };
 
     tel.debug("LOADER_DATA", { data: JSON.stringify(ret) });
@@ -61,6 +63,14 @@ export const post: Handler = async (c) => {
         }
 
         tel.debug(action, safeRequestAttrs(c.req.raw, form));
+
+        if (action === "link_account") {
+            const linkResult = await LinkAccount(c.req.raw, form);
+            if (linkResult?.redirectUrl) {
+                return redirectWithSetCookies(linkResult.headers, linkResult.redirectUrl);
+            }
+            return Response.redirect(routes.auth.dashboard, 302);
+        }
 
         const result: { data?: DashboardActionData; headers?: Headers } | null = await actions[action](c.req.raw, form);
 
@@ -124,6 +134,8 @@ const actions = {
     two_factor_disable: TwoFactorDisable,
     get_totp_uri: TwoFactorGetTotpUri,
     get_backup_codes: TwoFactorGetBackupCodes,
+    link_account: LinkAccount,
+    unlink_account: UnlinkAccount,
 };
 
 export const actionName: { [K in keyof typeof actions]: K } = {
@@ -136,6 +148,8 @@ export const actionName: { [K in keyof typeof actions]: K } = {
     two_factor_disable: "two_factor_disable",
     get_totp_uri: "get_totp_uri",
     get_backup_codes: "get_backup_codes",
+    link_account: "link_account",
+    unlink_account: "unlink_account",
 };
 
 async function RevokeSession(request: Request, form: FormData): Promise<{ headers: Headers } | null> {
@@ -350,3 +364,36 @@ async function TwoFactorGetBackupCodes(
     };
 }
 
+async function LinkAccount(
+    request: Request,
+    form: FormData,
+): Promise<{ redirectUrl: string; headers: Headers } | null> {
+    const provider = form.get("provider")?.toString();
+    if (!provider || (provider !== "google" && provider !== "apple")) {
+        return null;
+    }
+    const result = await auth.api.linkSocialAccount({
+        headers: request.headers,
+        body: {
+            provider,
+            callbackURL: routes.auth.dashboard,
+        },
+        returnHeaders: true,
+    });
+    if (result.response.url) {
+        return { redirectUrl: result.response.url, headers: result.headers };
+    }
+    return null;
+}
+
+async function UnlinkAccount(request: Request, form: FormData): Promise<null> {
+    const providerId = form.get("providerId")?.toString();
+    if (!providerId) {
+        return null;
+    }
+    await auth.api.unlinkAccount({
+        headers: request.headers,
+        body: { providerId },
+    });
+    return null;
+}

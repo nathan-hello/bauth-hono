@@ -2,7 +2,7 @@ import type { Handler } from "hono";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithHeaders, serverError } from "@/routes/auth/redirect";
+import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes/auth/redirect";
 import { TwoFactorPage } from "@/views/auth/2fa";
 import { parse } from "cookie";
 import { routes } from "@/routes/routes";
@@ -77,7 +77,7 @@ export const post: Handler = async (c) => {
                 returnHeaders: true,
             });
             tel.info("TOTP_VERIFIED");
-            return redirectWithHeaders(headers, "/");
+            return redirectWithSetCookies(headers, "/");
         }
 
         if (action === "verify-email") {
@@ -89,7 +89,7 @@ export const post: Handler = async (c) => {
                 returnHeaders: true,
             });
             tel.info("EMAIL_OTP_VERIFIED");
-            return redirectWithHeaders(headers, "/");
+            return redirectWithSetCookies(headers, "/");
         }
 
         return c.html(TwoFactorPage({}));

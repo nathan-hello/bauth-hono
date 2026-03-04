@@ -75,7 +75,7 @@ export const ERROR_COPY: Record<TErrorCodes, string> = {
     FAILED_TO_CREATE_USER: "",
     FAILED_TO_GET_SESSION: "",
     FAILED_TO_GET_USER_INFO: "",
-    FAILED_TO_UNLINK_LAST_ACCOUNT: "",
+    FAILED_TO_UNLINK_LAST_ACCOUNT: "You can't unlink your last account.",
     FAILED_TO_UPDATE_USER: "",
     ID_TOKEN_NOT_SUPPORTED: "",
     INVALID_EMAIL: "Invalid email.",
@@ -235,6 +235,11 @@ export const copy = {
     dashboard_backup_codes_copied: "Copied",
     dashboard_backup_codes_copy_all: "Copy All",
     dashboard_backup_codes_save: "Save these somewhere safe. Each code works once.",
+
+    dashboard_linked_accounts_heading: "Linked Accounts",
+    dashboard_linked_accounts_linked: "Linked",
+    dashboard_linked_accounts_unlink: "Unlink",
+    dashboard_linked_accounts_credential: "Email & Password",
 
     dashboard_sessions_heading: "Sessions",
     dashboard_session_current: "Current",

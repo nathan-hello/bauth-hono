@@ -27,11 +27,12 @@ export async function redirectIfNoSession(request: Request): Promise<BAuthSessio
     }
 }
 
-export function redirectWithHeaders(headers: Headers, location: string): Response {
-    return new Response(null, {
-        status: 302,
-        headers: new Headers([...headers.entries(), ["Location", location]]),
-    });
+export function redirectWithSetCookies(headers: Headers, location: string): Response {
+    const responseHeaders = new Headers({ Location: location });
+    for (const cookie of headers.getSetCookie()) {
+        responseHeaders.append("Set-Cookie", cookie);
+    }
+    return new Response(null, { status: 302, headers: responseHeaders });
 }
 
 export function serverError(traceId: string): Response {
