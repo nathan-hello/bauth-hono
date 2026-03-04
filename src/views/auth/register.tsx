@@ -1,100 +1,74 @@
 import { copy } from "@/lib/copy";
 import type { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
-import {
-  Card,
-  Input,
-  Button,
-  FormFooter,
-  TextLink,
-  ErrorAlerts,
-  Form,
-} from "@/views/components/ui";
+import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type RegisterProps = {
-  errors?: AppError[];
-  email?: string;
+    errors?: AppError[];
+    email?: string;
 };
 
 export function RegisterPage({ errors, email }: RegisterProps) {
-  return (
-    <Layout title={copy.routes.register.title}>
-      <Card>
-        <div class="max-w-full flex flex-col gap-4 m-0">
-          <ErrorAlerts errors={errors} />
-          <Form
-            method="post"
-            action={routes.auth.register}
-          >
-            <input type="hidden" name="action" value="register" />
-            <Input
-              type="text"
-              name="username"
-              required
-              placeholder={copy.input_username}
-            />
-            <Input
-              type="text"
-              name="email"
-              value={email ?? ""}
-              required
-              placeholder={copy.input_email}
-            />
-            <Input
-              type="password"
-              name="password"
-              placeholder={copy.input_password}
-              required
-              autocomplete="new-password"
-            />
-            <Input
-              type="password"
-              name="repeat"
-              required
-              placeholder={copy.input_repeat}
-              autocomplete="new-password"
-            />
-            <Button type="submit">{copy.button_continue}</Button>
-            <FormFooter>
-                <TextLink href={routes.auth.login}>{copy.login_prompt}</TextLink>
-            </FormFooter>
-          </Form>
-        </div>
-      </Card>
-      <RegisterEmailDevInfo />
-    </Layout>
-  );
+    return (
+        <Layout title={copy.routes.register.title}>
+            <Card>
+                <div class="max-w-full flex flex-col gap-4 m-0">
+                    <ErrorAlerts errors={errors} />
+                    <Form method="post" action={routes.auth.register}>
+                        <input type="hidden" name="action" value="register" />
+                        <Input type="text" name="username" required placeholder={copy.input_username} />
+                        <Input type="text" name="email" value={email ?? ""} required placeholder={copy.input_email} />
+                        <Input
+                            type="password"
+                            name="password"
+                            placeholder={copy.input_password}
+                            required
+                            autocomplete="new-password"
+                        />
+                        <Input
+                            type="password"
+                            name="repeat"
+                            required
+                            placeholder={copy.input_repeat}
+                            autocomplete="new-password"
+                        />
+                        <Button type="submit">{copy.button_continue}</Button>
+                        <FormFooter>
+                            <TextLink href={routes.auth.login}>{copy.login_prompt}</TextLink>
+                        </FormFooter>
+                    </Form>
+                </div>
+            </Card>
+            <RegisterEmailDevInfo />
+        </Layout>
+    );
 }
 
 function RegisterEmailDevInfo() {
-  if (process.env.NODE_ENV !== "development") {
-    return null;
-  }
+    if (process.env.NODE_ENV !== "development") {
+        return null;
+    }
 
-  const emails = [
-    "delivered+user1@resend.dev",
-    "delivered+user2@resend.dev",
-    "delivered+user3@resend.dev",
-  ];
+    const emails = ["delivered+user1@resend.dev", "delivered+user2@resend.dev", "delivered+user3@resend.dev"];
 
-  return (
-    <pre className="mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 text-[10px] leading-relaxed">
-      <div className="flex flex-col">
-        <span>Use one of the following addresses:</span>
-        {emails.map((e) => {
-          return (
-            <div key={e} className="flex flex-row justify-between w-full">
-              <pre className="mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 text-[10px] leading-relaxed">
-                {e}
-              </pre>
-            </div>
-          );
-        })}
+    return (
         <pre className="mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 text-[10px] leading-relaxed">
-          https://resend.com/docs/dashboard/emails/send-test-emails
+            <div className="flex flex-col">
+                <span>Use one of the following addresses:</span>
+                {emails.map((e) => {
+                    return (
+                        <div key={e} className="flex flex-row justify-between w-full">
+                            <pre className="mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 text-[10px] leading-relaxed">
+                                {e}
+                            </pre>
+                        </div>
+                    );
+                })}
+                <pre className="mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 text-[10px] leading-relaxed">
+                    https://resend.com/docs/dashboard/emails/send-test-emails
+                </pre>
+            </div>
         </pre>
-      </div>
-    </pre>
-  );
+    );
 }

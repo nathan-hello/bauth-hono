@@ -21,6 +21,6 @@ export type BAuthSessionMaybe = {
         displayUsername?: string | null | undefined;
         twoFactorEnabled: boolean | null | undefined;
     };
-} | null
+} | null;
 
 export type BAuthSession = NonNullable<BAuthSessionMaybe>;

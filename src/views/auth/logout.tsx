@@ -1,35 +1,25 @@
 import { copy } from "@/lib/copy";
 import type { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
-import {
-  Card,
-  Button,
-  FormFooter,
-  TextLink,
-  ErrorAlerts,
-} from "@/views/components/ui";
+import { Card, Button, FormFooter, TextLink, ErrorAlerts } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type LogoutProps = {
-  errors?: AppError[];
+    errors?: AppError[];
 };
 
 export function LogoutPage({ errors }: LogoutProps) {
-  return (
-    <Layout title={copy.routes.logout.title}>
-      <Card>
-        <form
-          class="max-w-full flex flex-col gap-4 m-0"
-          method="post"
-          action={routes.auth.logout}
-        >
-          <ErrorAlerts errors={errors} />
-          <Button type="submit">{copy.button_continue}</Button>
-          <FormFooter>
-            <TextLink href="/auth/login">{copy.login}</TextLink>
-          </FormFooter>
-        </form>
-      </Card>
-    </Layout>
-  );
+    return (
+        <Layout title={copy.routes.logout.title}>
+            <Card>
+                <form class="max-w-full flex flex-col gap-4 m-0" method="post" action={routes.auth.logout}>
+                    <ErrorAlerts errors={errors} />
+                    <Button type="submit">{copy.button_continue}</Button>
+                    <FormFooter>
+                        <TextLink href="/auth/login">{copy.login}</TextLink>
+                    </FormFooter>
+                </form>
+            </Card>
+        </Layout>
+    );
 }
