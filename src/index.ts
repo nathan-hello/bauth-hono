@@ -9,6 +9,7 @@ import * as forgot from "@/routes/auth/forgot";
 import * as twofa from "@/routes/auth/2fa";
 import * as dashboard from "@/routes/auth/dashboard";
 import * as api from "@/routes/auth/api";
+import * as oauth from "@/routes/auth/oauth";
 import * as accountDelete from "@/routes/auth/delete";
 
 import * as debugHome from "@/routes/debug/home";
@@ -34,6 +35,10 @@ app.use(trimTrailingSlash());
 app.use("/*", serveStatic({ root: "./public" }));
 
 app.post(routes.auth.api, api.post);
+
+app.post(routes.auth.oauthGoogle, oauth.google);
+app.post(routes.auth.oauthApple, oauth.apple);
+app.all("/api/auth/*", api.post);
 
 app.get(routes.auth.login, login.get);
 app.post(routes.auth.login, login.post);

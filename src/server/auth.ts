@@ -9,6 +9,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import * as schema from "@/server/drizzle/schema";
 import { passkey } from "@better-auth/passkey";
 import { username, twoFactor, emailOTP } from "better-auth/plugins";
+import { routes } from "@/routes/routes";
 
 const resend = new Resend(dotenv.RESEND_ACCESS_TOKEN);
 
@@ -125,6 +126,35 @@ export const auth = betterAuth({
             },
         }),
     ],
+
+    socialProviders: {
+        google: {
+            enabled: true,
+            clientId: "",
+            clientSecret: "",
+            accessType: "offline",
+            // This is to prevent the UX where you don't know if you
+            // signed up using X oauth, so you think you're signing
+            // in but you're actually making a new account with the
+            // same email address...
+            disableImplicitSignUp: true,
+            display: "page",
+            redirectURI: dotenv.PRODUCTION_URL + routes.auth.dashboard,
+        },
+        apple: {
+            enabled: true,
+            clientId: "",
+            clientSecret: "",
+            accessType: "offline",
+            // This is to prevent the UX where you don't know if you
+            // signed up using X oauth, so you think you're signing
+            // in but you're actually making a new account with the
+            // same email address...
+            disableImplicitSignUp: true,
+            display: "page",
+            redirectURI: dotenv.PRODUCTION_URL + routes.auth.dashboard,
+        },
+    },
 
     rateLimit: {
         window: 60,

@@ -19,3 +19,5 @@ export const get: Handler = async (c) => {
     // Session check failed — render home without session
     return c.html(DebugHomePage({ session: null }));
 };
+
+

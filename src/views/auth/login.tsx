@@ -3,6 +3,7 @@ import type { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
+import { OauthButtons, OauthViaScripts } from "@/views/components/oauth";
 
 type LoginProps = {
     errors?: AppError[];
@@ -36,6 +37,7 @@ export function LoginPage({ errors, email }: LoginProps) {
                         <TextLink href="/auth/forgot">{copy.change_prompt}</TextLink>
                     </FormFooter>
                 </Form>
+                <OauthButtons />
             </Card>
         </Layout>
     );
