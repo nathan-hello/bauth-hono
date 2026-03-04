@@ -5,6 +5,10 @@ export function Layout({ title, children }: { title: string; children: Child }) 
         <html lang="en" style={{ backgroundColor: "#C297A0" }}>
             <head>
                 <title>{title}</title>
+                <meta name="appleid-signin-client-id" content="[CLIENT_ID]" />
+                <meta name="appleid-signin-scope" content="[SCOPES]" />
+                <meta name="appleid-signin-redirect-uri" content="[REDIRECT_URI]" />
+                <meta name="appleid-signin-state" content="[STATE]" />
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
