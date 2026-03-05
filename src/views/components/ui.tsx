@@ -1,5 +1,6 @@
 import type { Child, JSX, PropsWithChildren } from "hono/jsx";
 import type { AppError } from "@/lib/auth-error";
+import type { ActionResult } from "@/lib/types";
 import { ChevronDown, ChevronRight, CircleCheckmark, Exclamation } from "@/views/components/svg";
 
 export function Input(props: Record<string, any>) {
@@ -69,11 +70,31 @@ export function Label(props: { for?: string; children: Child; center?: boolean; 
     );
 }
 
-export function Form(props: PropsWithChildren<JSX.IntrinsicElements["form"]> & { flexRow?: true }) {
-    const { children, class: _className, flexRow, ...rest } = props;
+export function Form(
+    props: PropsWithChildren<JSX.IntrinsicElements["form"]> & {
+        flexRow?: true;
+        result?: ActionResult;
+        formAction: string;
+        success?: string;
+        kv?: Record<string, boolean | number | string | undefined>;
+    },
+) {
+    const { children, class: _className, flexRow, result, formAction, success, ...rest } = props;
+
+    const active = result && result.action === formAction;
 
     return (
         <form class={`flex gap-4 pt-4 ${flexRow ? "flex-row" : "flex-col"}`} {...rest}>
+            <input type="hidden" name="action" value={formAction} />
+            {props.kv &&
+                Object.entries(props.kv).map(([k, v]) => {
+                    if (v === undefined) {
+                        return null;
+                    }
+                    return <input type="hidden" name={k} value={v.toString()} />;
+                })}
+            {active && !result.success && <ErrorAlerts errors={result.errors} />}
+            {active && result.success && success && <FormAlert color="success">{success}</FormAlert>}
             {children}
         </form>
     );
@@ -175,13 +196,13 @@ export function Details({ name, title, children }: { name: string; title: Child;
 export function AccountRow({
     name,
     badge,
-    badgeColor,
+    badgeColor = "green",
     label,
     children,
 }: {
     name: string;
-    badge: string;
-    badgeColor: "green" | "yellow" | "blue" | "gray";
+    badge?: string ;
+    badgeColor?: "green" | "yellow" | "blue" | "gray" ;
     label: string;
     children: Child;
 }) {
@@ -190,7 +211,7 @@ export function AccountRow({
             name={name}
             title={
                 <span class="flex items-center gap-4">
-                    <Badge color={badgeColor}>{badge}</Badge>
+                    {badge && <Badge color={badgeColor}>{badge}</Badge>}
                     <span>{label}</span>
                 </span>
             }
@@ -200,15 +221,7 @@ export function AccountRow({
     );
 }
 
-export function BackupCodes({
-    title,
-    description,
-    codes,
-}: {
-    title: string;
-    description: string;
-    codes: string[];
-}) {
+export function BackupCodes({ title, description, codes }: { title: string; description: string; codes: string[] }) {
     return (
         <div class="bg-surface-raised p-4 mb-4">
             <p class="text-xs font-semibold text-fg-faint uppercase tracking-widest mb-2">{title}</p>
@@ -222,13 +235,7 @@ export function BackupCodes({
     );
 }
 
-export function TabGroup({
-    name,
-    tabs,
-}: {
-    name: string;
-    tabs: { id: string; label: string; children: Child }[];
-}) {
+export function TabGroup({ name, tabs }: { name: string; tabs: { id: string; label: string; children: Child }[] }) {
     const rules = tabs
         .map((t) => `#${name}-wrap:has(#${name}-${t.id}:checked) #${name}-c-${t.id} { display: flex; }`)
         .join("\n");

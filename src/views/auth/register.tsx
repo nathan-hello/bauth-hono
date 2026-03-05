@@ -16,8 +16,7 @@ export function RegisterPage({ errors, email }: RegisterProps) {
             <Card>
                 <div class="max-w-full flex flex-col gap-4 m-0">
                     <ErrorAlerts errors={errors} />
-                    <Form method="post" action={routes.auth.register}>
-                        <input type="hidden" name="action" value="register" />
+                    <Form method="post" action={routes.auth.register} formAction="register">
                         <Input type="text" name="username" required placeholder={copy.input_username} />
                         <Input type="text" name="email" value={email ?? ""} required placeholder={copy.input_email} />
                         <Input
@@ -39,7 +38,7 @@ export function RegisterPage({ errors, email }: RegisterProps) {
                             <TextLink href={routes.auth.login}>{copy.login_prompt}</TextLink>
                         </FormFooter>
                     </Form>
-                        <OauthButtons formAction={routes.auth.register} />
+                    <OauthButtons formAction={routes.auth.register} />
                 </div>
             </Card>
             <RegisterEmailDevInfo />

@@ -1,5 +1,6 @@
 import { Context } from "hono";
 import { AppError } from "@/lib/auth-error";
+import type { ActionResult } from "@/lib/types";
 import { redirects, routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -62,10 +63,13 @@ export async function post(c: Context) {
         throw new AppError("generic_error");
     });
 
+    const actionKey = hasCredential ? "change_password" : "set_password";
     if (result.ok) {
         const h = result.data.headers ? new Headers(result.data.headers) : undefined;
-        return c.html(ChangePasswordPage({ hasCredential, success: true }), h ? { headers: h } : undefined);
+        const r: ActionResult = { action: actionKey, success: true };
+        return c.html(ChangePasswordPage({ hasCredential, result: r }), h ? { headers: h } : undefined);
     }
 
-    return c.html(ChangePasswordPage({ hasCredential, errors: result.error }));
+    const r: ActionResult = { action: actionKey, success: false, errors: result.error };
+    return c.html(ChangePasswordPage({ hasCredential, result: r }));
 }

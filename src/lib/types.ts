@@ -1,3 +1,9 @@
+import type { AppError } from "@/lib/auth-error";
+
+export type ActionResult<TAction extends string = string> =
+    | { action: TAction | "top-of-page"; success: false; errors: AppError[] }
+    | { action: TAction | "top-of-page"; success: true; errors?: never };
+
 export type BAuthSessionMaybe = {
     session: {
         id: string;
