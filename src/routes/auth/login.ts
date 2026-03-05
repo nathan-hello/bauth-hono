@@ -97,7 +97,7 @@ async function LogInOauth(c: Context, form: FormData) {
 
     const data = await auth.api.signInSocial({
         headers: c.req.raw.headers,
-        body: { provider, requestSignUp: false },
+        body: { provider },
         returnHeaders: true,
     });
 
