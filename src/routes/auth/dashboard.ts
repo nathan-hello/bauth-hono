@@ -379,15 +379,6 @@ async function TwoFactorDisable(request: Request, form: FormData): Promise<Actio
 }
 
 async function TwoFactorGetTotpUri(request: Request, form: FormData): Promise<ActionReturnData> {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session || !session.user.twoFactorEnabled) {
-        tel.warn("TWO_FACTOR_REQUESTED_BUT_NOT_FOUND", {
-            sessionFound: session !== null,
-            twoFactorEnabled: session?.user.twoFactorEnabled,
-        });
-        throw new AppError("SESSION_EXPIRED");
-    }
-
     const password = form.get("password")?.toString();
     if (!password) {
         throw new AppError("INVALID_PASSWORD");
