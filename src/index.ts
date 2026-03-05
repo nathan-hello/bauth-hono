@@ -10,6 +10,8 @@ import * as twofa from "@/routes/auth/2fa";
 import * as dashboard from "@/routes/auth/dashboard";
 import * as api from "@/routes/auth/api";
 import * as accountDelete from "@/routes/auth/delete";
+import * as changePassword from "@/routes/auth/change-password";
+import * as changeEmail from "@/routes/auth/change-email";
 
 import * as debugHome from "@/routes/debug/home";
 import * as debugEmail from "@/routes/debug/email";
@@ -51,6 +53,12 @@ app.post(routes.auth.twoFactor, twofa.post);
 
 app.get(routes.auth.dashboard, dashboard.get);
 app.post(routes.auth.dashboard, dashboard.post);
+
+app.get(routes.auth.changePassword, changePassword.get);
+app.post(routes.auth.changePassword, changePassword.post);
+
+app.get(routes.auth.changeEmail, changeEmail.get);
+app.post(routes.auth.changeEmail, changeEmail.post);
 
 app.get(routes.auth.delete, accountDelete.get);
 app.post(routes.auth.delete, accountDelete.post);

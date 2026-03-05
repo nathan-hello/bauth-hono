@@ -36,6 +36,7 @@ export type DashboardActionData = {
 
 export type LinkedAccount = {
     id: string;
+    email: string;
     providerId: string;
     accountId: string;
     scopes?: string[];
@@ -61,13 +62,14 @@ type DashboardProps = {
 };
 
 function getOauthProviders() {
-    const providers: { id: string; label: string }[] = [];
-    if (auth.options.socialProviders.google.enabled) {
-        providers.push({ id: "google", label: "Google" });
-    }
-    if (auth.options.socialProviders.apple.enabled) {
-        providers.push({ id: "apple", label: "Apple" });
-    }
+    const providers = Object.entries(auth.options.socialProviders)
+        .map(([k, v]) => {
+            if (v.enabled) {
+                return { id: k, label: capitalize(k) };
+            }
+        })
+        .filter((e) => e !== undefined);
+
     return providers;
 }
 
@@ -85,32 +87,49 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
             <Card>
                 <Header>{copy.dashboard_title}</Header>
                 <ErrorAlerts errors={actionData?.errors} />
+                <Section>
+                    <Badge color={loaderData.user.emailVerified ? "blue" : "gray"}>
+                        {loaderData.user.emailVerified
+                            ? copy.dashboard_email_verified_badge
+                            : copy.dashboard_email_unverified_badge}
+                    </Badge>
+                    <Label unmuted>{loaderData.user.email}</Label>
+                    {!loaderData.user.emailVerified && (
+                        <Form method="post" action={routes.auth.dashboard}>
+                            <input type="hidden" name="action" value={actionName.email_resend_verification} />
+                            <Label>
+                                {actionData?.email_verify?.sent
+                                    ? copy.dashboard_email_verification_sent
+                                    : copy.dashboard_email_unverified_prompt}
+                            </Label>
+                            <Button disabled={actionData?.email_verify?.sent} type="submit">
+                                {copy.dashboard_email_resend_verification}
+                            </Button>
+                        </Form>
+                    )}
+                </Section>
                 <Divider>
-                    <Section>
-                        <SectionHeading>{copy.dashboard_email_heading}</SectionHeading>
-                        <Badge color={loaderData.user.emailVerified ? "blue" : "gray"}>
-                            {loaderData.user.emailVerified
-                                ? copy.dashboard_email_verified_badge
-                                : copy.dashboard_email_unverified_badge}
-                        </Badge>
-                        <Label unmuted>{loaderData.user.email}</Label>
-                        {!loaderData.user.emailVerified && (
-                            <EmailResendVerification verificationSent={actionData?.email_verify?.sent} />
-                        )}
-                        <Details name="email" title={copy.dashboard_email_change}>
-                            <EmailChangeForm />
-                        </Details>
-                    </Section>
-
                     <Section>
                         <SectionHeading>{copy.dashboard_linked_accounts_heading}</SectionHeading>
                         <AccountRow
                             name="accounts"
-                            badge={hasCredential ? copy.dashboard_linked_accounts_linked : copy.dashboard_linked_accounts_unlinked}
+                            badge={
+                                hasCredential
+                                    ? copy.dashboard_linked_accounts_linked
+                                    : copy.dashboard_linked_accounts_unlinked
+                            }
                             badgeColor={hasCredential ? "blue" : "yellow"}
                             label={copy.dashboard_linked_accounts_credential}
                         >
-                            <PasswordForm hasCredential={hasCredential} success={actionData?.change_password?.success} />
+                            <br />
+                            <ButtonLink variant="primary" href={routes.auth.changeEmail}>
+                                {copy.dashboard_email_change}
+                            </ButtonLink>
+                            <br />
+                            <ButtonLink variant="primary" href={routes.auth.changePassword}>
+                                {hasCredential ? copy.dashboard_password_change : copy.dashboard_password_set}
+                            </ButtonLink>
+                            <br />
                         </AccountRow>
                         {loaderData.accounts
                             .filter((a) => a.providerId !== "credential")
@@ -121,6 +140,7 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                                     badgeColor="blue"
                                     label={capitalize(account.providerId)}
                                 >
+                                    <p>{account.email}</p>
                                     <UnlinkAccountForm providerId={account.providerId} />
                                 </AccountRow>
                             ))}
@@ -138,7 +158,9 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                             ))}
                     </Section>
 
-                    <TwoFactorSection state={actionData?.totp} userEnabled={loaderData.user.twoFactorEnabled} />
+                    {hasCredential && (
+                        <TwoFactorSection state={actionData?.totp} userEnabled={loaderData.user.twoFactorEnabled} />
+                    )}
                     <SessionsSection sessions={loaderData.sessions} current={loaderData.session} />
 
                     <Section>
@@ -150,94 +172,6 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                 </Divider>
             </Card>
         </Layout>
-    );
-}
-
-function EmailChangeForm() {
-    return (
-        <Form method="post" action={routes.auth.dashboard}>
-            <input type="hidden" name="action" value={actionName.email_change} />
-            <Input type="email" name="new_email" autocomplete="email" placeholder={copy.input_email} required />
-            <Button type="submit">{copy.dashboard_email_change}</Button>
-        </Form>
-    );
-}
-
-function EmailResendVerification({ verificationSent }: { verificationSent?: boolean }) {
-    return (
-        <Form method="post" action={routes.auth.dashboard}>
-            <input type="hidden" name="action" value={actionName.email_resend_verification} />
-            <Label>
-                {verificationSent ? copy.dashboard_email_verification_sent : copy.dashboard_email_unverified_prompt}
-            </Label>
-            <Button variant="ghost" disabled={verificationSent} type="submit">
-                {copy.dashboard_email_resend_verification}
-            </Button>
-        </Form>
-    );
-}
-
-function PasswordForm({ hasCredential, success }: { hasCredential: boolean; success?: boolean }) {
-    if (hasCredential) {
-        return (
-            <Form method="post" action={routes.auth.dashboard}>
-                {success && <FormAlert color="success">{copy.dashboard_password_changed}</FormAlert>}
-                <input type="hidden" name="action" value={actionName.change_password} />
-                <Label for="current">{copy.dashboard_password_current_label}</Label>
-                <Input
-                    type="password"
-                    name="current"
-                    id="current"
-                    placeholder={copy.dashboard_password_current_placeholder}
-                    required
-                    autocomplete="current-password"
-                />
-                <Label for="new_password">{copy.dashboard_password_new_label}</Label>
-                <Input
-                    type="password"
-                    name="new_password"
-                    id="new_password"
-                    placeholder={copy.dashboard_password_new_placeholder}
-                    required
-                    autocomplete="new-password"
-                />
-                <Label for="new_password_repeat">{copy.dashboard_password_repeat_label}</Label>
-                <Input
-                    type="password"
-                    name="new_password_repeat"
-                    id="new_password_repeat"
-                    placeholder={copy.dashboard_password_repeat_new_placeholder}
-                    required
-                    autocomplete="new-password"
-                />
-                <Button type="submit">{copy.dashboard_password_change}</Button>
-            </Form>
-        );
-    }
-
-    return (
-        <Form method="post" action={routes.auth.dashboard}>
-            {success && <FormAlert color="success">{copy.dashboard_password_changed}</FormAlert>}
-            <input type="hidden" name="action" value={actionName.set_password} />
-            <Label for="new_password">{copy.dashboard_password_heading}</Label>
-            <Input
-                type="password"
-                name="new_password"
-                id="new_password"
-                placeholder={copy.dashboard_password_heading}
-                required
-                autocomplete="new-password"
-            />
-            <Label for="new_password_repeat">{copy.dashboard_password_repeat_password}</Label>
-            <Input
-                type="password"
-                name="new_password_repeat"
-                id="new_password_repeat"
-                placeholder={copy.dashboard_password_repeat_new_placeholder}
-                autocomplete="new-password"
-            />
-            <Button type="submit">{copy.dashboard_password_set}</Button>
-        </Form>
     );
 }
 

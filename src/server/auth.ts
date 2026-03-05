@@ -227,6 +227,56 @@ export const auth = betterAuth({
         },
         updateAccountOnSignIn: true,
         encryptOAuthTokens: true,
+        additionalFields: {
+            email: {
+                type: "string",
+                required: false,
+            },
+        },
+    },
+
+    databaseHooks: {
+        account: {
+            create: {
+                // Extract the user's email from the OAuth provider's ID token
+                // and store it on the account record. This is needed because
+                // better-auth doesn't persist the provider email on the account
+                // by default, so we pull it from the JWT ourselves.
+                before: async (account) => {
+                    // Only process OAuth accounts that have an ID token.
+                    // "credential" is the providerId for email/password accounts,
+                    // which already have an email and don't use JWTs.
+                    if (!account.idToken || account.providerId === "credential") {
+                        return;
+                    }
+
+                    try {
+                        // A JWT is three base64url-encoded segments separated by dots:
+                        //   [0] header  – algorithm & token type
+                        //   [1] payload – the claims (email, sub, iat, etc.)
+                        //   [2] signature
+                        // We only need the payload (index 1) to read the email claim.
+                        const [_header, payloadB64, _signature] = account.idToken.split(".");
+
+                        if (!payloadB64) {
+                            return;
+                        }
+
+                        const payload = JSON.parse(
+                            Buffer.from(payloadB64, "base64url").toString("utf-8"),
+                        );
+
+                        if (typeof payload.email === "string" && payload.email) {
+                            return { data: { ...account, email: payload.email } };
+                        }
+                    } catch {
+                        // The idToken wasn't a valid JWT – this can happen with
+                        // some providers. Safe to ignore; the account just won't
+                        // have a provider email stored.
+                    }
+                },
+            },
+        },
     },
 
     cors: {
