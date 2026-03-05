@@ -1,5 +1,6 @@
 import { AppError } from "@/lib/auth-error";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
+import type { ActionResult } from "@/lib/types";
 import { serverError } from "@/routes/auth/redirect";
 import { redirects, routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
@@ -9,7 +10,7 @@ import { Context } from "hono";
 
 const tel = new Telemetry(routes.auth.delete);
 
-type ActionResult = {
+type DeleteActionData = {
     data?: {
         deleted?: boolean;
         verificationType?: "email" | "totp";
@@ -41,18 +42,17 @@ export async function post(c: Context) {
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
     const form = await c.req.formData();
+    const action = form.get("action")?.toString();
+
+    if (!action || !checkAction(action)) {
+        tel.error("ACTION_UNDEFINED", {
+            data: safeRequestAttrs(c.req.raw, form),
+        });
+        throw new AppError("generic_error");
+    }
 
     const result = await tel.task("POST", async (span) => {
-        const action = form.get("action")?.toString();
         span.setAttribute("user.id", session.user.id);
-
-        if (!action || !checkAction(action)) {
-            tel.error("ACTION_UNDEFINED", {
-                data: safeRequestAttrs(c.req.raw, form),
-            });
-            throw new AppError("generic_error");
-        }
-
         span.setAttribute("action", action);
         tel.debug(action, safeRequestAttrs(c.req.raw, form));
 
@@ -73,6 +73,7 @@ export async function post(c: Context) {
         );
     }
 
+    const ar: ActionResult = { action, success: false, errors: result.error };
     return c.html(
         DeleteAccountPage({
             hasCredential,
@@ -80,8 +81,8 @@ export async function post(c: Context) {
                 verificationType: session.user.twoFactorEnabled
                     ? getOtpType(form.get("otp-type")?.toString())
                     : undefined,
-                errors: result.error,
             },
+            result: ar,
         }),
     );
 }
@@ -96,12 +97,12 @@ function getOtpType(s: string | undefined): "email" | "totp" {
     return "totp";
 }
 
-async function ResendEmail(request: Request, _: FormData): Promise<ActionResult> {
+async function ResendEmail(request: Request, _: FormData): Promise<DeleteActionData> {
     await auth.api.sendTwoFactorOTP({ headers: request.headers });
     return { data: { verificationType: "email", resentEmail: true } };
 }
 
-async function SwitchOtp(request: Request, form: FormData): Promise<ActionResult> {
+async function SwitchOtp(request: Request, form: FormData): Promise<DeleteActionData> {
     const to = form.get("to")?.toString();
     const type: "email" | "totp" = to === "email" ? "email" : "totp";
     if (type === "email") {
@@ -110,7 +111,7 @@ async function SwitchOtp(request: Request, form: FormData): Promise<ActionResult
     return { data: { verificationType: type } };
 }
 
-async function DeleteAccount(request: Request, form: FormData): Promise<ActionResult> {
+async function DeleteAccount(request: Request, form: FormData): Promise<DeleteActionData> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) return null;
 

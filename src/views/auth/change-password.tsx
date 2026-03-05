@@ -1,24 +1,21 @@
 import { copy } from "@/lib/copy";
-import type { AppError } from "@/lib/auth-error";
+import type { ActionResult } from "@/lib/types";
 import { Layout } from "@/views/components/layout";
-import { Input, Button, ButtonLink, Card, ErrorAlerts, Form, FormAlert, Header, Label, Section } from "@/views/components/ui";
+import { Input, Button, ButtonLink, Card, Form, Header, Label, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type Props = {
     hasCredential: boolean;
-    success?: boolean;
-    errors?: AppError[];
+    result?: ActionResult;
 };
 
-export function ChangePasswordPage({ hasCredential, success, errors }: Props) {
+export function ChangePasswordPage({ hasCredential, result }: Props) {
     return (
         <Layout title={copy.dashboard_password_heading}>
             <Card>
                 <Header>{hasCredential ? copy.dashboard_password_change : copy.dashboard_password_set}</Header>
                 <Section>
-                    <ErrorAlerts errors={errors} />
-                    {success && <FormAlert color="success">{copy.dashboard_password_changed}</FormAlert>}
-                    {hasCredential ? <ChangePasswordForm /> : <SetPasswordForm />}
+                    {hasCredential ? <ChangePasswordForm result={result} /> : <SetPasswordForm result={result} />}
                 </Section>
                 <Section>
                     <ButtonLink href={routes.auth.dashboard}>{copy.go_back}</ButtonLink>
@@ -28,9 +25,15 @@ export function ChangePasswordPage({ hasCredential, success, errors }: Props) {
     );
 }
 
-function ChangePasswordForm() {
+function ChangePasswordForm({ result }: { result?: ActionResult }) {
     return (
-        <Form method="post" action={routes.auth.changePassword}>
+        <Form
+            method="post"
+            action={routes.auth.changePassword}
+            result={result}
+            formAction="change_password"
+            success={copy.dashboard_password_changed}
+        >
             <input type="hidden" name="action" value="change_password" />
             <Label for="current">{copy.dashboard_password_current_label}</Label>
             <Input
@@ -64,9 +67,15 @@ function ChangePasswordForm() {
     );
 }
 
-function SetPasswordForm() {
+function SetPasswordForm({ result }: { result?: ActionResult }) {
     return (
-        <Form method="post" action={routes.auth.changePassword}>
+        <Form
+            method="post"
+            action={routes.auth.changePassword}
+            result={result}
+            formAction="set_password"
+            success={copy.dashboard_password_changed}
+        >
             <input type="hidden" name="action" value="set_password" />
             <Label unmuted>{copy.dashboard_password_set_description}</Label>
             <Label for="new_password">{copy.dashboard_password_new_label}</Label>

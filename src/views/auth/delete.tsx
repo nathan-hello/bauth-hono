@@ -1,4 +1,5 @@
 import { copy } from "@/lib/copy";
+import type { ActionResult } from "@/lib/types";
 import { actionName } from "@/routes/auth/delete";
 import { routes } from "@/routes/routes";
 import { TwoFactorState } from "@/views/auth/2fa";
@@ -8,9 +9,11 @@ import { Button, ButtonLink, Card, Form, Header, Input, Label, Section } from "@
 export function DeleteAccountPage({
     hasCredential,
     state,
+    result,
 }: {
     hasCredential: boolean;
     state?: TwoFactorState;
+    result?: ActionResult;
 }) {
     const headerCopy = hasCredential
         ? state
@@ -29,7 +32,12 @@ export function DeleteAccountPage({
                     <Label center unmuted>
                         {headerCopy}
                     </Label>
-                    <Form method="post" action={routes.auth.delete}>
+                    <Form
+                        method="post"
+                        action={routes.auth.delete}
+                        result={result}
+                        formAction={actionName.delete_account}
+                    >
                         <input type="hidden" name="action" value={actionName.delete_account} />
 
                         {hasCredential && (

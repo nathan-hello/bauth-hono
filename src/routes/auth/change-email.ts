@@ -1,5 +1,6 @@
 import { Context } from "hono";
 import { AppError } from "@/lib/auth-error";
+import type { ActionResult } from "@/lib/types";
 import { redirects, routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -52,25 +53,28 @@ export async function post(c: Context) {
         throw new AppError("generic_error");
     });
 
+    const actionKey = action ?? "change_email";
     if (result.ok) {
         const r = result.data;
         const h = "headers" in r && r.headers ? new Headers(r.headers) : undefined;
+        const ar: ActionResult = { action: actionKey, success: true };
         return c.html(
             ChangeEmailPage({
                 currentEmail: session.user.email,
                 emailVerified: session.user.emailVerified,
-                success: "success" in r ? r.success : undefined,
+                result: ar,
                 verificationSent: "verificationSent" in r ? r.verificationSent : undefined,
             }),
             h ? { headers: h } : undefined,
         );
     }
 
+    const ar: ActionResult = { action: actionKey, success: false, errors: result.error };
     return c.html(
         ChangeEmailPage({
             currentEmail: session.user.email,
             emailVerified: session.user.emailVerified,
-            errors: result.error,
+            result: ar,
         }),
     );
 }

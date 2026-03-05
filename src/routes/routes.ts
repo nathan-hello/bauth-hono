@@ -27,6 +27,12 @@ export const routes = {
 export const redirects = {
     ToLogin: () => Response.redirect(routes.auth.login, 302),
     AfterDeleteAcccount: routes.auth.deleteSuccess,
+    AfterLogin: (c: Context): string => {
+        if (process.env.NODE_ENV === "development") {
+            return routes.auth.dashboard;
+        }
+        return routes.index;
+    },
     AfterOauth: (c: Context): string => {
         return routes.auth.dashboard;
     },

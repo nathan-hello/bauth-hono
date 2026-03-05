@@ -14,7 +14,7 @@ export function LoginPage({ errors, email }: LoginProps) {
     return (
         <Layout title={copy.routes.login.title}>
             <Card>
-                <Form method="post" action={routes.auth.login}>
+                <Form method="post" action={routes.auth.login} formAction="login">
                     <ErrorAlerts errors={errors} />
                     <Input
                         type="text"
