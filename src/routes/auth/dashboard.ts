@@ -15,6 +15,12 @@ import { redirectIfNoSession, redirectWithSetCookies } from "@/routes/auth/redir
 
 const tel = new Telemetry("route.dashboard");
 
+type ActionReturnData = {
+    result?: DashboardActionData["result"];
+    totp?: TotpState;
+    headers?: Headers;
+};
+
 async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | null> {
     const session = await auth.api.getSession({ headers });
     if (!session) return null;
@@ -77,17 +83,7 @@ export const post: Handler = async (c) => {
         );
     }
 
-    const result: TaskResult<
-        | DashboardActionData
-        | {
-              headers: Headers;
-          }
-        | {
-              result: DashboardActionData["result"];
-              totp: TotpState;
-              headers?: Headers;
-          }
-    > = await tel.task("POST", async (span) => {
+    const result: TaskResult<ActionReturnData | Response> = await tel.task("POST", async (span) => {
         if (action === "link_account") {
             const linkResult = await LinkAccount(c.req.raw, form);
             return redirectWithSetCookies(linkResult.headers, linkResult.redirectUrl);
@@ -105,23 +101,18 @@ export const post: Handler = async (c) => {
             return result.data;
         }
 
-        const headersForLoader =
-            "headers" in result.data && result.data.headers !== undefined
-                ? convertSetCookiesToCookies(c.req.raw.headers, result.data.headers)
-                : c.req.raw.headers;
+        const headersForLoader = result.data.headers
+            ? convertSetCookiesToCookies(c.req.raw.headers, result.data.headers)
+            : c.req.raw.headers;
         const loaderAfterSuccess = await getLoaderData(headersForLoader);
         if (!loaderAfterSuccess) {
             return redirects.ToLogin();
         }
 
-        const actionData: DashboardActionData = {
-            result: "result" in result.data ? result.data.result : undefined,
-            totp: "totp" in result.data ? result.data?.totp : undefined,
-        };
-
+        const actionData: DashboardActionData = { result: result.data.result, totp: result.data.totp };
         const html = DashboardPage({ actionData, loaderData: loaderAfterSuccess });
 
-        if ("headers" in result.data && result.data?.headers) {
+        if (result.data.headers) {
             const h = new Headers(result.data.headers);
             h.set("Content-Type", "text/html; charset=utf-8");
             return c.html(html, { headers: h });
@@ -185,7 +176,7 @@ export const actionName: { [K in keyof typeof actions]: K } = {
     unlink_account: "unlink_account",
 };
 
-async function RevokeSession(request: Request, form: FormData): Promise<{ headers: Headers }> {
+async function RevokeSession(request: Request, form: FormData): Promise<ActionReturnData> {
     const token = form.get("session")?.toString();
     if (!token) {
         throw new AppError("internal_field_missing_token");
@@ -214,7 +205,7 @@ async function RevokeSession(request: Request, form: FormData): Promise<{ header
     return { headers: result.headers };
 }
 
-async function EmailVerificationResend(request: Request, _: FormData): Promise<DashboardActionData> {
+async function EmailVerificationResend(request: Request, _: FormData): Promise<ActionReturnData> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) {
         throw new AppError("internal_field_missing_session");
@@ -233,7 +224,7 @@ async function EmailVerificationResend(request: Request, _: FormData): Promise<D
     };
 }
 
-async function EmailChange(request: Request, form: FormData): Promise<{ headers: Headers }> {
+async function EmailChange(request: Request, form: FormData): Promise<ActionReturnData> {
     const newEmail = form.get("new_email")?.toString();
     if (!newEmail) {
         throw new AppError("internal_field_missing_new_email");
@@ -246,7 +237,7 @@ async function EmailChange(request: Request, form: FormData): Promise<{ headers:
     return { headers: result.headers };
 }
 
-async function TwoFactorEnable(request: Request, form: FormData): Promise<{ totp: TotpState; headers: Headers }> {
+async function TwoFactorEnable(request: Request, form: FormData): Promise<ActionReturnData> {
     const password = form.get("password")?.toString();
     if (!password) {
         throw new AppError("INVALID_USERNAME_OR_PASSWORD");
@@ -267,7 +258,7 @@ async function TwoFactorEnable(request: Request, form: FormData): Promise<{ totp
     };
 }
 
-async function PasswordChange(request: Request, form: FormData): Promise<{ headers: Headers }> {
+async function PasswordChange(request: Request, form: FormData): Promise<ActionReturnData> {
     const current = form.get("current")?.toString();
     const newPass = form.get("new_password")?.toString();
     const repeat = form.get("new_password_repeat")?.toString();
@@ -286,7 +277,7 @@ async function PasswordChange(request: Request, form: FormData): Promise<{ heade
     return { headers: result.headers };
 }
 
-async function SetPassword(request: Request, form: FormData): Promise<{ headers: Headers }> {
+async function SetPassword(request: Request, form: FormData): Promise<ActionReturnData> {
     const newPass = form.get("new_password")?.toString();
     const repeat = form.get("new_password_repeat")?.toString();
     if (!newPass) throw new AppError("password_mismatch");
@@ -299,17 +290,12 @@ async function SetPassword(request: Request, form: FormData): Promise<{ headers:
     return { headers: result.headers };
 }
 
-// TODO(nate): update this so when someone tries to verify
-// using the Show QR Code and fails, it doesn't close the
-// details and shows the error message near the input instead
-// at the top of the page.
-async function TwoFactorTotpVerify(
-    request: Request,
-    form: FormData,
-): Promise<{ result: DashboardActionData["result"]; totp: TotpState; headers?: Headers }> {
+async function TwoFactorTotpVerify(request: Request, form: FormData): Promise<ActionReturnData> {
     const code = form.get("totp_code")?.toString();
     const totpURI = form.get("totp_uri")?.toString();
     const alreadyVerified = form.get("already-verified")?.toString();
+    const intermediateEnable = form.get("intermediate_enable")?.toString();
+    const backupCodesRaw = form.get("backup_codes")?.toString();
 
     if (!code) {
         throw new AppError("INVALID_CODE");
@@ -321,6 +307,13 @@ async function TwoFactorTotpVerify(
     if (!alreadyVerified) {
         throw new AppError("internal_field_missing_totp_already_verified");
     }
+
+    const errorTotp = (): TotpState => ({
+        intermediateEnable: intermediateEnable === "true" ? true : undefined,
+        totpURI,
+        backupCodes: backupCodesRaw ? JSON.parse(backupCodesRaw) : undefined,
+        userEnabled: alreadyVerified === "true",
+    });
 
     try {
         const result = await auth.api.verifyTOTP({
@@ -341,36 +334,38 @@ async function TwoFactorTotpVerify(
             },
         };
     } catch (error) {
-        if (error !== null && typeof error === "object" && "code" in error && error.code === "INVALID_CODE") {
+        if (
+            error !== null &&
+            typeof error === "object" &&
+            "body" in error &&
+            typeof error.body === "object" &&
+            error.body !== null &&
+            "code" in error.body &&
+            typeof error.body.code === "string" &&
+            error.body.code === "INVALID_CODE"
+        ) {
             return {
                 result: {
                     action: "two_factor_totp_verify",
                     success: false,
                     errors: [new AppError("INVALID_CODE")],
                 },
-                totp: {
-                    verified: true,
-                    totpURI: alreadyVerified === "true" ? totpURI : undefined,
-                    userEnabled: alreadyVerified === "true",
-                },
+                totp: errorTotp(),
             };
         }
+        console.log("unknown error: ", JSON.stringify(error));
         return {
             result: {
                 action: "two_factor_totp_verify",
                 success: false,
                 errors: [new AppError("generic_error")],
             },
-            totp: {
-                verified: true,
-                totpURI: alreadyVerified === "true" ? totpURI : undefined,
-                userEnabled: alreadyVerified === "true",
-            },
+            totp: errorTotp(),
         };
     }
 }
 
-async function TwoFactorDisable(request: Request, form: FormData): Promise<{ headers: Headers }> {
+async function TwoFactorDisable(request: Request, form: FormData): Promise<ActionReturnData> {
     const password = form.get("password")?.toString();
     if (!password) {
         throw new AppError("INVALID_PASSWORD");
@@ -383,7 +378,7 @@ async function TwoFactorDisable(request: Request, form: FormData): Promise<{ hea
     return { headers: result.headers };
 }
 
-async function TwoFactorGetTotpUri(request: Request, form: FormData): Promise<{ totp: TotpState; headers: Headers }> {
+async function TwoFactorGetTotpUri(request: Request, form: FormData): Promise<ActionReturnData> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session || !session.user.twoFactorEnabled) {
         tel.warn("TWO_FACTOR_REQUESTED_BUT_NOT_FOUND", {
@@ -411,10 +406,7 @@ async function TwoFactorGetTotpUri(request: Request, form: FormData): Promise<{ 
     };
 }
 
-async function TwoFactorGetBackupCodes(
-    request: Request,
-    form: FormData,
-): Promise<{ headers: Headers; totp: TotpState }> {
+async function TwoFactorGetBackupCodes(request: Request, form: FormData): Promise<ActionReturnData> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session || !session.user.twoFactorEnabled) {
         throw new AppError("SESSION_EXPIRED");
@@ -457,7 +449,7 @@ async function LinkAccount(request: Request, form: FormData): Promise<{ redirect
     throw new AppError("generic_error");
 }
 
-async function UnlinkAccount(request: Request, form: FormData): Promise<{ headers: Headers }> {
+async function UnlinkAccount(request: Request, form: FormData): Promise<ActionReturnData> {
     const providerId = form.get("providerId")?.toString();
     if (!providerId) {
         throw new AppError("internal_field_missing_providerId");
