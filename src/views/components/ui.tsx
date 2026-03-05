@@ -180,9 +180,9 @@ export function Divider({ children }: { children: Child }) {
     return <div class="divide-t divide-border-2">{children}</div>;
 }
 
-export function Details({ name, title, children }: { name: string; title: Child; children: Child }) {
+export function Details({ name, title, children, open }: { name: string; title: Child; children: Child; open?: boolean }) {
     return (
-        <details name={name} className="group border border-border text-fg py-2 px-3">
+        <details name={name} open={open} className="group border border-border text-fg py-2 px-3">
             <summary className="flex cursor-pointer list-none items-center justify-between focus:outline-none [&::-webkit-details-marker]:hidden">
                 <span>{title}</span>
                 <ChevronRight group />

@@ -352,12 +352,14 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
             </Section>
         );
     }
+    const openAction = result && !result.success ? result.action : undefined;
+
     return (
         <Section>
             <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
             <FormAlert color="success">{copy.dashboard_2fa_active}</FormAlert>
             <br />
-            <Details title={copy.dashboard_2fa_show_qr} name="2fa-action">
+            <Details title={copy.dashboard_2fa_show_qr} name="2fa-action" open={openAction === actionName.get_totp_uri}>
                 <Form method="post" action={routes.auth.dashboard} result={result} formAction={actionName.get_totp_uri}>
                     <Input
                         type="password"
@@ -369,7 +371,7 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
                     <Button type="submit">{copy.dashboard_2fa_show_qr}</Button>
                 </Form>
             </Details>
-            <Details title={copy.dashboard_2fa_new_backup_codes} name="2fa-action">
+            <Details title={copy.dashboard_2fa_new_backup_codes} name="2fa-action" open={openAction === actionName.get_backup_codes}>
                 <Form
                     method="post"
                     action={routes.auth.dashboard}
@@ -386,7 +388,7 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
                     <Button type="submit">{copy.dashboard_2fa_new_backup_codes}</Button>
                 </Form>
             </Details>
-            <Details title={copy.dashboard_2fa_disable} name="2fa-action">
+            <Details title={copy.dashboard_2fa_disable} name="2fa-action" open={openAction === actionName.two_factor_disable}>
                 <Form
                     method="post"
                     action={routes.auth.dashboard}
