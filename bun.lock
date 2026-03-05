@@ -13,6 +13,7 @@
         "@opentelemetry/sdk-logs": "^0.212.0",
         "@opentelemetry/sdk-node": "^0.212.0",
         "better-auth": "^1.4.20",
+        "better-sqlite3": "^12.6.2",
         "cookie": "^1.1.1",
         "drizzle-orm": "^0.45.1",
         "hono": "^4.12.3",

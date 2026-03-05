@@ -2,7 +2,7 @@ import type { Handler } from "hono";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { DashboardLoaderData, DashboardPage, type DashboardActionData } from "@/views/auth/dashboard";
+import { DashboardLoaderData, DashboardPage, LinkedAccount, type DashboardActionData } from "@/views/auth/dashboard";
 import { redirects, routes } from "@/routes/routes";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
 import { redirectIfNoSession, redirectWithSetCookies } from "@/routes/auth/redirect";
@@ -14,7 +14,7 @@ async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | nu
     if (!session) return null;
 
     const allSessions = await auth.api.listSessions({ headers });
-    const accounts = await auth.api.listUserAccounts({ headers });
+    const accounts = (await auth.api.listUserAccounts({ headers })) as unknown as LinkedAccount[];
     const ret = {
         user: session.user,
         session: session.session,
@@ -35,7 +35,7 @@ export const get: Handler = async (c) => {
         }
         const loaded = await getLoaderData(c.req.raw.headers);
         if (!loaded) {
-            return redirects.ToLogin;
+            return redirects.ToLogin();
         }
 
         span.setAttribute("user.id", loaded.user.id);
@@ -43,7 +43,7 @@ export const get: Handler = async (c) => {
         return c.html(DashboardPage({ loaderData: loaded }));
     });
     if (result.ok) return result.data;
-    return redirects.ToLogin;
+    return redirects.ToLogin();
 };
 
 export const post: Handler = async (c) => {
@@ -52,7 +52,7 @@ export const post: Handler = async (c) => {
         const action = form.get("action")?.toString();
         const getLoaderForLogs = await getLoaderData(c.req.raw.headers);
         if (!getLoaderForLogs) {
-            return redirects.ToLogin;
+            return redirects.ToLogin();
         }
 
         span.setAttribute("user.id", getLoaderForLogs.user.id);
@@ -86,7 +86,7 @@ export const post: Handler = async (c) => {
             : c.req.raw.headers;
         const loaderAfterSuccess = await getLoaderData(headersForLoader);
         if (!loaderAfterSuccess) {
-            return redirects.ToLogin;
+            return redirects.ToLogin();
         }
 
         const html = DashboardPage({
@@ -107,7 +107,7 @@ export const post: Handler = async (c) => {
 
     const loaderAfterError = await getLoaderData(c.req.raw.headers);
     if (!loaderAfterError) {
-        return redirects.ToLogin;
+        return redirects.ToLogin();
     }
 
     return c.html(

@@ -21,7 +21,7 @@ type ActionResult = {
 export async function get(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) {
-        return redirects.ToLogin;
+        return redirects.ToLogin();
     }
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
@@ -36,7 +36,7 @@ export async function get(c: Context) {
 export async function post(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) {
-        return redirects.ToLogin;
+        return redirects.ToLogin();
     }
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");

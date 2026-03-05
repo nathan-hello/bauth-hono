@@ -10,6 +10,8 @@ export const routes = {
         register: "/auth/register",
         twoFactor: "/auth/2fa",
         dashboard: "/auth/dashboard",
+        changePassword: "/auth/dashboard/change-password",
+        changeEmail: "/auth/dashboard/change-email",
         oauthGoogle: "/auth/oauth/google",
         oauthApple: "/auth/oauth/apple",
         oauthCallback: "/api/auth/callback/:provider",
@@ -23,7 +25,7 @@ export const routes = {
 };
 
 export const redirects = {
-    ToLogin: Response.redirect(routes.auth.login, 302),
+    ToLogin: () => Response.redirect(routes.auth.login, 302),
     AfterDeleteAcccount: routes.auth.deleteSuccess,
     AfterOauth: (c: Context): string => {
         return routes.auth.dashboard;
