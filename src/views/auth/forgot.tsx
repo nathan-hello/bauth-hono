@@ -1,25 +1,24 @@
 import { copy } from "@/lib/copy";
-import type { AppError } from "@/lib/auth-error";
+import type { ActionResult } from "@/lib/types";
+import { actionName } from "@/routes/auth/forgot";
 import { Layout } from "@/views/components/layout";
-import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label, ButtonLink } from "@/views/components/ui";
+import { Card, Input, Button, FormFooter, TextLink, Form, Label } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 export type ForgotStep = "start" | "code" | "update" | "try-again";
 
 type ForgotProps = {
-    errors?: AppError[];
+    result?: ActionResult<keyof typeof actionName>;
     email?: string;
     code?: string;
     step: ForgotStep;
 };
 
-export function ForgotPage({ errors, email, code, step }: ForgotProps) {
+export function ForgotPage({ result, email, code, step }: ForgotProps) {
     return (
         <Layout title={copy.routes.forgot.title}>
             <Card>
-                <Form method="post" action={routes.auth.forgot}>
-                    <ErrorAlerts errors={errors} />
-
+                <Form method="post" action={routes.auth.forgot} formAction={actionName.forgot} result={result}>
                     {step === "start" && (
                         <>
                             <input type="hidden" name="step" value="start" />
@@ -47,14 +46,16 @@ export function ForgotPage({ errors, email, code, step }: ForgotProps) {
                                 placeholder={copy.input_code}
                                 autocomplete="one-time-code"
                             />
-                            <form method="post" action={routes.auth.forgot}>
-                                <input type="hidden" name="step" value="start" />
-                                <input type="hidden" name="email" value={email ?? ""} />
-                                <input type="hidden" name="resend" value="true" />
+                            <Form
+                                method="post"
+                                action={routes.auth.forgot}
+                                formAction={actionName.forgot}
+                                kv={{ step: "start", email: email ?? "", resend: "true" }}
+                            >
                                 <Button variant="ghost" type="submit">
                                     {copy.code_resend}
                                 </Button>
-                            </form>
+                            </Form>
                         </>
                     )}
 

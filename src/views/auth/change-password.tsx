@@ -1,12 +1,13 @@
 import { copy } from "@/lib/copy";
 import type { ActionResult } from "@/lib/types";
+import { actionName } from "@/routes/auth/change-password";
 import { Layout } from "@/views/components/layout";
 import { Input, Button, ButtonLink, Card, Form, Header, Label, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type Props = {
     hasCredential: boolean;
-    result?: ActionResult;
+    result?: ActionResult<keyof typeof actionName>;
 };
 
 export function ChangePasswordPage({ hasCredential, result }: Props) {
@@ -25,16 +26,15 @@ export function ChangePasswordPage({ hasCredential, result }: Props) {
     );
 }
 
-function ChangePasswordForm({ result }: { result?: ActionResult }) {
+function ChangePasswordForm({ result }: { result?: ActionResult<keyof typeof actionName> }) {
     return (
         <Form
             method="post"
             action={routes.auth.changePassword}
             result={result}
-            formAction="change_password"
+            formAction={actionName.change_password}
             success={copy.dashboard_password_changed}
         >
-            <input type="hidden" name="action" value="change_password" />
             <Label for="current">{copy.dashboard_password_current_label}</Label>
             <Input
                 type="password"
@@ -67,16 +67,15 @@ function ChangePasswordForm({ result }: { result?: ActionResult }) {
     );
 }
 
-function SetPasswordForm({ result }: { result?: ActionResult }) {
+function SetPasswordForm({ result }: { result?: ActionResult<keyof typeof actionName> }) {
     return (
         <Form
             method="post"
             action={routes.auth.changePassword}
             result={result}
-            formAction="set_password"
+            formAction={actionName.set_password}
             success={copy.dashboard_password_changed}
         >
-            <input type="hidden" name="action" value="set_password" />
             <Label unmuted>{copy.dashboard_password_set_description}</Label>
             <Label for="new_password">{copy.dashboard_password_new_label}</Label>
             <Input

@@ -10,6 +10,10 @@ export type ActionReturnData = {
     verificationType?: "totp" | "email";
 };
 
+export type TwoFactorState = {
+    verificationType: "totp" | "email";
+};
+
 export function TwoFactorPage(state: ActionReturnData | null) {
     const verificationType = state?.verificationType || "totp";
 
@@ -23,7 +27,7 @@ export function TwoFactorPage(state: ActionReturnData | null) {
                 <ErrorAlerts errors={state?.result?.action === "top-of-page" ? state.result.errors : undefined} />
 
                 {verificationType === "email" && <EmailVerificationForm result={state?.result} />}
-                {verificationType === "totp" && <TotpVerificationForm />}
+                {verificationType === "totp" && <TotpVerificationForm result={state?.result} />}
             </Card>
         </Layout>
     );
