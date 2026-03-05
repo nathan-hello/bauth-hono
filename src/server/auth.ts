@@ -161,6 +161,8 @@ export const auth = betterAuth({
             accessType: "offline",
             disableImplicitSignUp: false,
             display: "page",
+            prompt: "select_account consent",
+
         },
         apple: {
             enabled: optionalEnv.APPLE_CLIENT_ID && optionalEnv.APPLE_CLIENT_SECRET ? true : false,
@@ -169,6 +171,7 @@ export const auth = betterAuth({
             accessType: "offline",
             disableImplicitSignUp: false,
             display: "page",
+            prompt: "select_account consent",
         },
     },
 
