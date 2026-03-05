@@ -5,8 +5,23 @@ import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes
 import { RegisterPage } from "@/views/auth/register";
 import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
+import type { ActionResult } from "@/lib/types";
 
 const tel = new Telemetry(routes.auth.register);
+
+const actions = {
+    register: Register,
+    oauth: RegisterOauth,
+};
+
+export const actionName: { [K in keyof typeof actions]: K } = {
+    register: "register",
+    oauth: "oauth",
+};
+
+function checkAction(a: string): a is keyof typeof actions {
+    return a in actions;
+}
 
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async () => {
@@ -23,23 +38,28 @@ export const post: Handler = async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    const result = await tel.task("POST", async (span) => {
-        if (!action) {
-            throw new AppError("internal_field_missing_action");
-        }
-        span.setAttribute("action", action);
+    if (!action || !checkAction(action)) {
+        return c.html(
+            RegisterPage({
+                result: {
+                    action: "top-of-page",
+                    success: false,
+                    errors: [new AppError("internal_field_missing_action")],
+                },
+            }),
+        );
+    }
 
-        if (action === "register") {
-            return await Register(c, form);
-        }
-        if (action === "oauth") {
-            return await RegisterOauth(c, form);
-        }
+    const result = await tel.task("POST", async (span) => {
+        span.setAttribute("action", action);
+        return await actions[action](c, form);
     });
 
     if (result.ok) return result.data;
+
     const email = form.get("email")?.toString();
-    return c.html(RegisterPage({ errors: result.error, email }));
+    const r: ActionResult<keyof typeof actionName> = { action, success: false, errors: result.error };
+    return c.html(RegisterPage({ result: r, email }));
 };
 
 async function Register(c: Context, form: FormData) {
@@ -49,7 +69,7 @@ async function Register(c: Context, form: FormData) {
     const repeat = form.get("repeat")?.toString();
 
     if (!email) {
-        return c.html(RegisterPage({}));
+        throw new AppError("INVALID_EMAIL");
     }
 
     const errs = parseRegister({ username, email, password, repeat });

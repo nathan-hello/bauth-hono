@@ -6,8 +6,23 @@ import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes
 import { LoginPage } from "@/views/auth/login";
 import { redirects, routes } from "@/routes/routes";
 import { Context } from "hono";
+import type { ActionResult } from "@/lib/types";
 
 const tel = new Telemetry(routes.auth.login);
+
+const actions = {
+    login: LogIn,
+    oauth: LogInOauth,
+};
+
+export const actionName: { [K in keyof typeof actions]: K } = {
+    login: "login",
+    oauth: "oauth",
+};
+
+function checkAction(a: string): a is keyof typeof actions {
+    return a in actions;
+}
 
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async (span) => {
@@ -28,36 +43,35 @@ export const post: Handler = async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    const result = await tel.task("SIGN_IN", async (span) => {
-        if (!action) {
-            throw new AppError("internal_field_missing_action");
-        }
-        span.setAttribute("action", action);
+    if (!action || !checkAction(action)) {
+        return c.html(
+            LoginPage({
+                result: {
+                    action: "top-of-page",
+                    success: false,
+                    errors: [new AppError("internal_field_missing_action")],
+                },
+            }),
+        );
+    }
 
-        if (action === "login") {
-            return await LogIn(c, form);
-        }
-        if (action === "oauth") {
-            return await LogInOauth(c, form);
-        }
+    const result = await tel.task("SIGN_IN", async (span) => {
+        span.setAttribute("action", action);
+        return await actions[action](c, form);
     });
 
-    const email = form.get("email")?.toString();
     if (result.ok) return result.data;
-    console.log(JSON.stringify(result.error));
-    return c.html(LoginPage({ errors: result.error, email }));
+
+    const email = form.get("email")?.toString();
+    const r: ActionResult<keyof typeof actionName> = { action, success: false, errors: result.error };
+    return c.html(LoginPage({ result: r, email }));
 };
 
 async function LogIn(c: Context, form: FormData) {
     const email = form.get("email")?.toString();
     const password = form.get("password")?.toString();
     if (!email || !password) {
-        return c.html(
-            LoginPage({
-                errors: [new AppError("INVALID_EMAIL_OR_PASSWORD")],
-                email: email || "",
-            }),
-        );
+        throw new AppError("INVALID_EMAIL_OR_PASSWORD");
     }
 
     const isEmail = email.includes("@");

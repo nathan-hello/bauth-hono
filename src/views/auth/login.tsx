@@ -1,27 +1,27 @@
 import { copy } from "@/lib/copy";
-import type { AppError } from "@/lib/auth-error";
+import type { ActionResult } from "@/lib/types";
+import { actionName } from "@/routes/auth/login";
 import { Layout } from "@/views/components/layout";
-import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form } from "@/views/components/ui";
+import { Card, Input, Button, FormFooter, TextLink, Form } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 import { OauthButtons } from "@/views/components/oauth";
 
 type LoginProps = {
-    errors?: AppError[];
+    result?: ActionResult<keyof typeof actionName>;
     email?: string;
 };
 
-export function LoginPage({ errors, email }: LoginProps) {
+export function LoginPage({ result, email }: LoginProps) {
     return (
         <Layout title={copy.routes.login.title}>
             <Card>
-                <Form method="post" action={routes.auth.login} formAction="login">
-                    <ErrorAlerts errors={errors} />
+                <Form method="post" action={routes.auth.login} formAction={actionName.login} result={result}>
                     <Input
                         type="text"
                         name="email"
                         required
                         placeholder={copy.input_email_or_username}
-                        autofocus={!errors}
+                        autofocus={!result}
                         value={email ?? ""}
                     />
                     <Input

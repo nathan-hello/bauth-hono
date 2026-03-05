@@ -13,7 +13,7 @@ export function DeleteAccountPage({
 }: {
     hasCredential: boolean;
     state?: TwoFactorState;
-    result?: ActionResult;
+    result?: ActionResult<keyof typeof actionName>;
 }) {
     const headerCopy = hasCredential
         ? state
@@ -38,8 +38,6 @@ export function DeleteAccountPage({
                         result={result}
                         formAction={actionName.delete_account}
                     >
-                        <input type="hidden" name="action" value={actionName.delete_account} />
-
                         {hasCredential && (
                             <>
                                 <Label for="password">{copy.input_password}</Label>
@@ -116,10 +114,13 @@ function TwoFactorSwitchHiddenForm({ currentType }: { currentType: "totp" | "ema
         return null;
     }
     return (
-        <Form id={actionName.switch_otp} method="post" action={routes.auth.delete}>
-            <input type="hidden" name="action" value={actionName.switch_otp} />
-            <input type="hidden" name="to" value={currentType === "email" ? "totp" : "email"} />
-        </Form>
+        <Form
+            id={actionName.switch_otp}
+            method="post"
+            action={routes.auth.delete}
+            formAction={actionName.switch_otp}
+            kv={{ to: currentType === "email" ? "totp" : "email" }}
+        />
     );
 }
 

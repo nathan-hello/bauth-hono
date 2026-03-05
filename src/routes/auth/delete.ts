@@ -68,20 +68,21 @@ export async function post(c: Context) {
         }
 
         return c.html(
-            DeleteAccountPage({ hasCredential, state: r.data }),
+            DeleteAccountPage({
+                hasCredential,
+                state: r.data?.verificationType ? { verificationType: r.data.verificationType } : undefined,
+            }),
             r.headers ? { headers: r.headers } : undefined,
         );
     }
 
-    const ar: ActionResult = { action, success: false, errors: result.error };
+    const ar: ActionResult<keyof typeof actionName> = { action, success: false, errors: result.error };
     return c.html(
         DeleteAccountPage({
             hasCredential,
-            state: {
-                verificationType: session.user.twoFactorEnabled
-                    ? getOtpType(form.get("otp-type")?.toString())
-                    : undefined,
-            },
+            state: session.user.twoFactorEnabled
+                ? { verificationType: getOtpType(form.get("otp-type")?.toString()) }
+                : undefined,
             result: ar,
         }),
     );

@@ -24,6 +24,15 @@ export const ERROR_COPY: Record<TErrorCodes, string> = {
     application_error: "",
     internal_server_error: "",
 
+    internal_field_missing_providerId: "",
+    internal_field_missing_totp_uri: "",
+    internal_field_missing_password: "",
+    internal_field_missing_new_email: "",
+    better_auth_returned_false: "",
+    internal_field_missing_session: "",
+    internal_field_missing_token: "",
+    internal_field_missing_totp_already_verified: "",
+
     // Internally made errors
     password_mismatch: "Passwords do not match.",
     totp_uri_not_found: "",

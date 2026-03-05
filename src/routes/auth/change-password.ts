@@ -8,6 +8,20 @@ import { ChangePasswordPage } from "@/views/auth/change-password";
 
 const tel = new Telemetry(routes.auth.changePassword);
 
+type ActionReturnData = {
+    headers?: Headers;
+};
+
+const actions = {
+    change_password: ChangePassword,
+    set_password: SetPassword,
+};
+
+export const actionName: { [K in keyof typeof actions]: K } = {
+    change_password: "change_password",
+    set_password: "set_password",
+};
+
 export async function get(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) return redirects.ToLogin();
@@ -29,47 +43,55 @@ export async function post(c: Context) {
 
     tel.debug("POST", safeRequestAttrs(c.req.raw, form));
 
+    if (!action || !(action in actions)) {
+        const r: ActionResult<keyof typeof actionName> = {
+            action: "top-of-page",
+            success: false,
+            errors: [new AppError("generic_error")],
+        };
+        return c.html(ChangePasswordPage({ hasCredential, result: r }));
+    }
+
+    const actionKey = action as keyof typeof actions;
     const result = await tel.task("POST", async (span) => {
         span.setAttribute("user.id", session.user.id);
-
-        if (action === "change_password") {
-            const current = form.get("current")?.toString();
-            const newPass = form.get("new_password")?.toString();
-            const repeat = form.get("new_password_repeat")?.toString();
-            if (!current) throw new AppError("INVALID_PASSWORD");
-            if (!newPass) throw new AppError("password_mismatch");
-            if (newPass !== repeat) throw new AppError("password_mismatch");
-            const r = await auth.api.changePassword({
-                body: { currentPassword: current, newPassword: newPass, revokeOtherSessions: true },
-                headers: c.req.raw.headers,
-                returnHeaders: true,
-            });
-            return { success: true, headers: r.headers };
-        }
-
-        if (action === "set_password") {
-            const newPass = form.get("new_password")?.toString();
-            const repeat = form.get("new_password_repeat")?.toString();
-            if (!newPass) throw new AppError("password_mismatch");
-            if (newPass !== repeat) throw new AppError("password_mismatch");
-            const r = await auth.api.setPassword({
-                body: { newPassword: newPass },
-                headers: c.req.raw.headers,
-                returnHeaders: true,
-            });
-            return { success: true, headers: r.headers };
-        }
-
-        throw new AppError("generic_error");
+        return await actions[actionKey](c.req.raw, form);
     });
 
-    const actionKey = hasCredential ? "change_password" : "set_password";
     if (result.ok) {
         const h = result.data.headers ? new Headers(result.data.headers) : undefined;
-        const r: ActionResult = { action: actionKey, success: true };
+        const r: ActionResult<keyof typeof actionName> = { action: actionKey, success: true };
         return c.html(ChangePasswordPage({ hasCredential, result: r }), h ? { headers: h } : undefined);
     }
 
-    const r: ActionResult = { action: actionKey, success: false, errors: result.error };
+    const r: ActionResult<keyof typeof actionName> = { action: actionKey, success: false, errors: result.error };
     return c.html(ChangePasswordPage({ hasCredential, result: r }));
+}
+
+async function ChangePassword(request: Request, form: FormData): Promise<ActionReturnData> {
+    const current = form.get("current")?.toString();
+    const newPass = form.get("new_password")?.toString();
+    const repeat = form.get("new_password_repeat")?.toString();
+    if (!current) throw new AppError("INVALID_PASSWORD");
+    if (!newPass) throw new AppError("password_mismatch");
+    if (newPass !== repeat) throw new AppError("password_mismatch");
+    const r = await auth.api.changePassword({
+        body: { currentPassword: current, newPassword: newPass, revokeOtherSessions: true },
+        headers: request.headers,
+        returnHeaders: true,
+    });
+    return { headers: r.headers };
+}
+
+async function SetPassword(request: Request, form: FormData): Promise<ActionReturnData> {
+    const newPass = form.get("new_password")?.toString();
+    const repeat = form.get("new_password_repeat")?.toString();
+    if (!newPass) throw new AppError("password_mismatch");
+    if (newPass !== repeat) throw new AppError("password_mismatch");
+    const r = await auth.api.setPassword({
+        body: { newPassword: newPass },
+        headers: request.headers,
+        returnHeaders: true,
+    });
+    return { headers: r.headers };
 }

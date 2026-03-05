@@ -1,22 +1,22 @@
 import { copy } from "@/lib/copy";
-import type { AppError } from "@/lib/auth-error";
+import type { ActionResult } from "@/lib/types";
+import { actionName } from "@/routes/auth/register";
 import { Layout } from "@/views/components/layout";
-import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form } from "@/views/components/ui";
+import { Card, Input, Button, FormFooter, TextLink, Form } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 import { OauthButtons } from "@/views/components/oauth";
 
 type RegisterProps = {
-    errors?: AppError[];
+    result?: ActionResult<keyof typeof actionName>;
     email?: string;
 };
 
-export function RegisterPage({ errors, email }: RegisterProps) {
+export function RegisterPage({ result, email }: RegisterProps) {
     return (
         <Layout title={copy.routes.register.title}>
             <Card>
                 <div class="max-w-full flex flex-col gap-4 m-0">
-                    <ErrorAlerts errors={errors} />
-                    <Form method="post" action={routes.auth.register} formAction="register">
+                    <Form method="post" action={routes.auth.register} formAction={actionName.register} result={result}>
                         <Input type="text" name="username" required placeholder={copy.input_username} />
                         <Input type="text" name="email" value={email ?? ""} required placeholder={copy.input_email} />
                         <Input

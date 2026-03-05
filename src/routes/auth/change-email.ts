@@ -8,6 +8,21 @@ import { ChangeEmailPage } from "@/views/auth/change-email";
 
 const tel = new Telemetry(routes.auth.changeEmail);
 
+type ActionReturnData = {
+    verificationSent?: boolean;
+    headers?: Headers;
+};
+
+const actions = {
+    change_email: ChangeEmail,
+    resend_verification: ResendVerification,
+};
+
+export const actionName: { [K in keyof typeof actions]: K } = {
+    change_email: "change_email",
+    resend_verification: "resend_verification",
+};
+
 export async function get(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) return redirects.ToLogin();
@@ -29,47 +44,43 @@ export async function post(c: Context) {
 
     tel.debug("POST", safeRequestAttrs(c.req.raw, form));
 
+    if (!action || !(action in actions)) {
+        const r: ActionResult<keyof typeof actionName> = {
+            action: "top-of-page",
+            success: false,
+            errors: [new AppError("generic_error")],
+        };
+        return c.html(
+            ChangeEmailPage({
+                currentEmail: session.user.email,
+                emailVerified: session.user.emailVerified,
+                result: r,
+            }),
+        );
+    }
+
+    const actionKey = action as keyof typeof actions;
     const result = await tel.task("POST", async (span) => {
         span.setAttribute("user.id", session.user.id);
-
-        if (action === "change_email") {
-            const newEmail = form.get("new_email")?.toString();
-            if (!newEmail) throw new AppError("field_missing_email");
-            const r = await auth.api.changeEmail({
-                body: { newEmail },
-                headers: c.req.raw.headers,
-                returnHeaders: true,
-            });
-            return { success: true, headers: r.headers };
-        }
-
-        if (action === "resend_verification") {
-            await auth.api.sendVerificationEmail({
-                body: { email: session.user.email },
-            });
-            return { verificationSent: true };
-        }
-
-        throw new AppError("generic_error");
+        return await actions[actionKey](c.req.raw, form);
     });
 
-    const actionKey = action ?? "change_email";
     if (result.ok) {
         const r = result.data;
-        const h = "headers" in r && r.headers ? new Headers(r.headers) : undefined;
-        const ar: ActionResult = { action: actionKey, success: true };
+        const h = r.headers ? new Headers(r.headers) : undefined;
+        const ar: ActionResult<keyof typeof actionName> = { action: actionKey, success: true };
         return c.html(
             ChangeEmailPage({
                 currentEmail: session.user.email,
                 emailVerified: session.user.emailVerified,
                 result: ar,
-                verificationSent: "verificationSent" in r ? r.verificationSent : undefined,
+                verificationSent: r.verificationSent,
             }),
             h ? { headers: h } : undefined,
         );
     }
 
-    const ar: ActionResult = { action: actionKey, success: false, errors: result.error };
+    const ar: ActionResult<keyof typeof actionName> = { action: actionKey, success: false, errors: result.error };
     return c.html(
         ChangeEmailPage({
             currentEmail: session.user.email,
@@ -77,4 +88,24 @@ export async function post(c: Context) {
             result: ar,
         }),
     );
+}
+
+async function ChangeEmail(request: Request, form: FormData): Promise<ActionReturnData> {
+    const newEmail = form.get("new_email")?.toString();
+    if (!newEmail) throw new AppError("field_missing_email");
+    const r = await auth.api.changeEmail({
+        body: { newEmail },
+        headers: request.headers,
+        returnHeaders: true,
+    });
+    return { headers: r.headers };
+}
+
+async function ResendVerification(request: Request, _: FormData): Promise<ActionReturnData> {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session) throw new AppError("SESSION_EXPIRED");
+    await auth.api.sendVerificationEmail({
+        body: { email: session.user.email },
+    });
+    return { verificationSent: true };
 }
