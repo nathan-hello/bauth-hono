@@ -1,6 +1,6 @@
 import { copy } from "@/lib/copy";
 import type { ActionResult } from "@/lib/types";
-import { actionName } from "@/routes/auth/change-email";
+import { actions } from "@/routes/auth/change-email";
 import { Layout } from "@/views/components/layout";
 import { Input, Button, ButtonLink, Card, Form, Header, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
@@ -8,7 +8,7 @@ import { routes } from "@/routes/routes";
 type Props = {
     currentEmail: string;
     emailVerified: boolean;
-    result?: ActionResult<keyof typeof actionName>;
+    result?: ActionResult<typeof actions>;
     verificationSent?: boolean;
 };
 
@@ -22,7 +22,7 @@ export function ChangeEmailPage({ result }: Props) {
                         method="post"
                         action={routes.auth.changeEmail}
                         result={result}
-                        formAction={actionName.change_email}
+                        formAction={actions.change_email.name}
                         success={copy.dashboard_email_verification_sent}
                     >
                         <Input

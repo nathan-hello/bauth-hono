@@ -13,15 +13,10 @@ type ActionReturnData = {
     headers?: Headers;
 };
 
-const actions = {
-    change_email: ChangeEmail,
-    resend_verification: ResendVerification,
-};
-
-export const actionName: { [K in keyof typeof actions]: K } = {
-    change_email: "change_email",
-    resend_verification: "resend_verification",
-};
+export const actions = {
+    change_email: { name: "change_email", handler: ChangeEmail },
+    resend_verification: { name: "resend_verification", handler: ResendVerification },
+} as const;
 
 export async function get(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -45,7 +40,7 @@ export async function post(c: Context) {
     tel.debug("POST", safeRequestAttrs(c.req.raw, form));
 
     if (!action || !(action in actions)) {
-        const r: ActionResult<keyof typeof actionName> = {
+        const r: ActionResult<typeof actions> = {
             action: "top-of-page",
             success: false,
             errors: [new AppError("generic_error")],
@@ -62,13 +57,13 @@ export async function post(c: Context) {
     const actionKey = action as keyof typeof actions;
     const result = await tel.task("POST", async (span) => {
         span.setAttribute("user.id", session.user.id);
-        return await actions[actionKey](c.req.raw, form);
+        return await actions[actionKey].handler(c.req.raw, form);
     });
 
     if (result.ok) {
         const r = result.data;
         const h = r.headers ? new Headers(r.headers) : undefined;
-        const ar: ActionResult<keyof typeof actionName> = { action: actionKey, success: true };
+        const ar: ActionResult<typeof actions> = { action: actionKey, success: true };
         return c.html(
             ChangeEmailPage({
                 currentEmail: session.user.email,
@@ -80,7 +75,7 @@ export async function post(c: Context) {
         );
     }
 
-    const ar: ActionResult<keyof typeof actionName> = { action: actionKey, success: false, errors: result.error };
+    const ar: ActionResult<typeof actions> = { action: actionKey, success: false, errors: result.error };
     return c.html(
         ChangeEmailPage({
             currentEmail: session.user.email,

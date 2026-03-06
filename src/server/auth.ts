@@ -162,7 +162,6 @@ export const auth = betterAuth({
             disableImplicitSignUp: false,
             display: "page",
             prompt: "select_account consent",
-
         },
         apple: {
             enabled: optionalEnv.APPLE_CLIENT_ID && optionalEnv.APPLE_CLIENT_SECRET ? true : false,
@@ -265,9 +264,7 @@ export const auth = betterAuth({
                             return;
                         }
 
-                        const payload = JSON.parse(
-                            Buffer.from(payloadB64, "base64url").toString("utf-8"),
-                        );
+                        const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf-8"));
 
                         if (typeof payload.email === "string" && payload.email) {
                             return { data: { ...account, email: payload.email } };

@@ -23,11 +23,11 @@ import { raw } from "hono/html";
 import { routes } from "@/routes/routes";
 import { generateQrSvg } from "@/lib/qr";
 import { BAuthSession, type ActionResult } from "@/lib/types";
-import { actionName } from "@/routes/auth/dashboard";
+import { actions } from "@/routes/auth/dashboard";
 import { auth } from "@/server/auth";
 
 export type DashboardActionData = {
-    result?: ActionResult<keyof typeof actionName>;
+    result?: ActionResult<typeof actions>;
     totp?: TotpState;
 };
 
@@ -93,12 +93,12 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                         <Form
                             method="post"
                             action={routes.auth.dashboard}
-                            formAction={actionName.email_resend_verification}
+                            formAction={actions.email_resend_verification.name}
                             result={actionData?.result}
                         >
                             <Button
                                 disabled={
-                                    actionData?.result?.action === actionName.email_resend_verification &&
+                                    actionData?.result?.action === actions.email_resend_verification.name &&
                                     actionData.result.success
                                 }
                                 type="submit"
@@ -175,7 +175,7 @@ function UnlinkAccountForm({ providerId }: { providerId: string }) {
         <Form
             method="post"
             action={routes.auth.dashboard}
-            formAction={actionName.unlink_account}
+            formAction={actions.unlink_account.name}
             kv={{ providerId: providerId }}
         >
             <Button variant="ghost" type="submit">
@@ -190,7 +190,7 @@ function LinkAccountForm({ provider }: { provider: string }) {
         <Form
             method="post"
             action={routes.auth.dashboard}
-            formAction={actionName.link_account}
+            formAction={actions.link_account.name}
             kv={{ provider: provider }}
         >
             <Button type="submit">{copy.dashboard_linked_accounts_link}</Button>
@@ -205,7 +205,7 @@ function TwoFactorSection({
 }: {
     userEnabled?: boolean | null;
     state?: TotpState;
-    result?: ActionResult<keyof typeof actionName>;
+    result?: ActionResult<typeof actions>;
 }) {
     if (userEnabled) {
         return <TwoFactorEnabled state={state} result={result} />;
@@ -216,7 +216,7 @@ function TwoFactorSection({
     return <TwoFactorDisabled result={result} />;
 }
 
-function TwoFactorDisabled({ result }: { result?: ActionResult<keyof typeof actionName> }) {
+function TwoFactorDisabled({ result }: { result?: ActionResult<typeof actions> }) {
     return (
         <Section>
             <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
@@ -225,7 +225,7 @@ function TwoFactorDisabled({ result }: { result?: ActionResult<keyof typeof acti
                 method="post"
                 action={routes.auth.dashboard}
                 result={result}
-                formAction={actionName.two_factor_enable}
+                formAction={actions.two_factor_enable.name}
             >
                 <Input
                     type="password"
@@ -240,7 +240,7 @@ function TwoFactorDisabled({ result }: { result?: ActionResult<keyof typeof acti
     );
 }
 
-function TwoFactorSetup({ state, result }: { state: TotpState; result?: ActionResult<keyof typeof actionName> }) {
+function TwoFactorSetup({ state, result }: { state: TotpState; result?: ActionResult<typeof actions> }) {
     if (!state.totpURI || !state.backupCodes || state.backupCodes.length === 0) {
         throw new AppError("totp_uri_not_found");
     }
@@ -328,7 +328,7 @@ async function TwoFactorTotpViewer({ secret }: { secret: string }) {
     );
 }
 
-function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: ActionResult<keyof typeof actionName> }) {
+function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: ActionResult<typeof actions> }) {
     if (state?.totpURI) {
         return (
             <Section>
@@ -359,8 +359,17 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
             <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
             <FormAlert color="success">{copy.dashboard_2fa_active}</FormAlert>
             <br />
-            <Details title={copy.dashboard_2fa_show_qr} name="2fa-action" open={openAction === actionName.get_totp_uri}>
-                <Form method="post" action={routes.auth.dashboard} result={result} formAction={actionName.get_totp_uri}>
+            <Details
+                title={copy.dashboard_2fa_show_qr}
+                name="2fa-action"
+                open={openAction === actions.get_totp_uri.name}
+            >
+                <Form
+                    method="post"
+                    action={routes.auth.dashboard}
+                    result={result}
+                    formAction={actions.get_totp_uri.name}
+                >
                     <Input
                         type="password"
                         name="password"
@@ -371,12 +380,16 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
                     <Button type="submit">{copy.dashboard_2fa_show_qr}</Button>
                 </Form>
             </Details>
-            <Details title={copy.dashboard_2fa_new_backup_codes} name="2fa-action" open={openAction === actionName.get_backup_codes}>
+            <Details
+                title={copy.dashboard_2fa_new_backup_codes}
+                name="2fa-action"
+                open={openAction === actions.get_backup_codes.name}
+            >
                 <Form
                     method="post"
                     action={routes.auth.dashboard}
                     result={result}
-                    formAction={actionName.get_backup_codes}
+                    formAction={actions.get_backup_codes.name}
                 >
                     <Input
                         type="password"
@@ -388,12 +401,16 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
                     <Button type="submit">{copy.dashboard_2fa_new_backup_codes}</Button>
                 </Form>
             </Details>
-            <Details title={copy.dashboard_2fa_disable} name="2fa-action" open={openAction === actionName.two_factor_disable}>
+            <Details
+                title={copy.dashboard_2fa_disable}
+                name="2fa-action"
+                open={openAction === actions.two_factor_disable.name}
+            >
                 <Form
                     method="post"
                     action={routes.auth.dashboard}
                     result={result}
-                    formAction={actionName.two_factor_disable}
+                    formAction={actions.two_factor_disable.name}
                 >
                     <Input
                         type="password"
@@ -416,7 +433,7 @@ function VerifyTotpForm({
     backupCodes,
     intermediateEnable,
 }: {
-    result?: ActionResult<keyof typeof actionName>;
+    result?: ActionResult<typeof actions>;
     alreadyVerified?: boolean;
     totpURI?: string;
     backupCodes?: string[];
@@ -427,7 +444,7 @@ function VerifyTotpForm({
             method="post"
             action={routes.auth.dashboard}
             result={result}
-            formAction={actionName.two_factor_totp_verify}
+            formAction={actions.two_factor_totp_verify.name}
             success={copy.dashboard_2fa_success}
             kv={{
                 totp_uri: totpURI,
@@ -468,7 +485,7 @@ function SessionsSection({
                 <Form
                     method="post"
                     action={routes.auth.dashboard}
-                    formAction={actionName.revoke_session}
+                    formAction={actions.revoke_session.name}
                     kv={{ session: session.token }}
                 >
                     <div class="flex-1 min-w-0">
@@ -487,7 +504,7 @@ function SessionsSection({
                 <Form
                     method="post"
                     action={routes.auth.dashboard}
-                    formAction={actionName.revoke_session}
+                    formAction={actions.revoke_session.name}
                     kv={{ session: "all" }}
                 >
                     <Button variant="ghost" type="submit">

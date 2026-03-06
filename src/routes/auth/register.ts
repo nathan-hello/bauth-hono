@@ -9,15 +9,10 @@ import type { ActionResult } from "@/lib/types";
 
 const tel = new Telemetry(routes.auth.register);
 
-const actions = {
-    register: Register,
-    oauth: RegisterOauth,
-};
-
-export const actionName: { [K in keyof typeof actions]: K } = {
-    register: "register",
-    oauth: "oauth",
-};
+export const actions = {
+    register: { name: "register", handler: Register },
+    oauth: { name: "oauth", handler: RegisterOauth },
+} as const;
 
 function checkAction(a: string): a is keyof typeof actions {
     return a in actions;
@@ -52,13 +47,13 @@ export const post: Handler = async (c) => {
 
     const result = await tel.task("POST", async (span) => {
         span.setAttribute("action", action);
-        return await actions[action](c, form);
+        return await actions[action].handler(c, form);
     });
 
     if (result.ok) return result.data;
 
     const email = form.get("email")?.toString();
-    const r: ActionResult<keyof typeof actionName> = { action, success: false, errors: result.error };
+    const r: ActionResult<typeof actions> = { action, success: false, errors: result.error };
     return c.html(RegisterPage({ result: r, email }));
 };
 

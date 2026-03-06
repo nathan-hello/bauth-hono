@@ -3,7 +3,9 @@ import { dotenv } from "@/server/env";
 
 const isBun = typeof globalThis.Bun !== "undefined";
 
-let db: ReturnType<typeof import("drizzle-orm/bun-sqlite").drizzle> | ReturnType<typeof import("drizzle-orm/better-sqlite3").drizzle>;
+let db:
+    | ReturnType<typeof import("drizzle-orm/bun-sqlite").drizzle>
+    | ReturnType<typeof import("drizzle-orm/better-sqlite3").drizzle>;
 
 if (isBun) {
     const { drizzle } = await import("drizzle-orm/bun-sqlite");
