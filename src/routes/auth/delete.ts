@@ -56,7 +56,7 @@ export async function post(c: Context) {
         span.setAttribute("action", action);
         tel.debug(action, safeRequestAttrs(c.req.raw, form));
 
-        return await actions[action](c.req.raw, form);
+        return await actions[action].handler(c.req.raw, form);
     });
 
     if (result.ok) {
@@ -76,7 +76,7 @@ export async function post(c: Context) {
         );
     }
 
-    const ar: ActionResult<keyof typeof actionName> = { action, success: false, errors: result.error };
+    const ar: ActionResult<typeof actions> = { action, success: false, errors: result.error };
     return c.html(
         DeleteAccountPage({
             hasCredential,
@@ -164,14 +164,8 @@ async function checkOtp(request: Request, form: FormData): Promise<Headers | nul
     return null;
 }
 
-const actions = {
-    delete_account: DeleteAccount,
-    resend_email: ResendEmail,
-    switch_otp: SwitchOtp,
-};
-
-export const actionName: { [K in keyof typeof actions]: K } = {
-    delete_account: "delete_account",
-    resend_email: "resend_email",
-    switch_otp: "switch_otp",
-};
+export const actions = {
+    delete_account: { name: "delete_account", handler: DeleteAccount },
+    resend_email: { name: "resend_email", handler: ResendEmail },
+    switch_otp: { name: "switch_otp", handler: SwitchOtp },
+} as const;

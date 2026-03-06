@@ -1,13 +1,13 @@
 import { copy } from "@/lib/copy";
 import type { ActionResult } from "@/lib/types";
-import { actionName } from "@/routes/auth/register";
+import { actions } from "@/routes/auth/register";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, Form } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 import { OauthButtons } from "@/views/components/oauth";
 
 type RegisterProps = {
-    result?: ActionResult<keyof typeof actionName>;
+    result?: ActionResult<typeof actions>;
     email?: string;
 };
 
@@ -16,7 +16,12 @@ export function RegisterPage({ result, email }: RegisterProps) {
         <Layout title={copy.routes.register.title}>
             <Card>
                 <div class="max-w-full flex flex-col gap-4 m-0">
-                    <Form method="post" action={routes.auth.register} formAction={actionName.register} result={result}>
+                    <Form
+                        method="post"
+                        action={routes.auth.register}
+                        formAction={actions.register.name}
+                        result={result}
+                    >
                         <Input type="text" name="username" required placeholder={copy.input_username} />
                         <Input type="text" name="email" value={email ?? ""} required placeholder={copy.input_email} />
                         <Input

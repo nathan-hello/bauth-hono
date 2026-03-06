@@ -1,13 +1,13 @@
 import { copy } from "@/lib/copy";
 import type { ActionResult } from "@/lib/types";
-import { actionName } from "@/routes/auth/login";
+import { actions } from "@/routes/auth/login";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, Form } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 import { OauthButtons } from "@/views/components/oauth";
 
 type LoginProps = {
-    result?: ActionResult<keyof typeof actionName>;
+    result?: ActionResult<typeof actions>;
     email?: string;
 };
 
@@ -15,7 +15,7 @@ export function LoginPage({ result, email }: LoginProps) {
     return (
         <Layout title={copy.routes.login.title}>
             <Card>
-                <Form method="post" action={routes.auth.login} formAction={actionName.login} result={result}>
+                <Form method="post" action={routes.auth.login} formAction={actions.login.name} result={result}>
                     <Input
                         type="text"
                         name="email"

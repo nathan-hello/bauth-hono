@@ -17,13 +17,9 @@ type ActionReturnData = {
     code?: string;
 };
 
-const actions = {
-    forgot: Forgot,
-};
-
-export const actionName: { [K in keyof typeof actions]: K } = {
-    forgot: "forgot",
-};
+export const actions = {
+    forgot: { name: "forgot", handler: Forgot },
+} as const;
 
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async () => {
@@ -42,7 +38,7 @@ export const post: Handler = async (c) => {
     const email = form.get("email")?.toString();
 
     if (!step || !["start", "code", "update", "try-again"].includes(step)) {
-        const r: ActionResult<keyof typeof actionName> = {
+        const r: ActionResult<typeof actions> = {
             action: "forgot",
             success: false,
             errors: [new AppError("generic_error")],
@@ -52,7 +48,7 @@ export const post: Handler = async (c) => {
 
     const result = await tel.task(step.toUpperCase(), async () => {
         tel.debug("FORM_SUBMITTED", { step, ...safeRequestAttrs(c.req.raw, form) });
-        return await actions.forgot(c, form);
+        return await actions.forgot.handler(c, form);
     });
 
     if (result.ok) {
@@ -61,7 +57,7 @@ export const post: Handler = async (c) => {
     }
 
     if (result.error instanceof APIError && result.error.body?.code === "TOO_MANY_ATTEMPTS") {
-        const r: ActionResult<keyof typeof actionName> = {
+        const r: ActionResult<typeof actions> = {
             action: "forgot",
             success: false,
             errors: [new AppError("TOO_MANY_ATTEMPTS")],
@@ -69,7 +65,7 @@ export const post: Handler = async (c) => {
         return c.html(ForgotPage({ step: "try-again", result: r }));
     }
 
-    const r: ActionResult<keyof typeof actionName> = { action: "forgot", success: false, errors: result.error };
+    const r: ActionResult<typeof actions> = { action: "forgot", success: false, errors: result.error };
     return c.html(ForgotPage({ step, result: r, email }));
 };
 

@@ -1,13 +1,13 @@
 import { copy } from "@/lib/copy";
 import type { ActionResult } from "@/lib/types";
-import { actionName } from "@/routes/auth/change-password";
+import { actions } from "@/routes/auth/change-password";
 import { Layout } from "@/views/components/layout";
 import { Input, Button, ButtonLink, Card, Form, Header, Label, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type Props = {
     hasCredential: boolean;
-    result?: ActionResult<keyof typeof actionName>;
+    result?: ActionResult<typeof actions>;
 };
 
 export function ChangePasswordPage({ hasCredential, result }: Props) {
@@ -26,13 +26,13 @@ export function ChangePasswordPage({ hasCredential, result }: Props) {
     );
 }
 
-function ChangePasswordForm({ result }: { result?: ActionResult<keyof typeof actionName> }) {
+function ChangePasswordForm({ result }: { result?: ActionResult<typeof actions> }) {
     return (
         <Form
             method="post"
             action={routes.auth.changePassword}
             result={result}
-            formAction={actionName.change_password}
+            formAction={actions.change_password.name}
             success={copy.dashboard_password_changed}
         >
             <Label for="current">{copy.dashboard_password_current_label}</Label>
@@ -67,13 +67,13 @@ function ChangePasswordForm({ result }: { result?: ActionResult<keyof typeof act
     );
 }
 
-function SetPasswordForm({ result }: { result?: ActionResult<keyof typeof actionName> }) {
+function SetPasswordForm({ result }: { result?: ActionResult<typeof actions> }) {
     return (
         <Form
             method="post"
             action={routes.auth.changePassword}
             result={result}
-            formAction={actionName.set_password}
+            formAction={actions.set_password.name}
             success={copy.dashboard_password_changed}
         >
             <Label unmuted>{copy.dashboard_password_set_description}</Label>

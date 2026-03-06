@@ -1,6 +1,6 @@
 import { copy } from "@/lib/copy";
 import type { ActionResult } from "@/lib/types";
-import { actionName } from "@/routes/auth/delete";
+import { actions } from "@/routes/auth/delete";
 import { routes } from "@/routes/routes";
 import { TwoFactorState } from "@/views/auth/2fa";
 import { Layout } from "@/views/components/layout";
@@ -13,7 +13,7 @@ export function DeleteAccountPage({
 }: {
     hasCredential: boolean;
     state?: TwoFactorState;
-    result?: ActionResult<keyof typeof actionName>;
+    result?: ActionResult<typeof actions>;
 }) {
     const headerCopy = hasCredential
         ? state
@@ -36,7 +36,7 @@ export function DeleteAccountPage({
                         method="post"
                         action={routes.auth.delete}
                         result={result}
-                        formAction={actionName.delete_account}
+                        formAction={actions.delete_account.name}
                     >
                         {hasCredential && (
                             <>
@@ -115,10 +115,10 @@ function TwoFactorSwitchHiddenForm({ currentType }: { currentType: "totp" | "ema
     }
     return (
         <Form
-            id={actionName.switch_otp}
+            id={actions.switch_otp.name}
             method="post"
             action={routes.auth.delete}
-            formAction={actionName.switch_otp}
+            formAction={actions.switch_otp.name}
             kv={{ to: currentType === "email" ? "totp" : "email" }}
         />
     );
@@ -129,7 +129,7 @@ function TwoFactorSwitch({ currentType = "totp" }: { currentType: "totp" | "emai
         return null;
     }
     return (
-        <Button form={actionName.switch_otp} variant="ghost" type="submit">
+        <Button form={actions.switch_otp} variant="ghost" type="submit">
             {currentType === "email" ? copy.twofa_switch_to_totp : copy.twofa_switch_to_email}
         </Button>
     );

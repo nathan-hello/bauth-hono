@@ -1,8 +1,14 @@
 import type { AppError } from "@/lib/auth-error";
 
-export type ActionResult<TAction extends string = string> =
-    | { action: TAction | "top-of-page"; success: false; errors: AppError[] }
-    | { action: TAction | "top-of-page"; success: true; errors?: never };
+export type ActionNames<TActions extends { [K: string]: { name: string } }> = TActions[keyof TActions]["name"];
+
+export type ActionResult<TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } }> =
+    | { action: ActionNames<TActions> | "top-of-page"; success: false; errors: AppError[] }
+    | { action: ActionNames<TActions> | "top-of-page"; success: true; errors?: never };
+
+export type ActionKeys<TActions> = {
+    [K in keyof TActions]: TActions[K] extends { name: string } ? TActions[K]["name"] : never;
+};
 
 export type BAuthSessionMaybe = {
     session: {

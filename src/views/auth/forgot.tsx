@@ -1,6 +1,6 @@
 import { copy } from "@/lib/copy";
 import type { ActionResult } from "@/lib/types";
-import { actionName } from "@/routes/auth/forgot";
+import { actions } from "@/routes/auth/forgot";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, Form, Label } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
@@ -8,7 +8,7 @@ import { routes } from "@/routes/routes";
 export type ForgotStep = "start" | "code" | "update" | "try-again";
 
 type ForgotProps = {
-    result?: ActionResult<keyof typeof actionName>;
+    result?: ActionResult<typeof actions>;
     email?: string;
     code?: string;
     step: ForgotStep;
@@ -18,7 +18,7 @@ export function ForgotPage({ result, email, code, step }: ForgotProps) {
     return (
         <Layout title={copy.routes.forgot.title}>
             <Card>
-                <Form method="post" action={routes.auth.forgot} formAction={actionName.forgot} result={result}>
+                <Form method="post" action={routes.auth.forgot} formAction={actions.forgot.name} result={result}>
                     {step === "start" && (
                         <>
                             <input type="hidden" name="step" value="start" />
@@ -49,7 +49,7 @@ export function ForgotPage({ result, email, code, step }: ForgotProps) {
                             <Form
                                 method="post"
                                 action={routes.auth.forgot}
-                                formAction={actionName.forgot}
+                                formAction={actions.forgot.name}
                                 kv={{ step: "start", email: email ?? "", resend: "true" }}
                             >
                                 <Button variant="ghost" type="submit">

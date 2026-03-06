@@ -38,19 +38,12 @@ function checkAction(a: string): a is keyof typeof actions {
     return a in actions;
 }
 
-const actions = {
-    switch: Switch,
-    resend_email: ResendEmail,
-    verify_totp: VerifyTotp,
-    verify_email: VerifyEmail,
-};
-
-export const actionName: { [K in keyof typeof actions]: K } = {
-    switch: "switch",
-    resend_email: "resend_email",
-    verify_totp: "verify_totp",
-    verify_email: "verify_email",
-};
+export const actions = {
+    switch: { name: "switch", handler: Switch },
+    resend_email: { name: "resend_email", handler: ResendEmail },
+    verify_totp: { name: "verify_totp", handler: VerifyTotp },
+    verify_email: { name: "verify_email", handler: VerifyEmail },
+} as const;
 
 export const post: Handler = async (c) => {
     const form = await c.req.formData();
@@ -63,7 +56,7 @@ export const post: Handler = async (c) => {
 
     const result = await tel.task(action.toUpperCase(), async () => {
         tel.debug("FORM_SUBMITTED", safeRequestAttrs(c.req.raw, form));
-        return await actions[action](c, form);
+        return await actions[action].handler(c, form);
     });
 
     if (result.ok) {

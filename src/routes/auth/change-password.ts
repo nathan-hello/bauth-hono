@@ -12,15 +12,10 @@ type ActionReturnData = {
     headers?: Headers;
 };
 
-const actions = {
-    change_password: ChangePassword,
-    set_password: SetPassword,
-};
-
-export const actionName: { [K in keyof typeof actions]: K } = {
-    change_password: "change_password",
-    set_password: "set_password",
-};
+export const actions = {
+    change_password: { name: "change_password", handler: ChangePassword },
+    set_password: { name: "set_password", handler: SetPassword },
+} as const;
 
 export async function get(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -44,7 +39,7 @@ export async function post(c: Context) {
     tel.debug("POST", safeRequestAttrs(c.req.raw, form));
 
     if (!action || !(action in actions)) {
-        const r: ActionResult<keyof typeof actionName> = {
+        const r: ActionResult<typeof actions> = {
             action: "top-of-page",
             success: false,
             errors: [new AppError("generic_error")],
@@ -55,16 +50,16 @@ export async function post(c: Context) {
     const actionKey = action as keyof typeof actions;
     const result = await tel.task("POST", async (span) => {
         span.setAttribute("user.id", session.user.id);
-        return await actions[actionKey](c.req.raw, form);
+        return await actions[actionKey].handler(c.req.raw, form);
     });
 
     if (result.ok) {
         const h = result.data.headers ? new Headers(result.data.headers) : undefined;
-        const r: ActionResult<keyof typeof actionName> = { action: actionKey, success: true };
+        const r: ActionResult<typeof actions> = { action: actionKey, success: true };
         return c.html(ChangePasswordPage({ hasCredential, result: r }), h ? { headers: h } : undefined);
     }
 
-    const r: ActionResult<keyof typeof actionName> = { action: actionKey, success: false, errors: result.error };
+    const r: ActionResult<typeof actions> = { action: actionKey, success: false, errors: result.error };
     return c.html(ChangePasswordPage({ hasCredential, result: r }));
 }
 
