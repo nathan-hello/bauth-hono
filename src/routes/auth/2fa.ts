@@ -22,10 +22,6 @@ export const actions = {
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
-        const existing = await auth.api.getSession({ headers: c.req.raw.headers });
-        if (!existing) {
-            return new Redirect(c.req.raw).Because.NoSession();
-        }
 
         const cookies = c.req.raw.headers.get("cookie");
         if (!cookies) {

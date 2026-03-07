@@ -18,6 +18,6 @@ export const routes = {
     },
     debug: {
         email: "/debug/email",
-        home: "/debug",
+        home: "/",
     },
 };
