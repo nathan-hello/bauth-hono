@@ -9,7 +9,7 @@ export function OauthButtons({ formAction }: { formAction: string }) {
         <div class="flex flex-col w-full gap-3 justify-center items-center ">
             <div class="border-t border-border py-2 w-full" />
             {auth.options.socialProviders.google.enabled && <GoogleButton formAction={formAction} />}
-            {auth.options.socialProviders.apple.enabled && <AppleButton formAction={formAction} />}
+            {auth.options.socialProviders.apple.enabled  && <AppleButton formAction={formAction} />}
         </div>
     );
 }
@@ -121,8 +121,7 @@ function AppleButton({ formAction }: { formAction: string }) {
                                         font-family="applied-button-font-0"
                                         direction="ltr"
                                     >
-                                    {/*  Sign in with Apple*/}
-                                        {copy.oauth.login_prompt}{" "}{copy.oauth.providers.apple}
+                                      {copy.oauth.login_prompt}{" "}{copy.oauth.providers.apple}
                                     </text>
                                 </svg>
                             </g>

@@ -11,14 +11,14 @@ import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.forgot);
 
+export const actions = {
+    forgot: { name: "forgot", handler: Forgot },
+};
+
 type ActionReturnData = {
     step: ForgotStep;
     email?: string;
     code?: string;
-};
-
-export const actions = {
-    forgot: { name: "forgot", handler: Forgot },
 };
 
 export const get: Handler = async (c) => {

@@ -7,6 +7,8 @@ import { routes } from "@/routes/routes";
 import { Context } from "hono";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
+import { parse } from "cookie";
+import { dotenv } from "@/server/env";
 
 const tel = new Telemetry(routes.auth.login);
 
@@ -21,6 +23,14 @@ export const get: Handler = async (c) => {
         const existing = await auth.api.getSession({ headers: c.req.raw.headers });
         if (existing) {
             return new Redirect(c.req.raw).Because.HasSession();
+        }
+        const cookies = c.req.raw.headers.get("cookie");
+        if (cookies) {
+            const parsed = parse(cookies);
+            const cookieKey = dotenv.COOKIE_PREFIX + ".two_factor";
+            if (parsed[cookieKey] || parsed["__Secure." + cookieKey]) {
+                return new Redirect(c.req.raw).Because.TwoFactorRequired();
+            }
         }
 
         return c.html(LoginPage({}));
@@ -76,7 +86,6 @@ async function LogIn(c: Context, form: FormData) {
 
     if ("twoFactorRedirect" in response) {
         tel.info("2FA_REDIRECT");
-
         return new Redirect(c.req.raw, headers).Because.TwoFactorRequired();
     }
 

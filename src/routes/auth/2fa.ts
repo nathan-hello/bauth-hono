@@ -11,6 +11,14 @@ import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.twoFactor);
 
+export const actions = {
+    switch: { name: "switch", handler: Switch },
+    resend_email: { name: "resend_email", handler: ResendEmail },
+    verify_totp: { name: "verify_totp", handler: VerifyTotp },
+    verify_email: { name: "verify_email", handler: VerifyEmail },
+};
+
+
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
@@ -26,7 +34,7 @@ export const get: Handler = async (c) => {
 
         const parsed = parse(cookies);
         const cookieKey = dotenv.COOKIE_PREFIX + ".two_factor";
-        if (!parsed[cookieKey]) {
+        if (!parsed[cookieKey] && !parsed["__Secure." + cookieKey]) {
             return new Redirect(c.req.raw).Because.NoTwoFactorCookie();
         }
 
@@ -37,13 +45,6 @@ export const get: Handler = async (c) => {
     }
     return new Redirect(c.req.raw).Because.Error(result);
 };
-
-export const actions = {
-    switch: { name: "switch", handler: Switch },
-    resend_email: { name: "resend_email", handler: ResendEmail },
-    verify_totp: { name: "verify_totp", handler: VerifyTotp },
-    verify_email: { name: "verify_email", handler: VerifyEmail },
-} as const;
 
 export const post: Handler = async (c) => {
     const form = await c.req.formData();

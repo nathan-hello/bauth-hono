@@ -9,14 +9,14 @@ import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.changePassword);
 
-type ActionReturnData = {
-    headers?: Headers;
-};
-
 export const actions = {
     change_password: { name: "change_password", handler: ChangePassword },
     set_password: { name: "set_password", handler: SetPassword },
-} as const;
+};
+
+type ActionReturnData = {
+    headers?: Headers;
+};
 
 export const get: Handler = async (c) => {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
