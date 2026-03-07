@@ -1,3 +1,4 @@
+import { redirectWithSetCookies } from "@/routes/auth/redirect";
 import { Context } from "hono";
 
 export const routes = {
@@ -25,18 +26,30 @@ export const routes = {
 };
 
 export const redirects = {
-    ToLogin: () => Response.redirect(routes.auth.login, 302),
-    AfterDeleteAcccount: routes.auth.deleteSuccess,
-    AfterLogin: (c: Context): string => {
+    ToLogin: (_: Context): Response => {
+        return Response.redirect(routes.auth.login, 302);
+    },
+    AfterDeleteAcccount: (_: Context) => {
+        return Response.redirect(routes.auth.deleteSuccess);
+    },
+    AfterLogout: (_: Context): Response => {
+        return Response.redirect(routes.auth.login, 302);
+    },
+    WithSetCookies: {
+        AfterLogout: (_: Context, headers: Headers) => {
+            return redirectWithSetCookies(headers, routes.index);
+        },
+    },
+    AfterLogin: (_: Context): Response => {
         if (process.env.NODE_ENV === "development") {
-            return routes.auth.dashboard;
+            return Response.redirect(routes.auth.dashboard, 302);
         }
-        return routes.index;
+        return Response.redirect(routes.index, 302);
     },
-    AfterOauth: (c: Context): string => {
-        return routes.auth.dashboard;
+    AfterOauth: (_: Context): Response => {
+        return Response.redirect(routes.auth.dashboard);
     },
-    afterSuccess: {
-        default: "/debug",
+    IfSessionExists: {
+
     },
 };

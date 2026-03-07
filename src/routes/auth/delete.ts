@@ -1,6 +1,7 @@
 import { AppError } from "@/lib/auth-error";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
 import type { ActionResult } from "@/lib/types";
+import { findAction } from "@/routes/auth/lib/check-action";
 import { serverError } from "@/routes/auth/redirect";
 import { redirects, routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
@@ -17,7 +18,7 @@ type DeleteActionData = {
         resentEmail?: boolean;
     };
     headers?: Headers;
-} | null;
+};
 
 export async function get(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -44,24 +45,14 @@ export async function post(c: Context) {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    if (!action || !checkAction(action)) {
-        tel.error("ACTION_UNDEFINED", {
-            data: safeRequestAttrs(c.req.raw, form),
-        });
-        throw new AppError("generic_error");
-    }
-
     const result = await tel.task("POST", async (span) => {
-        span.setAttribute("user.id", session.user.id);
-        span.setAttribute("action", action);
-        tel.debug(action, safeRequestAttrs(c.req.raw, form));
-
-        return await actions[action].handler(c.req.raw, form);
+        span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        const handler = findAction(actions, action);
+        return await handler(c.req.raw, form);
     });
 
     if (result.ok) {
         const r = result.data;
-        if (!r) return serverError(result.traceId);
 
         if (r.data?.deleted) {
             return c.html(DeleteSuccessPage(), r.headers ? { headers: r.headers } : undefined);
@@ -88,10 +79,6 @@ export async function post(c: Context) {
     );
 }
 
-function checkAction(a: string): a is keyof typeof actions {
-    return a in actions;
-}
-
 function getOtpType(s: string | undefined): "email" | "totp" {
     if (s === "email") return s;
     if (s === "totp") return s;
@@ -114,17 +101,28 @@ async function SwitchOtp(request: Request, form: FormData): Promise<DeleteAction
 
 async function DeleteAccount(request: Request, form: FormData): Promise<DeleteActionData> {
     const session = await auth.api.getSession({ headers: request.headers });
-    if (!session) return null;
 
     const accounts = await auth.api.listUserAccounts({ headers: request.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
 
     const password = form.get("password")?.toString();
-    if (hasCredential && !password) throw new AppError("INVALID_PASSWORD");
+    if (!hasCredential) {
+        throw new AppError("USER_NOT_FOUND");
+    }
+
+    if (!password) {
+        throw new AppError("INVALID_PASSWORD");
+    }
 
     let headersForDelete = request.headers;
 
-    if (session.user.twoFactorEnabled) {
+    if (session?.user.twoFactorEnabled) {
+        // Checking 2FA when deleting a user is not supported
+        // in auth.api.deleteUser. This means that we have to
+        // check it manaully. Upon checking it manually, we get
+        // a new Session Token, which means we have to tell auth.api.deleteUser
+        // about this new session token, as the one with the original
+        // request is now invalid.
         const otpHeaders = await checkOtp(request, form);
         if (!otpHeaders) throw new AppError("otp_failed");
         headersForDelete = convertSetCookiesToCookies(request.headers, otpHeaders);
@@ -142,26 +140,30 @@ async function DeleteAccount(request: Request, form: FormData): Promise<DeleteAc
 async function checkOtp(request: Request, form: FormData): Promise<Headers | null> {
     const otp = form.get("otp")?.toString();
     const type = form.get("otp-type")?.toString();
-    if (!otp || !type) throw new AppError("otp_failed");
-
-    if (type === "email") {
-        const result = await auth.api.verifyTwoFactorOTP({
-            body: { code: otp },
-            headers: request.headers,
-            returnHeaders: true,
-        });
-        return result.headers;
+    if (!type || (type !== "email" && type !== "totp")) {
+        throw new AppError("otp_failed");
     }
-    if (type === "totp") {
-        const result = await auth.api.verifyTOTP({
-            body: { code: otp },
-            headers: request.headers,
-            returnHeaders: true,
-        });
-        return result.headers;
+    if (!otp) {
+        throw new AppError("INVALID_OTP_CODE");
     }
 
-    return null;
+    let result: { headers: Headers };
+    switch (type) {
+        case "email":
+            result = await auth.api.verifyTwoFactorOTP({
+                body: { code: otp },
+                headers: request.headers,
+                returnHeaders: true,
+            });
+            return result.headers;
+        case "totp":
+            result = await auth.api.verifyTOTP({
+                body: { code: otp },
+                headers: request.headers,
+                returnHeaders: true,
+            });
+            return result.headers;
+    }
 }
 
 export const actions = {

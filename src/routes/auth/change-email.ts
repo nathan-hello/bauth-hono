@@ -5,6 +5,7 @@ import { redirects, routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { ChangeEmailPage } from "@/views/auth/change-email";
+import { findAction } from "@/routes/auth/lib/check-action";
 
 const tel = new Telemetry(routes.auth.changeEmail);
 
@@ -39,48 +40,31 @@ export async function post(c: Context) {
 
     tel.debug("POST", safeRequestAttrs(c.req.raw, form));
 
-    if (!action || !(action in actions)) {
-        const r: ActionResult<typeof actions> = {
-            action: "top-of-page",
-            success: false,
-            errors: [new AppError("generic_error")],
-        };
-        return c.html(
-            ChangeEmailPage({
-                currentEmail: session.user.email,
-                emailVerified: session.user.emailVerified,
-                result: r,
-            }),
-        );
-    }
-
-    const actionKey = action as keyof typeof actions;
     const result = await tel.task("POST", async (span) => {
-        span.setAttribute("user.id", session.user.id);
-        return await actions[actionKey].handler(c.req.raw, form);
+        span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        const handler = findAction(actions, action);
+        return await handler(c.req.raw, form);
     });
 
     if (result.ok) {
         const r = result.data;
         const h = r.headers ? new Headers(r.headers) : undefined;
-        const ar: ActionResult<typeof actions> = { action: actionKey, success: true };
         return c.html(
             ChangeEmailPage({
                 currentEmail: session.user.email,
                 emailVerified: session.user.emailVerified,
-                result: ar,
+                result: { action, success: true },
                 verificationSent: r.verificationSent,
             }),
             h ? { headers: h } : undefined,
         );
     }
 
-    const ar: ActionResult<typeof actions> = { action: actionKey, success: false, errors: result.error };
     return c.html(
         ChangeEmailPage({
             currentEmail: session.user.email,
             emailVerified: session.user.emailVerified,
-            result: ar,
+            result: { action, success: false, errors: result.error },
         }),
     );
 }

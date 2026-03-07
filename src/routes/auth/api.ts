@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { auth } from "@/server/auth";
-import { Telemetry } from "@/server/telemetry";
+import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
 
 const tel = new Telemetry("api.auth");
 
@@ -39,35 +39,17 @@ function errorPage(traceId: string): Response {
 }
 
 export async function post(c: Context) {
-    {
-        const request = c.req.raw;
-        const result = await tel.task("HANDLE", async () => {
-            return await auth.handler(request);
-        });
+    const request = c.req.raw;
 
-        tel.info(request.method, async () => {
-            if (result.ok) {
-                const clone = result.data.clone();
-                return {
-                    responseText: await clone.text(),
-                    status: clone.status,
-                    url: request.url,
-                };
-            } else {
-                const err = result.error instanceof Error ? result.error : new Error(String(result.error));
-                return {
-                    "http.url": request.url,
-                    errorName: err.name,
-                    errorMessage: err.message,
-                    errorStack: err.stack,
-                };
-            }
-        });
+    const result = await tel.task("HANDLE", async (span) => {
+        const form = await c.req.raw.clone().formData();
+        span.setAttributes(safeRequestAttrs(request, form));
+        return await auth.handler(request);
+    });
 
-        if (result.ok) {
-            return result.data;
-        }
-
-        return errorPage(result.traceId);
+    if (result.ok) {
+        return result.data;
     }
+
+    return errorPage(result.traceId);
 }

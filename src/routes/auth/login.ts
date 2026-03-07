@@ -4,29 +4,20 @@ import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes/auth/redirect";
 import { LoginPage } from "@/views/auth/login";
-import { redirects, routes } from "@/routes/routes";
+import { routes } from "@/routes/routes";
 import { Context } from "hono";
-import type { ActionResult } from "@/lib/types";
+import { findAction } from "@/routes/auth/lib/check-action";
 
 const tel = new Telemetry(routes.auth.login);
 
 export const actions = {
     login: { name: "login", handler: LogIn },
     oauth: { name: "oauth", handler: LogInOauth },
-} as const;
-
-export const actionName = {
-    login: actions.login.name,
-    oauth: actions.oauth.name,
-} as const;
-
-function checkAction(a: string): a is keyof typeof actions {
-    return a in actions;
-}
+};
 
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async (span) => {
-        tel.debug("REQUEST", safeRequestAttrs(c.req.raw));
+        span.setAttributes(safeRequestAttrs(c.req.raw));
         const existing = await redirectIfSession(c.req.raw);
         if (existing) {
             span.setAttribute("user.id", existing.userId);
@@ -42,29 +33,17 @@ export const get: Handler = async (c) => {
 export const post: Handler = async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
+    const email = form.get("email")?.toString();
 
-    if (!action || !checkAction(action)) {
-        return c.html(
-            LoginPage({
-                result: {
-                    action: "top-of-page",
-                    success: false,
-                    errors: [new AppError("internal_field_missing_action")],
-                },
-            }),
-        );
-    }
-
-    const result = await tel.task("SIGN_IN", async (span) => {
-        span.setAttribute("action", action);
-        return await actions[action].handler(c, form);
+    const result = await tel.task("POST", async (span) => {
+        span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        const handler = findAction(actions, action);
+        return await handler(c, form);
     });
 
     if (result.ok) return result.data;
 
-    const email = form.get("email")?.toString();
-    const r: ActionResult<typeof actions> = { action, success: false, errors: result.error };
-    return c.html(LoginPage({ result: r, email }));
+    return c.html(LoginPage({ result: { action, success: false, errors: result.error }, email }));
 };
 
 async function LogIn(c: Context, form: FormData) {
@@ -76,7 +55,7 @@ async function LogIn(c: Context, form: FormData) {
 
     const isEmail = email.includes("@");
 
-    tel.debug("ATTEMPT", { method: isEmail ? "email" : "username" });
+    tel.debug("email_or_username_detected", { method: isEmail ? "email" : "username" });
 
     const { headers, response } = await (isEmail
         ? auth.api.signInEmail({
@@ -119,5 +98,8 @@ async function LogInOauth(c: Context, form: FormData) {
         throw new AppError("oauth_no_url_given_by_provider");
     }
 
+    // In the handler for auth.api.signInSocial (and linkSocialAcount), the
+    // only way that we don't get a redirect url is if we pass an idToken in
+    // the body.
     return redirectWithSetCookies(data.headers, data.response.url);
 }

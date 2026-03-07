@@ -1,10 +1,10 @@
-import { Context } from "hono";
+import { Context, Handler } from "hono";
 import { AppError } from "@/lib/auth-error";
-import type { ActionResult } from "@/lib/types";
 import { redirects, routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { ChangePasswordPage } from "@/views/auth/change-password";
+import { findAction } from "@/routes/auth/lib/check-action";
 
 const tel = new Telemetry(routes.auth.changePassword);
 
@@ -17,7 +17,7 @@ export const actions = {
     set_password: { name: "set_password", handler: SetPassword },
 } as const;
 
-export async function get(c: Context) {
+export const get: Handler = async (c) => {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) return redirects.ToLogin();
 
@@ -25,42 +25,35 @@ export async function get(c: Context) {
     const hasCredential = accounts.some((a) => a.providerId === "credential");
 
     return c.html(ChangePasswordPage({ hasCredential }));
-}
+};
 
 export async function post(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (!session) return redirects.ToLogin();
+    if (!session) {
+        return redirects.ToLogin();
+    }
 
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
+
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    tel.debug("POST", safeRequestAttrs(c.req.raw, form));
-
-    if (!action || !(action in actions)) {
-        const r: ActionResult<typeof actions> = {
-            action: "top-of-page",
-            success: false,
-            errors: [new AppError("generic_error")],
-        };
-        return c.html(ChangePasswordPage({ hasCredential, result: r }));
-    }
-
-    const actionKey = action as keyof typeof actions;
     const result = await tel.task("POST", async (span) => {
-        span.setAttribute("user.id", session.user.id);
-        return await actions[actionKey].handler(c.req.raw, form);
+        span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        const handler = findAction(actions, action);
+        return await handler(c.req.raw, form);
     });
 
     if (result.ok) {
         const h = result.data.headers ? new Headers(result.data.headers) : undefined;
-        const r: ActionResult<typeof actions> = { action: actionKey, success: true };
-        return c.html(ChangePasswordPage({ hasCredential, result: r }), h ? { headers: h } : undefined);
+        return c.html(
+            ChangePasswordPage({ hasCredential, result: { action, success: true } }),
+            h ? { headers: h } : undefined,
+        );
     }
 
-    const r: ActionResult<typeof actions> = { action: actionKey, success: false, errors: result.error };
-    return c.html(ChangePasswordPage({ hasCredential, result: r }));
+    return c.html(ChangePasswordPage({ hasCredential, result: { action, success: false, errors: result.error } }));
 }
 
 async function ChangePassword(request: Request, form: FormData): Promise<ActionReturnData> {

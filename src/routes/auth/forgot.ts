@@ -8,6 +8,7 @@ import { ForgotPage, type ForgotStep } from "@/views/auth/forgot";
 import { routes } from "@/routes/routes";
 import type { ActionResult } from "@/lib/types";
 import type { Context } from "hono";
+import { findAction } from "@/routes/auth/lib/check-action";
 
 const tel = new Telemetry(routes.auth.forgot);
 
@@ -19,7 +20,7 @@ type ActionReturnData = {
 
 export const actions = {
     forgot: { name: "forgot", handler: Forgot },
-} as const;
+};
 
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async () => {
@@ -34,39 +35,52 @@ export const get: Handler = async (c) => {
 
 export const post: Handler = async (c) => {
     const form = await c.req.formData();
+    const action = form.get("action")?.toString();
     const step = form.get("step")?.toString() as ForgotStep | undefined;
     const email = form.get("email")?.toString();
 
     if (!step || !["start", "code", "update", "try-again"].includes(step)) {
-        const r: ActionResult<typeof actions> = {
-            action: "forgot",
-            success: false,
-            errors: [new AppError("generic_error")],
-        };
-        return c.html(ForgotPage({ step: "start", result: r }));
+        return c.html(
+            ForgotPage({
+                step: "start",
+                result: {
+                    action: "forgot",
+                    success: false,
+                    errors: [new AppError("generic_error")],
+                },
+            }),
+        );
     }
 
-    const result = await tel.task(step.toUpperCase(), async () => {
-        tel.debug("FORM_SUBMITTED", { step, ...safeRequestAttrs(c.req.raw, form) });
-        return await actions.forgot.handler(c, form);
+    const result = await tel.task("POST", async (span) => {
+        span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        const handler = findAction(actions, action);
+        return await handler(c, form);
     });
 
     if (result.ok) {
-        if (result.data instanceof Response) return result.data;
+        if (result.data instanceof Response) {
+            return result.data;
+        }
         return c.html(ForgotPage({ step: result.data.step, email: result.data.email, code: result.data.code }));
     }
 
+    // TOO_MANY_ATTEMPTS is a special case because we want to advance
+    // the 'step' to 'try-again'
     if (result.error instanceof APIError && result.error.body?.code === "TOO_MANY_ATTEMPTS") {
-        const r: ActionResult<typeof actions> = {
-            action: "forgot",
-            success: false,
-            errors: [new AppError("TOO_MANY_ATTEMPTS")],
-        };
-        return c.html(ForgotPage({ step: "try-again", result: r }));
+        return c.html(
+            ForgotPage({
+                step: "try-again",
+                result: {
+                    action: "forgot",
+                    success: false,
+                    errors: [new AppError("TOO_MANY_ATTEMPTS")],
+                },
+            }),
+        );
     }
 
-    const r: ActionResult<typeof actions> = { action: "forgot", success: false, errors: result.error };
-    return c.html(ForgotPage({ step, result: r, email }));
+    return c.html(ForgotPage({ step, result: { action: "forgot", success: false, errors: result.error }, email }));
 };
 
 async function Forgot(c: Context, form: FormData): Promise<ActionReturnData | Response> {

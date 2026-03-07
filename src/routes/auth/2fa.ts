@@ -7,6 +7,7 @@ import { ActionReturnData, TwoFactorPage } from "@/views/auth/2fa";
 import { parse } from "cookie";
 import { redirects, routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
+import { findAction } from "@/routes/auth/lib/check-action";
 
 const tel = new Telemetry(routes.auth.twoFactor);
 
@@ -34,10 +35,6 @@ export const get: Handler = async (c) => {
     return serverError(result.traceId);
 };
 
-function checkAction(a: string): a is keyof typeof actions {
-    return a in actions;
-}
-
 export const actions = {
     switch: { name: "switch", handler: Switch },
     resend_email: { name: "resend_email", handler: ResendEmail },
@@ -49,14 +46,10 @@ export const post: Handler = async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    if (!action || !checkAction(action)) {
-        tel.warn("ACTION_NOT_FOUND", { action });
-        return c.html(TwoFactorPage({}));
-    }
-
-    const result = await tel.task(action.toUpperCase(), async () => {
-        tel.debug("FORM_SUBMITTED", safeRequestAttrs(c.req.raw, form));
-        return await actions[action].handler(c, form);
+    const result = await tel.task("POST", async (span) => {
+        span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        const handler = findAction(actions, action);
+        return await handler(c, form);
     });
 
     if (result.ok) {

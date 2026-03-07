@@ -5,18 +5,14 @@ import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes
 import { RegisterPage } from "@/views/auth/register";
 import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
-import type { ActionResult } from "@/lib/types";
+import { findAction } from "@/routes/auth/lib/check-action";
 
 const tel = new Telemetry(routes.auth.register);
 
 export const actions = {
     register: { name: "register", handler: Register },
     oauth: { name: "oauth", handler: RegisterOauth },
-} as const;
-
-function checkAction(a: string): a is keyof typeof actions {
-    return a in actions;
-}
+};
 
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async () => {
@@ -33,28 +29,16 @@ export const post: Handler = async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    if (!action || !checkAction(action)) {
-        return c.html(
-            RegisterPage({
-                result: {
-                    action: "top-of-page",
-                    success: false,
-                    errors: [new AppError("internal_field_missing_action")],
-                },
-            }),
-        );
-    }
-
     const result = await tel.task("POST", async (span) => {
-        span.setAttribute("action", action);
-        return await actions[action].handler(c, form);
+        span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        const handler = findAction(actions, action);
+        return await handler(c, form);
     });
 
     if (result.ok) return result.data;
 
     const email = form.get("email")?.toString();
-    const r: ActionResult<typeof actions> = { action, success: false, errors: result.error };
-    return c.html(RegisterPage({ result: r, email }));
+    return c.html(RegisterPage({ result: { action, success: false, errors: result.error }, email }));
 };
 
 async function Register(c: Context, form: FormData) {
