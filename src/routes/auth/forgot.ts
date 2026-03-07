@@ -3,12 +3,11 @@ import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes/auth/redirect";
 import { ForgotPage, type ForgotStep } from "@/views/auth/forgot";
 import { routes } from "@/routes/routes";
-import type { ActionResult } from "@/lib/types";
 import type { Context } from "hono";
 import { findAction } from "@/routes/auth/lib/check-action";
+import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.forgot);
 
@@ -25,12 +24,16 @@ export const actions = {
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async () => {
         tel.debug("REQUEST", safeRequestAttrs(c.req.raw));
-        const existing = await redirectIfSession(c.req.raw);
-        if (existing) return existing;
+        const existing = await auth.api.getSession({ headers: c.req.raw.headers });
+        if (!existing) {
+            return new Redirect(c.req.raw).Because.NoSession();
+        }
         return c.html(ForgotPage({ step: "start" }));
     });
-    if (result.ok) return result.data;
-    return serverError(result.traceId);
+    if (result.ok) {
+        return result.data;
+    }
+    return new Redirect(c.req.raw).Because.Error(result);
 };
 
 export const post: Handler = async (c) => {
@@ -134,7 +137,8 @@ async function Forgot(c: Context, form: FormData): Promise<ActionReturnData | Re
         }
 
         tel.info("PASSWORD_RESET", { email });
-        return redirectWithSetCookies(headers, "/");
+
+        return new Redirect(c.req.raw, headers).After.PasswordReset();
     }
 
     return { step: "start" };

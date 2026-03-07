@@ -1,11 +1,11 @@
 import { Context } from "hono";
 import { AppError } from "@/lib/auth-error";
-import type { ActionResult } from "@/lib/types";
-import { redirects, routes } from "@/routes/routes";
+import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { ChangeEmailPage } from "@/views/auth/change-email";
 import { findAction } from "@/routes/auth/lib/check-action";
+import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.changeEmail);
 
@@ -21,7 +21,9 @@ export const actions = {
 
 export async function get(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (!session) return redirects.ToLogin();
+    if (!session) {
+        return new Redirect(c.req.raw).Because.NoSession();
+    }
 
     return c.html(
         ChangeEmailPage({
@@ -33,12 +35,12 @@ export async function get(c: Context) {
 
 export async function post(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (!session) return redirects.ToLogin();
+    if (!session) {
+        return new Redirect(c.req.raw).Because.NoSession();
+    }
 
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
-
-    tel.debug("POST", safeRequestAttrs(c.req.raw, form));
 
     const result = await tel.task("POST", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw, form));
@@ -47,16 +49,14 @@ export async function post(c: Context) {
     });
 
     if (result.ok) {
-        const r = result.data;
-        const h = r.headers ? new Headers(r.headers) : undefined;
         return c.html(
             ChangeEmailPage({
                 currentEmail: session.user.email,
                 emailVerified: session.user.emailVerified,
                 result: { action, success: true },
-                verificationSent: r.verificationSent,
+                verificationSent: result.data.verificationSent,
             }),
-            h ? { headers: h } : undefined,
+            { headers: result.data.headers },
         );
     }
 

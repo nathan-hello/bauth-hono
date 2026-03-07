@@ -2,8 +2,8 @@ import { AppError } from "@/lib/auth-error";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
 import type { ActionResult } from "@/lib/types";
 import { findAction } from "@/routes/auth/lib/check-action";
-import { serverError } from "@/routes/auth/redirect";
-import { redirects, routes } from "@/routes/routes";
+import { Redirect } from "@/routes/redirect";
+import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
 import { DeleteAccountPage, DeleteSuccessPage } from "@/views/auth/delete";
@@ -23,7 +23,7 @@ type DeleteActionData = {
 export async function get(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) {
-        return redirects.ToLogin();
+        return new Redirect(c.req.raw).Because.NoSession();
     }
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
@@ -38,7 +38,7 @@ export async function get(c: Context) {
 export async function post(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) {
-        return redirects.ToLogin();
+        return new Redirect(c.req.raw).Because.NoSession();
     }
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
@@ -52,18 +52,18 @@ export async function post(c: Context) {
     });
 
     if (result.ok) {
-        const r = result.data;
-
-        if (r.data?.deleted) {
-            return c.html(DeleteSuccessPage(), r.headers ? { headers: r.headers } : undefined);
+        if (result.data.data?.deleted) {
+            return new Redirect(c.req.raw, result.data.headers).After.DeleteAccount();
         }
 
         return c.html(
             DeleteAccountPage({
                 hasCredential,
-                state: r.data?.verificationType ? { verificationType: r.data.verificationType } : undefined,
+                state: result.data.data?.verificationType
+                    ? { verificationType: result.data.data.verificationType }
+                    : undefined,
             }),
-            r.headers ? { headers: r.headers } : undefined,
+            { headers: result.data.headers },
         );
     }
 

@@ -9,10 +9,10 @@ import {
     type DashboardActionData,
     type TotpState,
 } from "@/views/auth/dashboard";
-import { redirects, routes } from "@/routes/routes";
+import { routes } from "@/routes/routes";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
-import { redirectIfNoSession, redirectWithSetCookies } from "@/routes/auth/redirect";
 import { findAction } from "@/routes/auth/lib/check-action";
+import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry("route.dashboard");
 
@@ -35,28 +35,22 @@ async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | nu
         accounts,
     };
 
-    // tel.debug("LOADER_DATA", { data: JSON.stringify(ret) });
-
     return ret;
 }
 
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async (span) => {
-        const r = await redirectIfNoSession(c.req.raw);
-        if ("response" in r) {
-            return r.response;
-        }
-        const loaded = await getLoaderData(c.req.raw.headers);
-        if (!loaded) {
-            return redirects.ToLogin();
+        const session = await getLoaderData(c.req.raw.headers);
+        if (!session) {
+            return new Redirect(c.req.raw).Because.NoSession();
         }
 
-        span.setAttribute("user.id", loaded.user.id);
-
-        return c.html(DashboardPage({ loaderData: loaded }));
+        return c.html(DashboardPage({ loaderData: session }));
     });
-    if (result.ok) return result.data;
-    return redirects.ToLogin();
+    if (result.ok) {
+        return result.data;
+    }
+    return new Redirect(c.req.raw).Because.Error(result);
 };
 
 export const post: Handler = async (c) => {
@@ -65,7 +59,7 @@ export const post: Handler = async (c) => {
 
     const getLoaderForLogs = await getLoaderData(c.req.raw.headers);
     if (!getLoaderForLogs) {
-        return redirects.ToLogin();
+        return new Redirect(c.req.raw).Because.NoSession();
     }
 
     const result = await tel.task("POST", async (span) => {
@@ -84,24 +78,21 @@ export const post: Handler = async (c) => {
             : c.req.raw.headers;
         const loaderAfterSuccess = await getLoaderData(headersForLoader);
         if (!loaderAfterSuccess) {
-            return redirects.ToLogin();
+            return new Redirect(c.req.raw).Because.NoSession();
         }
 
-        const actionData: DashboardActionData = { result: result.data.result, totp: result.data.totp };
-        const html = DashboardPage({ actionData, loaderData: loaderAfterSuccess });
-
-        if (!result.data.headers) {
-            return c.html(html);
-        }
-
-        const h = new Headers(result.data.headers);
-        h.set("Content-Type", "text/html; charset=utf-8");
-        return c.html(html, { headers: h });
+        return c.html(
+            DashboardPage({
+                actionData: { result: result.data.result, totp: result.data.totp },
+                loaderData: loaderAfterSuccess,
+            }),
+            { headers: result.data.headers },
+        );
     }
 
     const loaderAfterError = await getLoaderData(c.req.raw.headers);
     if (!loaderAfterError) {
-        return redirects.ToLogin();
+        return new Redirect(c.req.raw).Because.NoSession();
     }
 
     return c.html(
@@ -383,7 +374,8 @@ async function LinkAccount(request: Request, form: FormData): Promise<Response> 
         // the body.
         throw new AppError("oauth_no_url_given_by_provider");
     }
-    return redirectWithSetCookies(result.headers, result.response.url);
+
+    return new Redirect(request, result.headers).Because.Oauth(result.response.url);
 }
 
 async function UnlinkAccount(request: Request, form: FormData): Promise<ActionReturnData> {

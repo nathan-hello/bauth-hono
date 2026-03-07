@@ -2,11 +2,11 @@ import type { Handler } from "hono";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes/auth/redirect";
 import { LoginPage } from "@/views/auth/login";
 import { routes } from "@/routes/routes";
 import { Context } from "hono";
 import { findAction } from "@/routes/auth/lib/check-action";
+import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.login);
 
@@ -18,16 +18,17 @@ export const actions = {
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
-        const existing = await redirectIfSession(c.req.raw);
+        const existing = await auth.api.getSession({ headers: c.req.raw.headers });
         if (existing) {
-            span.setAttribute("user.id", existing.userId);
-            return existing.response;
+            return new Redirect(c.req.raw).Because.HasSession();
         }
 
         return c.html(LoginPage({}));
     });
-    if (result.ok) return result.data;
-    return serverError(result.traceId);
+    if (result.ok) {
+        return result.data;
+    }
+    return new Redirect(c.req.raw).Because.Error(result);
 };
 
 export const post: Handler = async (c) => {
@@ -75,11 +76,11 @@ async function LogIn(c: Context, form: FormData) {
 
     if ("twoFactorRedirect" in response) {
         tel.info("2FA_REDIRECT");
-        return redirectWithSetCookies(headers, "/auth/2fa");
+
+        return new Redirect(c.req.raw, headers).Because.TwoFactorRequired();
     }
 
-    tel.info("SIGN_IN_SUCCESS");
-    return redirectWithSetCookies(headers, "/");
+    return new Redirect(c.req.raw, headers).After.Login();
 }
 
 async function LogInOauth(c: Context, form: FormData) {
@@ -101,5 +102,5 @@ async function LogInOauth(c: Context, form: FormData) {
     // In the handler for auth.api.signInSocial (and linkSocialAcount), the
     // only way that we don't get a redirect url is if we pass an idToken in
     // the body.
-    return redirectWithSetCookies(data.headers, data.response.url);
+    return new Redirect(c.req.raw, data.headers).Because.Oauth(data.response.url);
 }
