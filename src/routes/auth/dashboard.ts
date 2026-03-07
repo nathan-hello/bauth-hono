@@ -22,6 +22,21 @@ type ActionReturnData = {
     headers?: Headers;
 };
 
+export const actions = {
+    change_password: { name: "change_password", handler: PasswordChange },
+    set_password: { name: "set_password", handler: SetPassword },
+    revoke_session: { name: "revoke_session", handler: RevokeSession },
+    email_change: { name: "email_change", handler: EmailChange },
+    email_resend_verification: { name: "email_resend_verification", handler: EmailVerificationResend },
+    two_factor_enable: { name: "two_factor_enable", handler: TwoFactorEnable },
+    two_factor_totp_verify: { name: "two_factor_totp_verify", handler: TwoFactorTotpVerify },
+    two_factor_disable: { name: "two_factor_disable", handler: TwoFactorDisable },
+    get_totp_uri: { name: "get_totp_uri", handler: TwoFactorGetTotpUri },
+    get_backup_codes: { name: "get_backup_codes", handler: TwoFactorGetBackupCodes },
+    unlink_account: { name: "unlink_account", handler: UnlinkAccount },
+    link_account: { name: "link_account", handler: LinkAccount },
+} as const;
+
 async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | null> {
     const session = await auth.api.getSession({ headers });
     if (!session) return null;
@@ -102,21 +117,6 @@ export const post: Handler = async (c) => {
         }),
     );
 };
-
-export const actions = {
-    change_password: { name: "change_password", handler: PasswordChange },
-    set_password: { name: "set_password", handler: SetPassword },
-    revoke_session: { name: "revoke_session", handler: RevokeSession },
-    email_change: { name: "email_change", handler: EmailChange },
-    email_resend_verification: { name: "email_resend_verification", handler: EmailVerificationResend },
-    two_factor_enable: { name: "two_factor_enable", handler: TwoFactorEnable },
-    two_factor_totp_verify: { name: "two_factor_totp_verify", handler: TwoFactorTotpVerify },
-    two_factor_disable: { name: "two_factor_disable", handler: TwoFactorDisable },
-    get_totp_uri: { name: "get_totp_uri", handler: TwoFactorGetTotpUri },
-    get_backup_codes: { name: "get_backup_codes", handler: TwoFactorGetBackupCodes },
-    unlink_account: { name: "unlink_account", handler: UnlinkAccount },
-    link_account: { name: "link_account", handler: LinkAccount },
-} as const;
 
 async function RevokeSession(request: Request, form: FormData): Promise<ActionReturnData> {
     const token = form.get("session")?.toString();

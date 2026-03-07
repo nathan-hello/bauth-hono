@@ -11,6 +11,12 @@ import { Context } from "hono";
 
 const tel = new Telemetry(routes.auth.delete);
 
+export const actions = {
+    delete_account: { name: "delete_account", handler: DeleteAccount },
+    resend_email: { name: "resend_email", handler: ResendEmail },
+    switch_otp: { name: "switch_otp", handler: SwitchOtp },
+};
+
 type DeleteActionData = {
     data?: {
         deleted?: boolean;
@@ -165,9 +171,3 @@ async function checkOtp(request: Request, form: FormData): Promise<Headers | nul
             return result.headers;
     }
 }
-
-export const actions = {
-    delete_account: { name: "delete_account", handler: DeleteAccount },
-    resend_email: { name: "resend_email", handler: ResendEmail },
-    switch_otp: { name: "switch_otp", handler: SwitchOtp },
-} as const;

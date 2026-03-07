@@ -9,15 +9,15 @@ import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.changeEmail);
 
+export const actions = {
+    change_email: { name: "change_email", handler: ChangeEmail },
+    resend_verification: { name: "resend_verification", handler: ResendVerification },
+};
+
 type ActionReturnData = {
     verificationSent?: boolean;
     headers?: Headers;
 };
-
-export const actions = {
-    change_email: { name: "change_email", handler: ChangeEmail },
-    resend_verification: { name: "resend_verification", handler: ResendVerification },
-} as const;
 
 export async function get(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
