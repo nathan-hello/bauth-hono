@@ -90,9 +90,9 @@ export const ERROR_COPY: Record<TErrorCodes, string> = {
     ID_TOKEN_NOT_SUPPORTED: "",
     INVALID_EMAIL: "Invalid email.",
     INVALID_EMAIL_OR_PASSWORD: "Invalid credentials.",
-    // This error is for both if the password on registration does
-    // not meet requirements, and in other checks like 2fa-enable where
-    // you get the password icorrent.
+    // This error is gets triggered upon:
+    // 1) registration when password does not meet requirements,
+    // 2) in other checks like 2fa-enable where you get the password incorrect.
     INVALID_PASSWORD: "Invalid password.",
     INVALID_TOKEN: "",
     PASSWORD_TOO_LONG: "",

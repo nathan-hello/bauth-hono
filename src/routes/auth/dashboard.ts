@@ -1,7 +1,7 @@
 import type { Handler } from "hono";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
-import { TaskResult, Telemetry, safeRequestAttrs } from "@/server/telemetry";
+import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import {
     DashboardLoaderData,
     DashboardPage,
@@ -12,6 +12,7 @@ import {
 import { redirects, routes } from "@/routes/routes";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
 import { redirectIfNoSession, redirectWithSetCookies } from "@/routes/auth/redirect";
+import { findAction } from "@/routes/auth/lib/check-action";
 
 const tel = new Telemetry("route.dashboard");
 
@@ -67,33 +68,10 @@ export const post: Handler = async (c) => {
         return redirects.ToLogin();
     }
 
-    if (!action || !checkAction(action)) {
-        tel.warn("ACTION_NOT_FOUND", { action });
-        return c.html(
-            DashboardPage({
-                loaderData: getLoaderForLogs,
-                actionData: {
-                    result: {
-                        action: "top-of-page",
-                        success: false,
-                        errors: [new AppError("internal_field_missing_action")],
-                    },
-                },
-            }),
-        );
-    }
-
-    const result: TaskResult<ActionReturnData | Response> = await tel.task("POST", async (span) => {
-        if (action === "link_account") {
-            const linkResult = await LinkAccount(c.req.raw, form);
-            return redirectWithSetCookies(linkResult.headers, linkResult.redirectUrl);
-        }
-
-        span.setAttribute("user.id", getLoaderForLogs.user.id);
-        span.setAttribute("action", action);
-        tel.debug(action, safeRequestAttrs(c.req.raw, form));
-
-        return await actions[action].handler(c.req.raw, form);
+    const result = await tel.task("POST", async (span) => {
+        span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        const handler = findAction(actions, action);
+        return await handler(c.req.raw, form);
     });
 
     if (result.ok) {
@@ -112,13 +90,13 @@ export const post: Handler = async (c) => {
         const actionData: DashboardActionData = { result: result.data.result, totp: result.data.totp };
         const html = DashboardPage({ actionData, loaderData: loaderAfterSuccess });
 
-        if (result.data.headers) {
-            const h = new Headers(result.data.headers);
-            h.set("Content-Type", "text/html; charset=utf-8");
-            return c.html(html, { headers: h });
+        if (!result.data.headers) {
+            return c.html(html);
         }
 
-        return c.html(html);
+        const h = new Headers(result.data.headers);
+        h.set("Content-Type", "text/html; charset=utf-8");
+        return c.html(html, { headers: h });
     }
 
     const loaderAfterError = await getLoaderData(c.req.raw.headers);
@@ -126,25 +104,13 @@ export const post: Handler = async (c) => {
         return redirects.ToLogin();
     }
 
-    tel.error("ACTION_ERROR", { error: JSON.stringify(result.error) ?? "UNKNOWN" });
-
     return c.html(
         DashboardPage({
-            actionData: {
-                result: {
-                    action,
-                    success: false,
-                    errors: result.error,
-                },
-            },
+            actionData: { result: { action, success: false, errors: result.error } },
             loaderData: loaderAfterError,
         }),
     );
 };
-
-function checkAction(a: string): a is keyof typeof actions {
-    return a in actions;
-}
 
 export const actions = {
     change_password: { name: "change_password", handler: PasswordChange },
@@ -174,16 +140,13 @@ async function RevokeSession(request: Request, form: FormData): Promise<ActionRe
         if (!result.response.status) {
             throw new AppError("generic_error");
         }
-
         return { headers: result.headers };
     }
-
     const result = await auth.api.revokeSession({
         body: { token: token },
         headers: request.headers,
         returnHeaders: true,
     });
-
     if (!result.response.status) {
         throw new AppError("generic_error");
     }
@@ -281,25 +244,21 @@ async function TwoFactorTotpVerify(request: Request, form: FormData): Promise<Ac
     const alreadyVerified = form.get("already-verified")?.toString();
     const intermediateEnable = form.get("intermediate_enable")?.toString();
     const backupCodesRaw = form.get("backup_codes")?.toString();
-
     if (!code) {
         throw new AppError("INVALID_CODE");
     }
-
     if (!totpURI) {
         throw new AppError("internal_field_missing_totp_uri");
     }
     if (!alreadyVerified) {
         throw new AppError("internal_field_missing_totp_already_verified");
     }
-
     const errorTotp = (): TotpState => ({
         intermediateEnable: intermediateEnable === "true" ? true : undefined,
         totpURI,
         backupCodes: backupCodesRaw ? JSON.parse(backupCodesRaw) : undefined,
         userEnabled: alreadyVerified === "true",
     });
-
     try {
         const result = await auth.api.verifyTOTP({
             body: { code },
@@ -396,7 +355,6 @@ async function TwoFactorGetBackupCodes(request: Request, form: FormData): Promis
         headers: request.headers,
         returnHeaders: true,
     });
-
     return {
         headers: result.headers,
         totp: {
@@ -406,7 +364,7 @@ async function TwoFactorGetBackupCodes(request: Request, form: FormData): Promis
     };
 }
 
-async function LinkAccount(request: Request, form: FormData): Promise<{ redirectUrl: string; headers: Headers }> {
+async function LinkAccount(request: Request, form: FormData): Promise<Response> {
     const provider = form.get("provider")?.toString();
     if (!provider) {
         throw new AppError("internal_field_unknown_oauth_provider");
@@ -419,10 +377,13 @@ async function LinkAccount(request: Request, form: FormData): Promise<{ redirect
         },
         returnHeaders: true,
     });
-    if (result.response.url) {
-        return { redirectUrl: result.response.url, headers: result.headers };
+    if (!result.response.url) {
+        // In the handler for auth.api.linkSocialAcount (and signInSocial), the
+        // only way that we don't get a redirect url is if we pass an idToken in
+        // the body.
+        throw new AppError("oauth_no_url_given_by_provider");
     }
-    throw new AppError("generic_error");
+    return redirectWithSetCookies(result.headers, result.response.url);
 }
 
 async function UnlinkAccount(request: Request, form: FormData): Promise<ActionReturnData> {
