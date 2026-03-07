@@ -2,37 +2,40 @@ import type { Context, Handler } from "hono";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes/auth/redirect";
 import { ActionReturnData, TwoFactorPage } from "@/views/auth/2fa";
 import { parse } from "cookie";
-import { redirects, routes } from "@/routes/routes";
+import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { findAction } from "@/routes/auth/lib/check-action";
+import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.twoFactor);
 
 export const get: Handler = async (c) => {
-    const result = await tel.task("GET", async () => {
-        tel.debug("REQUEST", safeRequestAttrs(c.req.raw));
-        const existing = await redirectIfSession(c.req.raw);
-        if (existing) return existing;
+    const result = await tel.task("GET", async (span) => {
+        span.setAttributes(safeRequestAttrs(c.req.raw));
+        const existing = await auth.api.getSession({ headers: c.req.raw.headers });
+        if (!existing) {
+            return new Redirect(c.req.raw).Because.NoSession();
+        }
 
         const cookies = c.req.raw.headers.get("cookie");
         if (!cookies) {
-            tel.debug("REDIRECT_NO_COOKIES");
-            return Response.redirect("/auth/login", 302);
+            return new Redirect(c.req.raw).Because.NoTwoFactorCookie();
         }
+
         const parsed = parse(cookies);
         const cookieKey = dotenv.COOKIE_PREFIX + ".two_factor";
         if (!parsed[cookieKey]) {
-            tel.debug("REDIRECT_NO_2FA_COOKIE", { cookie: cookieKey });
-            return Response.redirect("/auth/login", 302);
+            return new Redirect(c.req.raw).Because.NoTwoFactorCookie();
         }
 
         return c.html(TwoFactorPage({}));
     });
-    if (result.ok) return result.data;
-    return serverError(result.traceId);
+    if (result.ok) {
+        return result.data;
+    }
+    return new Redirect(c.req.raw).Because.Error(result);
 };
 
 export const actions = {
@@ -54,7 +57,7 @@ export const post: Handler = async (c) => {
 
     if (result.ok) {
         if (result.data instanceof Headers) {
-            return redirectWithSetCookies(result.data, redirects.AfterLogin(c));
+            return new Redirect(c.req.raw, result.data).After.Login();
         }
         return c.html(TwoFactorPage(result.data));
     }

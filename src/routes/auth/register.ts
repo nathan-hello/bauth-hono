@@ -1,11 +1,11 @@
 import type { Context, Handler } from "hono";
 import { auth, validateUsername } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { redirectIfSession, redirectWithSetCookies, serverError } from "@/routes/auth/redirect";
 import { RegisterPage } from "@/views/auth/register";
 import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { findAction } from "@/routes/auth/lib/check-action";
+import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.register);
 
@@ -17,12 +17,16 @@ export const actions = {
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async () => {
         tel.debug("REQUEST", safeRequestAttrs(c.req.raw));
-        const existing = await redirectIfSession(c.req.raw);
-        if (existing) return existing;
+        const existing = await auth.api.getSession({ headers: c.req.raw.headers });
+        if (existing) {
+            return new Redirect(c.req.raw).Because.HasSession();
+        }
         return c.html(RegisterPage({}));
     });
-    if (result.ok) return result.data;
-    return serverError(result.traceId);
+    if (result.ok) {
+        return result.data;
+    }
+    return new Redirect(c.req.raw).Because.Error(result);
 };
 
 export const post: Handler = async (c) => {
@@ -78,7 +82,7 @@ async function Register(c: Context, form: FormData) {
         tel.info("new_user", { userId: response.user.id });
     }
 
-    return redirectWithSetCookies(headers, "/auth/dashboard");
+    return new Redirect(c.req.raw, headers).After.Register();
 }
 
 async function RegisterOauth(c: Context, form: FormData) {
@@ -97,7 +101,7 @@ async function RegisterOauth(c: Context, form: FormData) {
         throw new AppError("oauth_no_url_given_by_provider");
     }
 
-    return redirectWithSetCookies(data.headers, data.response.url);
+    return new Redirect(c.req.raw, data.headers).Because.Oauth(data.response.url);
 }
 
 function parseRegister(data: Record<string, string | undefined>): AppError[] | undefined {

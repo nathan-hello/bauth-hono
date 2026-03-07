@@ -1,7 +1,7 @@
 import { trace, SpanStatusCode, type Span, context } from "@opentelemetry/api";
 import { LogAttributes, SeverityNumber, type AnyValue } from "@opentelemetry/api-logs";
 import { getLoggerProvider } from "@/server/telemetry/sdk";
-import { AppError, TErrorCodes, ResendErrorCodes } from "@/lib/auth-error";
+import { AppError, ResendErrorCodes } from "@/lib/auth-error";
 import { APIError } from "better-auth";
 import { ERROR_COPY } from "@/lib/copy";
 

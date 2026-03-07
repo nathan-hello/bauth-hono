@@ -1,10 +1,11 @@
 import { Context, Handler } from "hono";
 import { AppError } from "@/lib/auth-error";
-import { redirects, routes } from "@/routes/routes";
+import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { ChangePasswordPage } from "@/views/auth/change-password";
 import { findAction } from "@/routes/auth/lib/check-action";
+import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.changePassword);
 
@@ -19,7 +20,10 @@ export const actions = {
 
 export const get: Handler = async (c) => {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (!session) return redirects.ToLogin();
+
+    if (!session) {
+        return new Redirect(c.req.raw).Because.NoSession();
+    }
 
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
@@ -30,7 +34,7 @@ export const get: Handler = async (c) => {
 export async function post(c: Context) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) {
-        return redirects.ToLogin();
+        return new Redirect(c.req.raw).Because.NoSession();
     }
 
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
@@ -46,11 +50,9 @@ export async function post(c: Context) {
     });
 
     if (result.ok) {
-        const h = result.data.headers ? new Headers(result.data.headers) : undefined;
-        return c.html(
-            ChangePasswordPage({ hasCredential, result: { action, success: true } }),
-            h ? { headers: h } : undefined,
-        );
+        return c.html(ChangePasswordPage({ hasCredential, result: { action, success: true } }), {
+            headers: result.data.headers,
+        });
     }
 
     return c.html(ChangePasswordPage({ hasCredential, result: { action, success: false, errors: result.error } }));

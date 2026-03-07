@@ -2,6 +2,11 @@ import { dotenv } from "@/server/env";
 import { StartLogging } from "@/server/telemetry/sdk";
 import { MultiLogExporter, PinoLogExporter } from "@/server/telemetry/exporters";
 
+StartLogging({
+    tracesUrl: dotenv.OTEL_TRACES_URL,
+    exporters: new MultiLogExporter([new PinoLogExporter(dotenv.LOG_FILE_PATH)]),
+});
+
 import * as login from "@/routes/auth/login";
 import * as register from "@/routes/auth/register";
 import * as logout from "@/routes/auth/logout";
@@ -10,6 +15,7 @@ import * as twofa from "@/routes/auth/2fa";
 import * as dashboard from "@/routes/auth/dashboard";
 import * as api from "@/routes/auth/api";
 import * as accountDelete from "@/routes/auth/delete";
+import * as accountDeleteSuccess from "@/routes/auth/delete-success";
 import * as changePassword from "@/routes/auth/change-password";
 import * as changeEmail from "@/routes/auth/change-email";
 
@@ -18,10 +24,6 @@ import * as debugEmail from "@/routes/debug/email";
 
 import { routes } from "@/routes/routes";
 
-StartLogging({
-    tracesUrl: dotenv.OTEL_TRACES_URL,
-    exporters: new MultiLogExporter([new PinoLogExporter(dotenv.LOG_FILE_PATH)]),
-});
 
 import { Hono } from "hono";
 import { trimTrailingSlash } from "hono/trailing-slash";
@@ -43,7 +45,6 @@ app.get(routes.auth.register, register.get);
 app.post(routes.auth.register, register.post);
 
 app.get(routes.auth.logout, logout.get);
-app.post(routes.auth.logout, logout.post);
 
 app.get(routes.auth.forgot, forgot.get);
 app.post(routes.auth.forgot, forgot.post);
@@ -62,6 +63,8 @@ app.post(routes.auth.changeEmail, changeEmail.post);
 
 app.get(routes.auth.delete, accountDelete.get);
 app.post(routes.auth.delete, accountDelete.post);
+
+app.get(routes.auth.deleteSuccess, accountDeleteSuccess.get);
 
 if (process.env.NODE_ENV === "development") {
     app.get(routes.index, debugHome.get);
