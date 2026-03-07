@@ -141,8 +141,18 @@ const routes: Record<RouteKey, RouteMeta> = {
     logout: { title: "Logout" },
 };
 
+const OAUTH_COPY = {
+    login_prompt: "Sign in with",
+    register_prompt: "Sign up with",
+    providers: {
+        google: "Google",
+        apple: "Apple",
+    },
+};
+
 export const copy = {
     error: { ...ERROR_COPY },
+    oauth: OAUTH_COPY,
     trace_id: "Trace ID",
 
     routes,

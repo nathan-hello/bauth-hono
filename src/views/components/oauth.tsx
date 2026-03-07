@@ -1,3 +1,4 @@
+import { copy } from "@/lib/copy";
 import { auth } from "@/server/auth";
 
 export function OauthButtons({ formAction }: { formAction: string }) {
@@ -49,8 +50,8 @@ function GoogleButton({ formAction }: { formAction: string }) {
                             <path fill="none" d="M0 0h48v48H0z"></path>
                         </svg>
                     </div>
-                    <span class="gsi-material-button-contents">Sign in with Google</span>
-                    <span style="display: none;">Sign in with Google</span>
+                    <span class="gsi-material-button-contents">{copy.oauth.login_prompt}{" "}{copy.oauth.providers.google}</span>
+                    <span style="display: none;">{copy.oauth.login_prompt}{" "}{copy.oauth.providers.google}</span>
                 </div>
             </button>
         </form>
@@ -120,7 +121,8 @@ function AppleButton({ formAction }: { formAction: string }) {
                                         font-family="applied-button-font-0"
                                         direction="ltr"
                                     >
-                                         Sign in with Apple
+                                    {/*  Sign in with Apple*/}
+                                        {copy.oauth.login_prompt}{" "}{copy.oauth.providers.apple}
                                     </text>
                                 </svg>
                             </g>
