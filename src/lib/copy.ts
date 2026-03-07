@@ -1,5 +1,20 @@
 import type { TErrorCodes } from "@/lib/auth-error";
 
+export const BA_CALLBACK_ERRORS_COPY = {
+    invalid_callback_request: "",
+    state_not_found: "",
+    state_mismatch: "",
+    no_code: "",
+    no_callback_url: "",
+    oauth_provider_not_found: "",
+    email_not_found: "",
+    "email_doesn't_match": "",
+    unable_to_get_user_info: "",
+    unable_to_link_account: "",
+    account_already_linked_to_different_user: "",
+    signup_disabled: "",
+};
+
 export const ERROR_COPY: Record<TErrorCodes, string> = {
     // Resend email errors
     invalid_idempotency_key: "",

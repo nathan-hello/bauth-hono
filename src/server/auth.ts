@@ -201,6 +201,7 @@ export const auth = betterAuth({
     },
 
     onAPIError: {
+        // errorURL: "/auth/error",
         onError: (error, ctx) => {
             const message = error instanceof Error ? error.message : String(error);
             const name = error instanceof Error ? error.name : "UnknownError";

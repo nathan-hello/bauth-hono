@@ -28,6 +28,11 @@ function loadEnv<const K extends string>(...keys: K[]): Record<K, string> {
     if (missing.length > 0) {
         throw new Error(`MISSING_ENV_VARS: ${JSON.stringify(missing)}`);
     }
+
+    if (process.env.NODE_ENV === "development") {
+        process.env.PRODUCTION_URL = "http://localhost:" + (process.env.PORT ?? "3005");
+    }
+
     return process.env as Record<K, string>;
 }
 

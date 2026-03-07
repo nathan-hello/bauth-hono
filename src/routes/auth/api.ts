@@ -39,12 +39,9 @@ function errorPage(traceId: string): Response {
 }
 
 export async function post(c: Context) {
-    const request = c.req.raw;
-
     const result = await tel.task("HANDLE", async (span) => {
-        const form = await c.req.raw.clone().formData();
-        span.setAttributes(safeRequestAttrs(request, form));
-        return await auth.handler(request);
+        span.setAttributes(safeRequestAttrs(c.req.raw));
+        return await auth.handler(c.req.raw);
     });
 
     if (result.ok) {
