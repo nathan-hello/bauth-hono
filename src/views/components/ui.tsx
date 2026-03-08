@@ -75,7 +75,7 @@ export function Form(
     props: PropsWithChildren<JSX.IntrinsicElements["form"]> & {
         flexRow?: true;
         result?: ActionResult;
-        formAction: string;
+        formAction?: string;
         success?: string;
         kv?: Record<string, boolean | number | string | undefined>;
     },
@@ -142,12 +142,13 @@ export function ErrorAlerts({ errors }: { errors?: AppError[] }) {
     );
 }
 
-export function Badge({ children, color }: { children: Child; color: "green" | "yellow" | "blue" | "gray" }) {
+export function Badge({ children, color }: { children: Child; color: "green" | "yellow" | "blue" | "gray" | "red" }) {
     const styles: Record<string, string> = {
         green: "bg-success/15 text-success",
         yellow: "bg-warning/15 text-warning",
         blue: "bg-info/15 text-info",
         gray: "bg-surface-overlay text-fg-muted",
+        red: "bg-danger/15 text-warning",
     };
     return (
         <span class={`max-w-fit text-center text-sm uppercase tracking-wider px-2 py-0.5 font-medium ${styles[color]}`}>

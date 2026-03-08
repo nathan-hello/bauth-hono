@@ -1,87 +1,140 @@
 import type { Handler } from "hono";
 import { Context } from "hono";
+import { desc, like, or, type InferSelectModel } from "drizzle-orm";
+import { AppError } from "@/lib/auth-error";
+import { convertSetCookiesToCookies } from "@/lib/cookies";
+import type { ActionResult } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { AdminPage } from "@/views/auth/admin";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
-import { AppError } from "@/lib/auth-error";
-import { UserWithRole } from "better-auth/plugins";
 import { db } from "@/server/drizzle/db";
+import { roles } from "@/server/lib/admin";
 import * as schema from "@/server/drizzle/schema";
 
 const tel = new Telemetry(routes.auth.admin);
 
 export const actions = {
     ban_user: { name: "ban_user", handler: BanUser },
+    update_ban: { name: "update_ban", handler: UpdateBan },
     unban_user: { name: "unban_user", handler: UnbanUser },
-    change_username: { name: "change_username", handler: ChangeUsername },
+    update_profile: { name: "update_profile", handler: UpdateProfile },
+    update_role: { name: "update_role", handler: UpdateRole },
+    update_handles: { name: "update_handles", handler: UpdateHandles },
+} as const;
+
+export type AdminUser = InferSelectModel<typeof schema.user>;
+
+export type AdminActionResult = ActionResult<typeof actions> & {
+    userId?: string;
+};
+
+export type AdminActionData = {
+    result?: AdminActionResult;
+};
+
+export type AdminFilters = {
+    q: string;
+    page: number;
+    limit: number;
+};
+
+export type AdminLoaderData = {
+    users: AdminUser[];
+    filters: AdminFilters;
+    hasNextPage: boolean;
 };
 
 type ActionReturnData = {
     headers?: Headers;
+    result?: AdminActionResult;
 };
 
-async function getLoaderData(headers: Headers): Promise<(typeof auth.$Infer.Session.user & UserWithRole)[]> {
-    const session = await auth.api.getSession({ headers });
-    if (!session) {
-        return [];
-    }
+async function getLoaderData(filters: AdminFilters): Promise<AdminLoaderData> {
+    const whereClause = getUserSearchWhere(filters.q);
 
-    // Better Auth's User schema doesn't give type hinting for auth.api.listUsers()
-    // when there are plugins that update the user type (such as admin and username)
-    const users = await db.select().from(schema.user);
+    const offset = (filters.page - 1) * filters.limit;
 
-    return users.map((user) => ({
-        ...user,
-        image: user.image ?? undefined,
-        role: user.role ?? undefined,
-        banReason: user.banReason ?? undefined,
-        banExpires: user.banExpires ?? undefined,
-        username: user.username ?? undefined,
-        displayUsername: user.displayUsername ?? undefined,
-        twoFactorEnabled: user.twoFactorEnabled ?? undefined,
-    }));
+    const rows = whereClause
+        ? await db
+              .select()
+              .from(schema.user)
+              .where(whereClause)
+              .orderBy(desc(schema.user.createdAt))
+              .limit(filters.limit + 1)
+              .offset(offset)
+        : await db
+              .select()
+              .from(schema.user)
+              .orderBy(desc(schema.user.createdAt))
+              .limit(filters.limit + 1)
+              .offset(offset);
+
+    const hasNextPage = rows.length > filters.limit;
+    const users = hasNextPage ? rows.slice(0, filters.limit) : rows;
+
+    return {
+        users,
+        hasNextPage,
+        filters,
+    };
 }
 
-export const get: Handler = async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+async function userIsAdmin(headers: Headers) {
+    const session = await auth.api.getSession({ headers });
     if (!session) {
-        return new Redirect(c.req.raw).Because.NoSession();
+        return { session: null, success: false, headers: undefined };
     }
 
-    const { response, headers } = await auth.api.userHasPermission({
+    const { response, headers: permissionHeaders } = await auth.api.userHasPermission({
         returnHeaders: true,
-        headers: c.req.raw.headers,
+        headers,
         body: {
             role: "admin",
             permission: {},
         },
     });
 
-    if (!response.success) {
-        return new Redirect(c.req.raw, headers).Because.NotAnAdmin();
-    }
+    return {
+        session,
+        success: response.success,
+        headers: permissionHeaders,
+    };
+}
 
-    const users = await getLoaderData(c.req.raw.headers);
-
-    return c.html(AdminPage({ users }));
-};
-
-export async function post(c: Context) {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (!session) {
+export const get: Handler = async (c) => {
+    const filters = getFilters(c.req.raw.url);
+    const adminState = await userIsAdmin(c.req.raw.headers);
+    if (!adminState.session) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    const usersBefore = await getLoaderData(c.req.raw.headers);
-    if (!usersBefore) {
-        return c.html(AdminPage({ error: "Access denied. Admin only." }));
+    if (!adminState.success) {
+        return new Redirect(c.req.raw, adminState.headers).Because.NotAnAdmin();
     }
 
+    const loaderData = await getLoaderData(filters);
+
+    return c.html(AdminPage({ loaderData }));
+};
+
+export async function post(c: Context) {
+    const filters = getFilters(c.req.raw.url);
+    const adminState = await userIsAdmin(c.req.raw.headers);
+    if (!adminState.session) {
+        return new Redirect(c.req.raw).Because.NoSession();
+    }
+
+    if (!adminState.success) {
+        return new Redirect(c.req.raw, adminState.headers).Because.NotAnAdmin();
+    }
+
+    const loaderDataBefore = await getLoaderData(filters);
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
+    const userId = form.get("userId")?.toString();
 
     const result = await tel.task("POST", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw, form));
@@ -90,29 +143,84 @@ export async function post(c: Context) {
     });
 
     if (result.ok) {
-        const usersAfter = await getLoaderData(result.data.headers ?? c.req.raw.headers);
-        return c.html(AdminPage({ users: usersAfter ?? usersBefore }), { headers: result.data.headers });
+        const headersForLoader = result.data.headers
+            ? convertSetCookiesToCookies(c.req.raw.headers, result.data.headers)
+            : c.req.raw.headers;
+        const adminStateAfter = await userIsAdmin(headersForLoader);
+        if (!adminStateAfter.session) {
+            return new Redirect(c.req.raw).Because.NoSession();
+        }
+        if (!adminStateAfter.success) {
+            return new Redirect(c.req.raw, adminStateAfter.headers).Because.NotAnAdmin();
+        }
+
+        const loaderDataAfter = await getLoaderData(filters);
+        return c.html(AdminPage({ loaderData: loaderDataAfter, actionData: { result: result.data.result } }), {
+            headers: result.data.headers,
+        });
     }
 
-    return c.html(AdminPage({ users: usersBefore, error: "Action failed" }));
+    return c.html(
+        AdminPage({
+            loaderData: loaderDataBefore,
+            actionData: {
+                result: {
+                    action,
+                    success: false,
+                    errors: result.error,
+                    userId,
+                },
+            },
+        }),
+    );
 }
 
 async function BanUser(request: Request, form: FormData): Promise<ActionReturnData> {
-    const userId = form.get("userId")?.toString();
-    if (!userId) throw new Error("userId required");
+    const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
+    const banReason = nullableTrimmedValue(form, "ban_reason") ?? undefined;
+    const banExpiresAt = optionalDateValue(form, "ban_expires_at");
 
     const r = await auth.api.banUser({
-        body: { userId },
+        body: {
+            userId,
+            banReason,
+            banExpiresIn: banExpiresAt ? getFutureDurationInSeconds(banExpiresAt) : undefined,
+        },
         headers: request.headers,
         returnHeaders: true,
     });
 
-    return { headers: r.headers };
+    return {
+        headers: r.headers,
+        result: { action: actions.ban_user.name, success: true, userId },
+    };
+}
+
+async function UpdateBan(request: Request, form: FormData): Promise<ActionReturnData> {
+    const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
+    const banReason = nullableTrimmedValue(form, "ban_reason");
+    const banExpires = optionalDateValue(form, "ban_expires_at");
+
+    const r = await auth.api.adminUpdateUser({
+        headers: request.headers,
+        body: {
+            userId,
+            data: {
+                banReason,
+                banExpires,
+            },
+        },
+        returnHeaders: true,
+    });
+
+    return {
+        headers: r.headers,
+        result: { action: actions.update_ban.name, success: true, userId },
+    };
 }
 
 async function UnbanUser(request: Request, form: FormData): Promise<ActionReturnData> {
-    const userId = form.get("userId")?.toString();
-    if (!userId) throw new Error("userId required");
+    const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
 
     const r = await auth.api.unbanUser({
         body: { userId },
@@ -120,29 +228,171 @@ async function UnbanUser(request: Request, form: FormData): Promise<ActionReturn
         returnHeaders: true,
     });
 
-    return { headers: r.headers };
+    return {
+        headers: r.headers,
+        result: { action: actions.unban_user.name, success: true, userId },
+    };
 }
 
-async function ChangeUsername(request: Request, form: FormData) {
-    const userId = form.get("userId")?.toString();
-    if (!userId) {
-        throw new AppError("internal_field_missing_user_id");
-    }
-
-    const newUsername = form.get("new_username")?.toString();
-    if (!newUsername) {
-        throw new AppError("field_missing_new_username");
-    }
+async function UpdateProfile(request: Request, form: FormData): Promise<ActionReturnData> {
+    const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
+    const name = requireFormValue(form, "name", "generic_error");
+    const email = requireFormValue(form, "email", "field_missing_email");
+    const image = nullableTrimmedValue(form, "image");
 
     const r = await auth.api.adminUpdateUser({
         headers: request.headers,
         body: {
-            userId: userId,
+            userId,
             data: {
-                username: newUsername,
+                name,
+                email,
+                image,
             },
         },
         returnHeaders: true,
     });
-    return { headers: r.headers };
+
+    return {
+        headers: r.headers,
+        result: { action: actions.update_profile.name, success: true, userId },
+    };
+}
+
+async function UpdateRole(request: Request, form: FormData): Promise<ActionReturnData> {
+    const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
+    const role = parseRoleValue(form);
+
+    const r = await auth.api.setRole({
+        headers: request.headers,
+        body: {
+            userId,
+            role,
+        },
+        returnHeaders: true,
+    });
+
+    return {
+        headers: r.headers,
+        result: { action: actions.update_role.name, success: true, userId },
+    };
+}
+
+async function UpdateHandles(request: Request, form: FormData): Promise<ActionReturnData> {
+    const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
+    const username = requireFormValue(form, "username", "field_missing_username");
+    const displayUsername = nullableTrimmedValue(form, "display_username");
+
+    const r = await auth.api.adminUpdateUser({
+        headers: request.headers,
+        body: {
+            userId,
+            data: {
+                username,
+                displayUsername,
+            },
+        },
+        returnHeaders: true,
+    });
+
+    return {
+        headers: r.headers,
+        result: { action: actions.update_handles.name, success: true, userId },
+    };
+}
+
+function requireFormValue(form: FormData, key: string, error: ConstructorParameters<typeof AppError>[0]): string {
+    const value = form.get(key)?.toString().trim();
+    if (!value) {
+        throw new AppError(error);
+    }
+    return value;
+}
+
+function nullableTrimmedValue(form: FormData, key: string): string | null {
+    const value = form.get(key)?.toString().trim();
+    return value ? value : null;
+}
+
+function optionalDateValue(form: FormData, key: string): Date | null {
+    const value = form.get(key)?.toString().trim();
+    if (!value) {
+        return null;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        throw new AppError("generic_error");
+    }
+
+    return date;
+}
+
+function getFutureDurationInSeconds(date: Date): number {
+    const diffInSeconds = Math.ceil((date.getTime() - Date.now()) / 1000);
+    if (diffInSeconds <= 0) {
+        throw new AppError("generic_error");
+    }
+    return diffInSeconds;
+}
+
+function parseRoleValue(form: FormData): keyof typeof roles | (keyof typeof roles)[] {
+    const raw = requireFormValue(form, "role", "generic_error");
+    const parsed = raw
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+    if (parsed.length === 0) {
+        throw new AppError("generic_error");
+    }
+
+    const validRoles = new Set<keyof typeof roles>(Object.keys(roles) as (keyof typeof roles)[]);
+    const normalized = parsed.map((value) => {
+        if (!validRoles.has(value as keyof typeof roles)) {
+            throw new AppError("generic_error");
+        }
+        return value as keyof typeof roles;
+    });
+
+    return normalized.length === 1 ? normalized[0] : normalized;
+}
+
+function getFilters(url: string): AdminFilters {
+    const searchParams = new URL(url).searchParams;
+    const q = searchParams.get("q")?.trim() ?? "";
+    const page = clampPositiveInteger(searchParams.get("page"), 1);
+    const limit = Math.min(clampPositiveInteger(searchParams.get("limit"), 25), 100);
+
+    return { q, page, limit };
+}
+
+function clampPositiveInteger(raw: string | null, fallback: number) {
+    if (!raw) {
+        return fallback;
+    }
+
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+        return fallback;
+    }
+
+    return parsed;
+}
+
+function getUserSearchWhere(q: string) {
+    if (!q) {
+        return undefined;
+    }
+
+    const search = `%${q}%`;
+
+    return or(
+        like(schema.user.id, search),
+        like(schema.user.name, search),
+        like(schema.user.email, search),
+        like(schema.user.username, search),
+        like(schema.user.displayUsername, search),
+        like(schema.user.role, search),
+    );
 }

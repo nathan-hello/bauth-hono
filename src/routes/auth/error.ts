@@ -12,6 +12,10 @@ export const get: Handler = (c) => {
         return new Redirect(c.req.raw).Because.OauthFailed();
     }
 
+    if (err === "banned") {
+        return new Redirect(c.req.raw).Because.OauthUserIsBanned();
+    }
+
     const message =
         err !== undefined && err in copy.error ? copy.error[err as keyof typeof copy.error] : `Unknown error: ${err}`;
 
