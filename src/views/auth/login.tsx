@@ -20,7 +20,7 @@ export function LoginPage({ result, email }: LoginProps) {
                         type="text"
                         name="email"
                         required
-                        placeholder={copy.input_email_or_username}
+                        placeholder={copy.email_or_username}
                         autofocus={!result}
                         value={email ?? ""}
                     />
@@ -28,10 +28,10 @@ export function LoginPage({ result, email }: LoginProps) {
                         required
                         type="password"
                         name="password"
-                        placeholder={copy.input_password}
+                        placeholder={copy.password}
                         autocomplete="current-password"
                     />
-                    <Button type="submit">{copy.button_continue}</Button>
+                    <Button type="submit">{copy.continue}</Button>
                     <FormFooter>
                         <TextLink href="/auth/register">{copy.register_prompt}</TextLink>
                         <TextLink href="/auth/forgot">{copy.change_prompt}</TextLink>

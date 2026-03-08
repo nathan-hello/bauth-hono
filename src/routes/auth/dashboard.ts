@@ -242,7 +242,7 @@ async function TwoFactorTotpVerify(request: Request, form: FormData): Promise<Ac
         throw new AppError("internal_field_missing_totp_uri");
     }
     if (!alreadyVerified) {
-        throw new AppError("internal_field_missing_totp_already_verified");
+        throw new AppError("internal_field_missing_already_verified");
     }
     const errorTotp = (): TotpState => ({
         intermediateEnable: intermediateEnable === "true" ? true : undefined,

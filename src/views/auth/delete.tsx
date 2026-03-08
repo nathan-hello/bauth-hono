@@ -27,7 +27,7 @@ export function DeleteAccountPage({
         <Layout meta={copy.routes.auth.delete}>
             <TwoFactorSwitchHiddenForm currentType={state?.verificationType} />
             <Card>
-                <Header>{copy.delete_title}</Header>
+                <Header>{copy.routes.auth.delete.title}</Header>
                 <Section>
                     <Label center unmuted>
                         {headerCopy}
@@ -40,12 +40,12 @@ export function DeleteAccountPage({
                     >
                         {hasCredential && (
                             <>
-                                <Label for="password">{copy.input_password}</Label>
+                                <Label for="password">{copy.password}</Label>
                                 <Input
                                     type="password"
                                     name="password"
                                     id="password"
-                                    placeholder={copy.dashboard_password_current_placeholder}
+                                    placeholder={copy.password_current_placeholder}
                                     required
                                     autocomplete="current-password"
                                 />
@@ -56,8 +56,8 @@ export function DeleteAccountPage({
                             <>
                                 <Label for="otp">
                                     {state.verificationType === "email"
-                                        ? copy.delete_section_2fa_email
-                                        : copy.delete_section_2fa_totp}
+                                        ? copy.twofa_prompt_email
+                                        : copy.twofa_prompt_totp}
                                 </Label>
                                 <input type="hidden" name="otp-type" value={state.verificationType} />
                                 <Input
@@ -66,7 +66,7 @@ export function DeleteAccountPage({
                                     minlength={6}
                                     maxlength={6}
                                     required
-                                    placeholder={copy.input_code}
+                                    placeholder={copy.code}
                                     autocomplete="one-time-code"
                                 />
 
@@ -95,7 +95,7 @@ export function DeleteSuccessPage() {
     return (
         <Layout meta={copy.routes.auth.delete}>
             <Card>
-                <Header>{copy.delete_title}</Header>
+                <Header>{copy.routes.auth.delete.title}</Header>
                 <Section>
                     <Label center unmuted>
                         {copy.delete_success_header}

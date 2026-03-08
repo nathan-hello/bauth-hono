@@ -25,7 +25,7 @@ export function ForgotPage({ result, email, code, step }: ForgotProps) {
                             <Label center unmuted>
                                 {copy.forgot_email_prompt}
                             </Label>
-                            <Input autofocus type="email" name="email" required placeholder={copy.input_email} />
+                            <Input autofocus type="email" name="email" required placeholder={copy.email} />
                         </>
                     )}
 
@@ -43,7 +43,7 @@ export function ForgotPage({ result, email, code, step }: ForgotProps) {
                                 minlength={6}
                                 maxlength={6}
                                 required
-                                placeholder={copy.input_code}
+                                placeholder={copy.code}
                                 autocomplete="one-time-code"
                             />
                             <Form
@@ -70,7 +70,7 @@ export function ForgotPage({ result, email, code, step }: ForgotProps) {
                                 autofocus
                                 type="password"
                                 name="password"
-                                placeholder={copy.input_password}
+                                placeholder={copy.password}
                                 required
                                 autocomplete="new-password"
                             />
@@ -78,13 +78,13 @@ export function ForgotPage({ result, email, code, step }: ForgotProps) {
                                 type="password"
                                 name="repeat"
                                 required
-                                placeholder={copy.input_repeat}
+                                placeholder={copy.repeat_password}
                                 autocomplete="new-password"
                             />
                         </>
                     )}
 
-                    <Button type="submit">{copy.button_continue}</Button>
+                    <Button type="submit">{copy.continue}</Button>
                     <FormFooter>
                         <TextLink href="/auth/login">{copy.go_back}</TextLink>
                     </FormFooter>
