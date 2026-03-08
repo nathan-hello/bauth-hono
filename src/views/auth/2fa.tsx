@@ -1,6 +1,6 @@
 import { copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
-import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label } from "@/views/components/ui";
+import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label, ButtonLink } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 import { actions } from "@/routes/auth/2fa";
 import { ActionResult } from "@/lib/types";
@@ -28,6 +28,10 @@ export function TwoFactorPage(state: ActionReturnData | null) {
 
                 {verificationType === "email" && <EmailVerificationForm result={state?.result} />}
                 {verificationType === "totp" && <TotpVerificationForm result={state?.result} />}
+                <FormFooter>
+                    <TextLink href={routes.auth.twoFactorBackup}>{copy.twofa_use_backup}</TextLink>
+                    <TextLink href="/auth/login">{copy.back_to_login}</TextLink>
+                </FormFooter>
             </Card>
         </Layout>
     );
@@ -61,11 +65,7 @@ function EmailVerificationForm({ result }: { result: ActionReturnData["result"] 
                 </Button>
             </Form>
 
-            <VerificationTypeSwitcher currentType={"email"} />
-
-            <TextLink href="/auth/login">
-                {copy.back_to_login}
-            </TextLink>
+            <VerificationTypeSwitcher currentType="email" />
         </>
     );
 }
@@ -87,12 +87,6 @@ function TotpVerificationForm({ result }: { result: ActionReturnData["result"] }
             </Form>
 
             <VerificationTypeSwitcher currentType={"totp"} />
-
-            <FormFooter>
-                <TextLink href="/auth/login">
-                    {copy.back_to_login}
-                </TextLink>
-            </FormFooter>
         </>
     );
 }

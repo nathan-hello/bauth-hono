@@ -18,6 +18,7 @@ import * as login from "@/routes/auth/login";
 import * as logout from "@/routes/auth/logout";
 import * as register from "@/routes/auth/register";
 import * as twofa from "@/routes/auth/2fa";
+import * as twofaBackup from "@/routes/auth/2fa-backup";
 
 import * as debugHome from "@/routes/debug/home";
 import * as debugEmail from "@/routes/debug/email";
@@ -65,6 +66,9 @@ app.post(routes.auth.register, register.post);
 
 app.get(routes.auth.twoFactor, twofa.get);
 app.post(routes.auth.twoFactor, twofa.post);
+
+app.get(routes.auth.twoFactorBackup, twofaBackup.get);
+app.post(routes.auth.twoFactorBackup, twofaBackup.post);
 
 if (process.env.NODE_ENV === "development") {
   app.get(routes.index, debugHome.get);
