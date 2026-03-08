@@ -65,7 +65,7 @@ export const post: Handler = async (c) => {
 async function VerifyBackupCode(request: Request, form: FormData): Promise<Headers> {
     const code = form.get("code")?.toString();
     if (!code) {
-        throw new AppError("INVALID_OTP_CODE");
+        throw new AppError("INVALID_OTP");
     }
     const { headers } = await auth.api.verifyBackupCode({
         headers: request.headers,
