@@ -1,4 +1,5 @@
 import type { TErrorCodes } from "@/lib/auth-error";
+import type {auth} from "@/server/auth";
 import { routes } from "@/routes/routes";
 
 // prettier-ignore
@@ -69,8 +70,11 @@ const InternallyGeneratedErrors = {
     otp_failed                              : "Verification failed.",
 }
 
+type a<T> = {
+  [K in keyof T]: string
+}
 // prettier-ignore
-const BetterAuthErrors = {
+const BetterAuthErrors: a<typeof auth.$ERROR_CODES>  = {
     ASYNC_VALIDATION_NOT_SUPPORTED               : "Async validation not supported.",
     CALLBACK_URL_REQUIRED                        : "Callback url required.",
     CROSS_SITE_NAVIGATION_LOGIN_BLOCKED          : "Cross site navigation login blocked.",
@@ -90,16 +94,12 @@ const BetterAuthErrors = {
     VALIDATION_ERROR                             : "Invalid form field.",
     VERIFICATION_EMAIL_NOT_ENABLED               : "Verification email not enabled.",
     INVALID_USERNAME                             : "Username is invalid.",
-    USERNAME_IS_TOO_SHORT                        : "Username is too short.",
     USERNAME_TOO_SHORT                           : "Username is too short.",
-    USERNAME_IS_TOO_LONG                         : "Username is too long.",
     USERNAME_TOO_LONG                            : "Username is too long.",
     ACCOUNT_NOT_FOUND                            : "Invalid credentials.",
     CREDENTIAL_ACCOUNT_NOT_FOUND                 : "Invalid credentials.",
     INVALID_OTP                                  : "Code is incorrect.",
-    USERNAME_IS_ALREADY_TAKEN_PLEASE_TRY_ANOTHER : "Username taken.",
     USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL        : "Email taken.",
-    INVALID_OTP_CODE                             : "Code must be 6 digits.",
     TOO_MANY_ATTEMPTS                            : "Too many unsuccessful attempts.",
     EMAIL_CAN_NOT_BE_UPDATED                     : "Email cannot be updated.",
     EMAIL_NOT_VERIFIED                           : "Email is not yet verified.",
@@ -147,6 +147,25 @@ const BetterAuthErrors = {
     TWO_FACTOR_NOT_ENABLED                       : "Two factor authentication not enabled.",
     UNEXPECTED_ERROR                             : "Unexpected error.",
     YOU_ARE_NOT_ALLOWED_TO_REGISTER_THIS_PASSKEY : "You are not allowed to register this passkey.",
+    // admin() plugin
+    YOU_CANNOT_BAN_YOURSELF                     : "You cannot ban yourself.",
+    YOU_ARE_NOT_ALLOWED_TO_CHANGE_USERS_ROLE    : "You are not allowed to change users role.",
+    YOU_ARE_NOT_ALLOWED_TO_CREATE_USERS         : "You are not allowed to create users.",
+    YOU_ARE_NOT_ALLOWED_TO_LIST_USERS           : "You are not allowed to list users.",
+    YOU_ARE_NOT_ALLOWED_TO_LIST_USERS_SESSIONS  : "You are not allowed to list users sessions.",
+    YOU_ARE_NOT_ALLOWED_TO_BAN_USERS            : "You are not allowed to ban users.",
+    YOU_ARE_NOT_ALLOWED_TO_IMPERSONATE_USERS   : "You are not allowed to impersonate users.",
+    YOU_ARE_NOT_ALLOWED_TO_UPDATE_USERS          : "You are not allowed to update user.",
+    YOU_ARE_NOT_ALLOWED_TO_DELETE_USERS          : "You are not allowed to delete user.",
+    YOU_ARE_NOT_ALLOWED_TO_REVOKE_USERS_SESSIONS : "You are not allowed to revoke users sessions.",
+    YOU_ARE_NOT_ALLOWED_TO_SET_USERS_PASSWORD    : "You are not allowed to set users password.",
+    BANNED_USER                                  : "User is banned.",
+    YOU_ARE_NOT_ALLOWED_TO_GET_USER: "",
+    INVALID_ROLE_TYPE: "",
+    NO_DATA_TO_UPDATE: "",
+    YOU_ARE_NOT_ALLOWED_TO_SET_NON_EXISTENT_VALUE: "",
+    YOU_CANNOT_IMPERSONATE_ADMINS: "",
+    YOU_CANNOT_REMOVE_YOURSELF: "",
 };
 
 const ERROR_COPY: Record<TErrorCodes, string> = {
