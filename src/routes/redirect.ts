@@ -67,6 +67,18 @@ export class Redirect {
         HasSession: () => {
             return to(routes.auth.dashboard, this.headers);
         },
+        OauthUserIsBanned: () => {
+            return new Response(
+                ErrorPage({
+                    status: 403,
+                    message: copy.you_have_been_banned,
+                }).toString(),
+                {
+                    status: 403,
+                    headers: { "Content-Type": "text/html; charset=utf-8" },
+                },
+            );
+        },
         Error: (result: Extract<TaskResult<any>, { ok: false }>): Response => {
             return new Response(
                 ErrorPage({
