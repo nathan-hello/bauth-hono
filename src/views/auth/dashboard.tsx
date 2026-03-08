@@ -65,13 +65,8 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
     return (
         <Layout meta={copy.routes.auth.dashboard}>
             <Card>
-                <Header>{copy.dashboard_title}</Header>
+                <Header>{copy.routes.auth.dashboard.title}</Header>
                 <Section>
-                    <Badge color={loaderData.user.emailVerified ? "blue" : "gray"}>
-                        {loaderData.user.emailVerified
-                            ? copy.dashboard_email_verified_badge
-                            : copy.dashboard_email_unverified_badge}
-                    </Badge>
                     <Label unmuted>{loaderData.user.email}</Label>
                     {!loaderData.user.emailVerified && (
                         <Form
@@ -87,7 +82,7 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                                 }
                                 type="submit"
                             >
-                                {copy.dashboard_email_resend_verification}
+                                {copy.resend_email_verification}
                             </Button>
                         </Form>
                     )}
@@ -98,11 +93,11 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                         <AccountRow name="accounts" label={copy.dashboard_linked_accounts_credential}>
                             <br />
                             <ButtonLink variant="primary" href={routes.auth.changeEmail}>
-                                {copy.dashboard_email_change}
+                                {copy.change_email}
                             </ButtonLink>
                             <br />
                             <ButtonLink variant="primary" href={routes.auth.changePassword}>
-                                {hasCredential ? copy.dashboard_password_change : copy.dashboard_password_set}
+                                {hasCredential ? copy.password_change : copy.password_set}
                             </ButtonLink>
                             <br />
                         </AccountRow>
@@ -111,7 +106,7 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                             .map((account) => (
                                 <AccountRow
                                     name="accounts"
-                                    badge={copy.dashboard_linked_accounts_linked}
+                                    badge={copy.dashboard_linked_accounts_is_linked}
                                     badgeColor="blue"
                                     label={capitalize(account.providerId)}
                                 >
@@ -124,7 +119,7 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                             .map((provider) => (
                                 <AccountRow
                                     name="accounts"
-                                    badge={copy.dashboard_linked_accounts_unlinked}
+                                    badge={copy.dashboard_linked_accounts_not_linked}
                                     badgeColor="yellow"
                                     label={capitalize(provider.id)}
                                 >
@@ -214,7 +209,7 @@ function TwoFactorDisabled({ result }: { result?: ActionResult<typeof actions> }
                 <Input
                     type="password"
                     name="password"
-                    placeholder={copy.input_password}
+                    placeholder={copy.password}
                     required
                     autocomplete="current-password"
                 />
@@ -357,7 +352,7 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
                     <Input
                         type="password"
                         name="password"
-                        placeholder={copy.input_password}
+                        placeholder={copy.password}
                         required
                         autocomplete="current-password"
                     />
@@ -378,7 +373,7 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
                     <Input
                         type="password"
                         name="password"
-                        placeholder={copy.input_password}
+                        placeholder={copy.password}
                         required
                         autocomplete="current-password"
                     />
@@ -399,7 +394,7 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
                     <Input
                         type="password"
                         name="password"
-                        placeholder={copy.input_password}
+                        placeholder={copy.password}
                         required
                         autocomplete="current-password"
                     />

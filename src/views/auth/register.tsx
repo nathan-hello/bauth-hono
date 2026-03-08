@@ -17,12 +17,12 @@ export function RegisterPage({ result, email }: RegisterProps) {
         <Layout meta={copy.routes.auth.register}>
             <Card>
                 <Form method="post" action={routes.auth.register} formAction={actions.register.name} result={result}>
-                    <Input type="text" name="username" required placeholder={copy.input_username} />
-                    <Input type="text" name="email" value={email ?? ""} required placeholder={copy.input_email} />
+                    <Input type="text" name="username" required placeholder={copy.username} />
+                    <Input type="text" name="email" value={email ?? ""} required placeholder={copy.email} />
                     <Input
                         type="password"
                         name="password"
-                        placeholder={copy.input_password}
+                        placeholder={copy.password}
                         required
                         autocomplete="new-password"
                     />
@@ -30,10 +30,10 @@ export function RegisterPage({ result, email }: RegisterProps) {
                         type="password"
                         name="repeat"
                         required
-                        placeholder={copy.input_repeat}
+                        placeholder={copy.repeat_password}
                         autocomplete="new-password"
                     />
-                    <Button type="submit">{copy.button_continue}</Button>
+                    <Button type="submit">{copy.continue}</Button>
                     <FormFooter>
                         <TextLink href={routes.auth.login}>{copy.login_prompt}</TextLink>
                     </FormFooter>

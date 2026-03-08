@@ -49,10 +49,10 @@ function EmailVerificationForm({ result }: { result: ActionReturnData["result"] 
                     minlength={6}
                     maxlength={6}
                     required
-                    placeholder={copy.input_code}
+                    placeholder={copy.code}
                     autocomplete="one-time-code"
                 />
-                <Button type="submit">{copy.button_continue}</Button>
+                <Button type="submit">{copy.continue}</Button>
             </Form>
 
             <Form method="post" action={routes.auth.twoFactor} formAction={actions.resend_email.name} result={result}>
@@ -80,10 +80,10 @@ function TotpVerificationForm({ result }: { result: ActionReturnData["result"] }
                     minlength={6}
                     maxlength={6}
                     required
-                    placeholder={copy.input_code}
+                    placeholder={copy.code}
                     autocomplete="one-time-code"
                 />
-                <Button type="submit">{copy.button_continue}</Button>
+                <Button type="submit">{copy.continue}</Button>
             </Form>
 
             <VerificationTypeSwitcher currentType={"totp"} />

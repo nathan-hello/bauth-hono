@@ -16,23 +16,23 @@ export function ChangeEmailPage({ result }: Props) {
     return (
         <Layout meta={copy.routes.auth.changeEmail}>
             <Card>
-                <Header>{copy.dashboard_email_change}</Header>
+                <Header>{copy.routes.auth.changeEmail.title}</Header>
                 <Section>
                     <Form
                         method="post"
                         action={routes.auth.changeEmail}
                         result={result}
                         formAction={actions.change_email.name}
-                        success={copy.dashboard_email_verification_sent}
+                        success={copy.email_verification_sent}
                     >
                         <Input
                             type="email"
                             name="new_email"
                             autocomplete="email"
-                            placeholder={copy.input_email}
+                            placeholder={copy.email}
                             required
                         />
-                        <Button type="submit">{copy.dashboard_email_change}</Button>
+                        <Button type="submit">{copy.change_email}</Button>
                     </Form>
                     <br />
                     <ButtonLink href={routes.auth.dashboard}>{copy.go_back}</ButtonLink>

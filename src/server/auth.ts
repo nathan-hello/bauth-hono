@@ -84,11 +84,11 @@ export const auth = betterAuth({
             otpOptions: {
                 storeOTP: "plain",
                 sendOTP: async (data, _request) => {
-                    const result = await tel.task("SEND_2FA_OTP", async (span) => {
+                    const result = await tel.task("EMAIL", async (span) => {
                         span.setAttributes({
                             "user.email": data.user.email,
                             "user.id": data.user.id,
-                            channel: "email-otp",
+                            channel: "twoFactor.sendOTP",
                         });
                         const response = await resend.emails.send({
                             from: dotenv.FROM_EMAIL,
@@ -120,11 +120,11 @@ export const auth = betterAuth({
             expiresIn: 60 * 15,
             overrideDefaultEmailVerification: true,
             sendVerificationOTP: async (data, _request) => {
-                const result = await tel.task("SEND_EMAIL_OTP_SIGNIN", async (span) => {
+                const result = await tel.task("EMAIL", async (span) => {
                     span.setAttributes({
                         "user.email": data.email,
                         type: data.type,
-                        channel: "email-signin",
+                        channel: "emailOTP.sendVerificationOTP",
                     });
                     const response = await resend.emails.send({
                         from: dotenv.FROM_EMAIL,

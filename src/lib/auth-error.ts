@@ -65,7 +65,7 @@ const AppErrorCodes = [
     "internal_field_missing_session",
     "internal_field_missing_new_email",
     "internal_field_missing_totp_uri",
-    "internal_field_missing_totp_already_verified",
+    "internal_field_missing_already_verified",
     // Better Auth codes that don't match $ERROR_CODES exactly
     "USERNAME_IS_TOO_SHORT",
     "USERNAME_IS_TOO_LONG",
