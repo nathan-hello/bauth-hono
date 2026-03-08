@@ -10,6 +10,7 @@ import * as schema from "@/server/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { passkey } from "@better-auth/passkey";
 import { username, twoFactor, emailOTP } from "better-auth/plugins";
+import { admin } from "better-auth/plugins";
 
 const resend = new Resend(dotenv.RESEND_ACCESS_TOKEN);
 
@@ -166,6 +167,7 @@ export const auth = betterAuth({
                 }
             },
         }),
+        admin(),
     ],
 
     socialProviders: {

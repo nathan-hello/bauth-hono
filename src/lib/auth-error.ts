@@ -68,11 +68,12 @@ const AppErrorCodes = [
     "internal_field_missing_totp_uri",
     "internal_field_missing_already_verified",
     // Better Auth codes that don't match $ERROR_CODES exactly
-    "USERNAME_IS_TOO_SHORT",
-    "USERNAME_IS_TOO_LONG",
-    "USERNAME_IS_ALREADY_TAKEN_PLEASE_TRY_ANOTHER",
-    "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
-    "INVALID_OTP_CODE",
+    // Removed because hopefully it's not an issue anymore?
+    // "USERNAME_IS_TOO_SHORT",
+    // "USERNAME_IS_TOO_LONG",
+    // "USERNAME_IS_ALREADY_TAKEN_PLEASE_TRY_ANOTHER",
+    // "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
+    // "INVALID_OTP_CODE",
 ] as const;
  
 export type TErrorCodes =
