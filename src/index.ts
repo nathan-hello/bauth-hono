@@ -17,6 +17,7 @@ import * as forgot from "@/routes/auth/forgot";
 import * as login from "@/routes/auth/login";
 import * as logout from "@/routes/auth/logout";
 import * as register from "@/routes/auth/register";
+import * as setup from "@/routes/auth/setup";
 import * as twofa from "@/routes/auth/2fa";
 import * as twofaBackup from "@/routes/auth/2fa-backup";
 
@@ -63,6 +64,9 @@ app.get(routes.auth.logout, logout.get);
 
 app.get(routes.auth.register, register.get);
 app.post(routes.auth.register, register.post);
+
+app.get(routes.auth.setup, setup.get);
+app.post(routes.auth.setup, setup.post);
 
 app.get(routes.auth.twoFactor, twofa.get);
 app.post(routes.auth.twoFactor, twofa.post);

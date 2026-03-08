@@ -10,6 +10,7 @@ export const routes = {
         login: "/auth/login",
         logout: "/auth/logout",
         register: "/auth/register",
+        setup: "/auth/setup",
         twoFactor: "/auth/2fa",
         twoFactorBackup: "/auth/2fa/backup",
     },
