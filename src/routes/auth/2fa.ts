@@ -114,7 +114,7 @@ async function ResendEmail(c: Context, _form: FormData): Promise<ActionReturnDat
 async function VerifyTotp(c: Context, form: FormData): Promise<Headers> {
     const code = form.get("code")?.toString();
     if (!code) {
-        throw new AppError("INVALID_OTP_CODE");
+        throw new AppError("INVALID_OTP");
     }
     const { headers } = await auth.api.verifyTOTP({
         headers: c.req.raw.headers,
@@ -127,7 +127,7 @@ async function VerifyTotp(c: Context, form: FormData): Promise<Headers> {
 async function VerifyEmail(c: Context, form: FormData): Promise<Headers> {
     const code = form.get("code")?.toString();
     if (!code) {
-        throw new AppError("INVALID_OTP_CODE");
+        throw new AppError("INVALID_OTP");
     }
     const { headers } = await auth.api.verifyTwoFactorOTP({
         headers: c.req.raw.headers,

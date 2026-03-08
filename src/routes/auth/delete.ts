@@ -1,6 +1,5 @@
 import { AppError } from "@/lib/auth-error";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
-import type { ActionResult } from "@/lib/types";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { routes } from "@/routes/routes";
@@ -157,7 +156,7 @@ async function checkOtp(request: Request, form: FormData): Promise<Headers | nul
         throw new AppError("otp_failed");
     }
     if (!otp) {
-        throw new AppError("INVALID_OTP_CODE");
+        throw new AppError("INVALID_OTP");
     }
 
     let result: { headers: Headers };
