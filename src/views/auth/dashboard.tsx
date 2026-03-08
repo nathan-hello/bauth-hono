@@ -460,9 +460,7 @@ function SessionsSection({
                         kv={{ session: session.token }}
                     >
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
-                                <p>{session.ipAddress}</p>
-                            </div>
+                            <p>{session.ipAddress}</p>
                             <Label>{new Date(session.updatedAt).toLocaleString()}</Label>
                         </div>
                         <Button variant="ghost" type="submit">
