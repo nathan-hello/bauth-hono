@@ -1,39 +1,22 @@
 import * as emails from "@/views/email/emails";
-import { copy } from "@/lib/copy";
+import { copy, internal_copy } from "@/lib/copy";
 import { Resend } from "resend";
 import { Telemetry } from "@/server/telemetry";
 import { betterAuth } from "better-auth/minimal";
 import { db } from "@/server/drizzle/db";
-import { dotenv, optionalEnv } from "@/server/env";
+import { dotenv, envAdmins, optionalEnv } from "@/server/env";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import * as schema from "@/server/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { passkey } from "@better-auth/passkey";
 import { username, twoFactor, emailOTP } from "better-auth/plugins";
-import { admin } from "better-auth/plugins";
+import { admin as adminPlugin } from "better-auth/plugins";
+import * as adminRole from "@/server/lib/admin";
 
 const resend = new Resend(dotenv.RESEND_ACCESS_TOKEN);
 
 const tel = new Telemetry("auth.hooks");
 const baTel = new Telemetry("better-auth");
-
-export function validateUsername(username: string): boolean {
-    if (username === "admin" || username.length === 0) return false;
-
-    for (let i = 0; i < username.length; i++) {
-        const code = username.charCodeAt(i);
-
-        const isNumeric = code >= "0".charCodeAt(0) && code <= "9".charCodeAt(0);
-        const isUpper = code >= "A".charCodeAt(0) && code <= "Z".charCodeAt(0);
-        const isLower = code >= "a".charCodeAt(0) && code <= "z".charCodeAt(0);
-
-        if (!(isNumeric || isUpper || isLower)) {
-            return false;
-        }
-    }
-
-    return true;
-}
 
 export const auth = betterAuth({
     baseURL: dotenv.PRODUCTION_URL,
@@ -87,6 +70,13 @@ export const auth = betterAuth({
         },
     },
     plugins: [
+        adminPlugin({
+            ac: adminRole.ac,
+            roles: adminRole.roles,
+            defaultRole: "user",
+            adminUserIds: envAdmins(),
+            bannedUserMessage: internal_copy.you_have_been_banned,
+        }),
         passkey({ rpID: dotenv.PRODUCTION_URL, rpName: dotenv.PRODUCTION_URL }),
         username({
             usernameValidator: validateUsername,
@@ -167,7 +157,6 @@ export const auth = betterAuth({
                 }
             },
         }),
-        admin(),
     ],
 
     socialProviders: {
@@ -261,28 +250,21 @@ export const auth = betterAuth({
                     if (user.username) {
                         return;
                     }
-
                     let username: string;
                     let attempts = 0;
                     const maxAttempts = 100;
-
                     while (attempts < maxAttempts) {
                         const randomSuffix = Math.random().toString(36).substring(2, 8);
                         username = `user_${randomSuffix}`;
-
                         const existing = db.select().from(schema.user).where(eq(schema.user.username, username)).get();
-
                         if (existing) {
                             attempts++;
                             continue;
                         }
-
                         return { data: { ...user, username } };
                     }
-
                     const fallbackSuffix = Date.now().toString(36);
                     username = `user_${fallbackSuffix}`;
-
                     return { data: { ...user, username } };
                 },
             },
@@ -300,7 +282,6 @@ export const auth = betterAuth({
                     if (!account.idToken || account.providerId === "credential") {
                         return;
                     }
-
                     try {
                         // A JWT is three base64url-encoded segments separated by dots:
                         //   [0] header  – algorithm & token type
@@ -308,13 +289,10 @@ export const auth = betterAuth({
                         //   [2] signature
                         // We only need the payload (index 1) to read the email claim.
                         const [_header, payloadB64, _signature] = account.idToken.split(".");
-
                         if (!payloadB64) {
                             return;
                         }
-
                         const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf-8"));
-
                         if (typeof payload.email === "string" && payload.email) {
                             return { data: { ...account, email: payload.email } };
                         }
@@ -350,3 +328,21 @@ export const auth = betterAuth({
 
     telemetry: { enabled: false },
 });
+
+export function validateUsername(username: string): boolean {
+    if (username === "admin" || username.length === 0) return false;
+
+    for (let i = 0; i < username.length; i++) {
+        const code = username.charCodeAt(i);
+
+        const isNumeric = code >= "0".charCodeAt(0) && code <= "9".charCodeAt(0);
+        const isUpper = code >= "A".charCodeAt(0) && code <= "Z".charCodeAt(0);
+        const isLower = code >= "a".charCodeAt(0) && code <= "z".charCodeAt(0);
+
+        if (!(isNumeric || isUpper || isLower)) {
+            return false;
+        }
+    }
+
+    return true;
+}

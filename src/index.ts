@@ -8,6 +8,7 @@ StartLogging({
 });
 
 import * as api from "@/routes/auth/api";
+import * as admin from "@/routes/auth/admin";
 import * as changeEmail from "@/routes/auth/change-email";
 import * as changePassword from "@/routes/auth/change-password";
 import * as changeUsername from "@/routes/auth/change-username";
@@ -40,6 +41,9 @@ app.use(trimTrailingSlash());
 
 app.use("/*", serveStatic({ root: "./public" }));
 app.all("/api/auth/*", api.post);
+
+app.get(routes.auth.admin, admin.get);
+app.post(routes.auth.admin, admin.post);
 
 app.get(routes.auth.changeEmail, changeEmail.get);
 app.post(routes.auth.changeEmail, changeEmail.post);
