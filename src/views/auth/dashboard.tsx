@@ -127,7 +127,15 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                             ))}
                     </Section>
 
-                    {hasCredential && <TwoFactorSection state={actionData?.totp} result={actionData?.result} />}
+                    {hasCredential && (
+                        <TwoFactorSection
+                            state={{
+                                userEnabled: loaderData.user.twoFactorEnabled ? true : false,
+                                ...actionData?.totp,
+                            }}
+                            result={actionData?.result}
+                        />
+                    )}
                     <SessionsSection sessions={loaderData.sessions} current={loaderData.session} />
 
                     <Section>
@@ -426,25 +434,43 @@ function SessionsSection({
     return (
         <Section>
             <SectionHeading>{copy.dashboard_sessions_heading}</SectionHeading>
-            {sessions.map((session) => (
-                <Form
-                    method="post"
-                    action={routes.auth.dashboard}
-                    formAction={actions.revoke_session.name}
-                    kv={{ session: session.token }}
-                >
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            {session.id === current.id && <Badge color="blue">{copy.dashboard_session_current}</Badge>}
-                            <p>{session.ipAddress}</p>
+            {sessions.map((session) => {
+                // Redirect to routes.auth.logout instead of revoking session because
+                // revoking session does not remove the session_token from the browser
+                // but logging out does.
+                if (session.id === current.id) {
+                    return (
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <Badge color="blue">{copy.dashboard_session_current}</Badge>
+                                <p>{session.ipAddress}</p>
+                            </div>
+                            <br />
+                            <ButtonLink variant="primary" href={routes.auth.logout}>
+                                {copy.sign_out}
+                            </ButtonLink>
                         </div>
-                        <Label>{new Date(session.updatedAt).toLocaleString()}</Label>
-                    </div>
-                    <Button variant="ghost" type="submit">
-                        {copy.dashboard_session_revoke}
-                    </Button>
-                </Form>
-            ))}
+                    );
+                }
+                return (
+                    <Form
+                        method="post"
+                        action={routes.auth.dashboard}
+                        formAction={actions.revoke_session.name}
+                        kv={{ session: session.token }}
+                    >
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <p>{session.ipAddress}</p>
+                            </div>
+                            <Label>{new Date(session.updatedAt).toLocaleString()}</Label>
+                        </div>
+                        <Button variant="ghost" type="submit">
+                            {copy.dashboard_session_revoke}
+                        </Button>
+                    </Form>
+                );
+            })}
             {sessions.length > 1 && (
                 <Form
                     method="post"

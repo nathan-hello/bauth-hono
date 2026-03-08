@@ -11,6 +11,7 @@ export const routes = {
         logout: "/auth/logout",
         register: "/auth/register",
         twoFactor: "/auth/2fa",
+        twoFactorBackup: "/auth/2fa/backup",
     },
     debug: {
         email: "/debug/email",

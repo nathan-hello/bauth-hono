@@ -8,6 +8,7 @@
         "typegen:ba": "bunx @better-auth/cli generate --config ./src/server/auth.ts --output ./src/server/drizzle/schema.auth.ts -y",
         "typegen:db": "bunx drizzle-kit generate --config ./src/server/drizzle/config.ts",
         "typegen": "bun run typegen:ba && bun run typegen:db",
+        "typecheck": "bun run tsc --noEmit",
         "db:migrate": "drizzle-kit migrate --config ./src/server/drizzle/config.ts",
         "db:push": "drizzle-kit push --config ./src/server/drizzle/config.ts",
         "db:studio": "drizzle-kit studio --config ./src/server/drizzle/config.ts"
