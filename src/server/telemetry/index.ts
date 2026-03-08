@@ -3,7 +3,7 @@ import { LogAttributes, SeverityNumber, type AnyValue } from "@opentelemetry/api
 import { getLoggerProvider } from "@/server/telemetry/sdk";
 import { AppError, ResendErrorCodes } from "@/lib/auth-error";
 import { APIError } from "better-auth";
-import { ERROR_COPY } from "@/lib/copy";
+import { copy } from "@/lib/copy";
 
 export type TelemetryLogSchema = {
     info: [string, Record<string, AnyValue>];
@@ -194,8 +194,8 @@ function getAuthError(e: unknown): AppError[] {
 
     if (e instanceof APIError) {
         const code = e.body?.code;
-        if (typeof code === "string" && code in ERROR_COPY) {
-            return [new AppError(code as keyof typeof ERROR_COPY)];
+        if (typeof code === "string" && code in copy.error) {
+            return [new AppError(code as keyof typeof copy.error)];
         }
     }
 

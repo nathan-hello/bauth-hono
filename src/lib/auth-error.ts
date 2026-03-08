@@ -1,8 +1,22 @@
 import { APIError } from "better-auth";
 import { auth } from "@/server/auth";
-import { ERROR_COPY } from "@/lib/copy";
+import { copy } from "@/lib/copy";
 
-export type AuthApiErrors = keyof (typeof auth)["$ERROR_CODES"];
+const BetterAuthCallbackErrors = [
+    "invalid_callback_request",
+    "state_not_found",
+    "state_mismatch",
+    "no_code",
+    "no_callback_url",
+    "oauth_provider_not_found",
+    "email_not_found",
+    // This is resolved with auth.accountLinking.allowDifferentEmails
+    "email_doesn't_match",
+    "unable_to_get_user_info",
+    "unable_to_link_account",
+    "account_already_linked_to_different_user",
+    "signup_disabled",
+] as const;
 
 // Found by RESEND_ERROR_CODE_KEY in resend. They don't
 // export the type so it's here.
@@ -59,8 +73,12 @@ const AppErrorCodes = [
     "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
     "INVALID_OTP_CODE",
 ] as const;
-
-export type TErrorCodes = (typeof AppErrorCodes)[number] | (typeof ResendErrorCodes)[number] | AuthApiErrors;
+ 
+export type TErrorCodes =
+    | (typeof AppErrorCodes)[number]
+    | (typeof ResendErrorCodes)[number]
+    | (typeof BetterAuthCallbackErrors)[number]
+    | keyof (typeof auth)["$ERROR_CODES"];
 
 export class AppError extends Error {
     // This makes toString() known to callers in Typescript.
@@ -78,7 +96,7 @@ export class AppError extends Error {
 
         this.code = code;
         this.name = "AppError";
-        this.copy = ERROR_COPY[this.code];
+        this.copy = copy.error[this.code];
     }
 
     public override toString(): string {

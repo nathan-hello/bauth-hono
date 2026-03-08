@@ -43,9 +43,6 @@ export class Redirect {
         OAuth: () => {
             return to(routes.auth.dashboard, this.headers);
         },
-        DeleteAccount: () => {
-            return to(routes.auth.deleteSuccess, this.headers);
-        },
     };
 
     Because = {

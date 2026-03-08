@@ -201,7 +201,7 @@ export const auth = betterAuth({
     },
 
     onAPIError: {
-        // errorURL: "/auth/error",
+        errorURL: "/auth/error",
         onError: (error, ctx) => {
             const message = error instanceof Error ? error.message : String(error);
             const name = error instanceof Error ? error.name : "UnknownError";
@@ -228,7 +228,6 @@ export const auth = betterAuth({
             enabled: true,
             allowDifferentEmails: true,
         },
-        updateAccountOnSignIn: true,
         encryptOAuthTokens: true,
         additionalFields: {
             email: {
@@ -286,7 +285,7 @@ export const auth = betterAuth({
     },
 
     logger: {
-        level: "error",
+        level: "debug",
         log: (level, message, ...args) => {
             const attrs: Record<string, string> = {};
             for (const arg of args) {
@@ -296,13 +295,7 @@ export const auth = betterAuth({
                     }
                 }
             }
-            if (level === "error") {
-                baTel.error(String(message), attrs);
-            } else if (level === "warn") {
-                baTel.warn(String(message), attrs);
-            } else {
-                baTel.info(String(message), attrs);
-            }
+            baTel[level](message, attrs);
         },
     },
 

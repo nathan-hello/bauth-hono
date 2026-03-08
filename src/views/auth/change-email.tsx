@@ -14,7 +14,7 @@ type Props = {
 
 export function ChangeEmailPage({ result }: Props) {
     return (
-        <Layout title={copy.dashboard_email_change}>
+        <Layout meta={copy.routes.auth.changeEmail}>
             <Card>
                 <Header>{copy.dashboard_email_change}</Header>
                 <Section>

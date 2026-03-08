@@ -18,7 +18,7 @@ export function TwoFactorPage(state: ActionReturnData | null) {
     const verificationType = state?.verificationType || "totp";
 
     return (
-        <Layout title={copy.routes["2fa"].title}>
+        <Layout meta={copy.routes.auth.twoFactor}>
             <Card>
                 <Label center for="verify-form">
                     {verificationType === "totp" ? copy.twofa_prompt_totp : copy.twofa_prompt_email}
@@ -64,7 +64,7 @@ function EmailVerificationForm({ result }: { result: ActionReturnData["result"] 
             <VerificationTypeSwitcher currentType={"email"} />
 
             <TextLink href="/auth/login">
-                {copy.code_return} {copy.login.toLowerCase()}
+                {copy.back_to_login}
             </TextLink>
         </>
     );
@@ -90,7 +90,7 @@ function TotpVerificationForm({ result }: { result: ActionReturnData["result"] }
 
             <FormFooter>
                 <TextLink href="/auth/login">
-                    {copy.code_return} {copy.login.toLowerCase()}
+                    {copy.back_to_login}
                 </TextLink>
             </FormFooter>
         </>

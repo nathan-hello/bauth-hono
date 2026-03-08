@@ -12,7 +12,7 @@ type Props = {
 
 export function ChangePasswordPage({ hasCredential, result }: Props) {
     return (
-        <Layout title={copy.dashboard_password_heading}>
+        <Layout meta={copy.routes.auth.changePassword}>
             <Card>
                 <Header>{hasCredential ? copy.dashboard_password_change : copy.dashboard_password_set}</Header>
                 <Section>

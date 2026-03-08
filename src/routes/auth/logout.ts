@@ -1,10 +1,10 @@
 import type { Handler } from "hono";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { LogoutPage } from "@/views/auth/logout";
 import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { Redirect } from "@/routes/redirect";
+import { ErrorPage } from "@/views/components/error";
 
 const tel = new Telemetry(routes.auth.logout);
 
@@ -32,5 +32,5 @@ export const get: Handler = async (c) => {
         return new Redirect(c.req.raw).After.Logout();
     }
 
-    return c.html(LogoutPage({ errors: result.error }));
+    return c.html(ErrorPage({ status: 500, message: result.traceId }));
 };

@@ -59,7 +59,7 @@ export async function post(c: Context) {
 
     if (result.ok) {
         if (result.data.data?.deleted) {
-            return new Redirect(c.req.raw, result.data.headers).After.DeleteAccount();
+            return c.html(DeleteSuccessPage());
         }
 
         return c.html(
@@ -73,14 +73,13 @@ export async function post(c: Context) {
         );
     }
 
-    const ar: ActionResult<typeof actions> = { action, success: false, errors: result.error };
     return c.html(
         DeleteAccountPage({
             hasCredential,
             state: session.user.twoFactorEnabled
                 ? { verificationType: getOtpType(form.get("otp-type")?.toString()) }
                 : undefined,
-            result: ar,
+            result: { action, success: false, errors: result.error },
         }),
     );
 }
@@ -107,18 +106,12 @@ async function SwitchOtp(request: Request, form: FormData): Promise<DeleteAction
 
 async function DeleteAccount(request: Request, form: FormData): Promise<DeleteActionData> {
     const session = await auth.api.getSession({ headers: request.headers });
+    if (!session) {
+        throw new AppError("FAILED_TO_GET_SESSION");
+    }
 
     const accounts = await auth.api.listUserAccounts({ headers: request.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
-
-    const password = form.get("password")?.toString();
-    if (!hasCredential) {
-        throw new AppError("USER_NOT_FOUND");
-    }
-
-    if (!password) {
-        throw new AppError("INVALID_PASSWORD");
-    }
 
     let headersForDelete = request.headers;
 
@@ -132,6 +125,20 @@ async function DeleteAccount(request: Request, form: FormData): Promise<DeleteAc
         const otpHeaders = await checkOtp(request, form);
         if (!otpHeaders) throw new AppError("otp_failed");
         headersForDelete = convertSetCookiesToCookies(request.headers, otpHeaders);
+    }
+
+    const password = form.get("password")?.toString();
+    if (!hasCredential) {
+        const result = await auth.api.deleteUser({
+            body: {},
+            headers: request.headers,
+            returnHeaders: true,
+        });
+        return { data: { deleted: true }, headers: result.headers };
+    }
+
+    if (!password) {
+        throw new AppError("INVALID_PASSWORD");
     }
 
     const result = await auth.api.deleteUser({

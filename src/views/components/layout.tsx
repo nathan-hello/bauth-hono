@@ -1,14 +1,11 @@
+import { RouteMetadata } from "@/lib/copy/en";
 import type { Child } from "hono/jsx";
 
-export function Layout({ title, children }: { title: string; children: Child }) {
+export function Layout({ meta, children }: { meta: RouteMetadata; children: Child }) {
     return (
         <html lang="en" style={{ backgroundColor: "#C297A0" }}>
             <head>
-                <title>{title}</title>
-                <meta name="appleid-signin-client-id" content="[CLIENT_ID]" />
-                <meta name="appleid-signin-scope" content="[SCOPES]" />
-                <meta name="appleid-signin-redirect-uri" content="[REDIRECT_URI]" />
-                <meta name="appleid-signin-state" content="[STATE]" />
+                <title>{meta.title}</title>
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -28,15 +25,6 @@ export function Layout({ title, children }: { title: string; children: Child }) 
               `,
           }}
         /> ***/}
-
-                <script
-                    type="speculationrules"
-                    dangerouslySetInnerHTML={{
-                        __html: `
-            { "prerender": [{ "where": { "href_matches": "/auth/*" } }] }
-            `,
-                    }}
-                />
             </head>
             <body class="font-sans bg-[url('/carpark.webp')] bg-center bg-cover bg-fixed min-h-screen p-4 flex items-center justify-center flex-col text-fg text-xl">
                 <a href="/">

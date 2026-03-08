@@ -16,7 +16,7 @@ type ForgotProps = {
 
 export function ForgotPage({ result, email, code, step }: ForgotProps) {
     return (
-        <Layout title={copy.routes.forgot.title}>
+        <Layout meta={copy.routes.auth.forgot}>
             <Card>
                 <Form method="post" action={routes.auth.forgot} formAction={actions.forgot.name} result={result}>
                     {step === "start" && (
