@@ -91,14 +91,25 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                         <SectionHeading>{copy.dashboard_linked_accounts_heading}</SectionHeading>
                         <AccountRow name="accounts" label={copy.dashboard_linked_accounts_credential}>
                             <br />
-                            <ButtonLink variant="primary" href={routes.auth.changeEmail}>
-                                {copy.change_email}
-                            </ButtonLink>
-                            <br />
-                            <ButtonLink variant="primary" href={routes.auth.changePassword}>
-                                {hasCredential ? copy.password_change : copy.password_set}
-                            </ButtonLink>
-                            <br />
+                            {hasCredential ? (
+                                <>
+                                    <ButtonLink variant="primary" href={routes.auth.changeEmail}>
+                                        {copy.change_email}
+                                    </ButtonLink>
+                                    <br />
+                                    <ButtonLink variant="primary" href={routes.auth.changePassword}>
+                                        {hasCredential ? copy.password_change : copy.password_set}
+                                    </ButtonLink>
+                                    <br />
+                                </>
+                            ) : (
+                                <>
+                                    <ButtonLink variant="primary" href={routes.auth.setup}>
+                                        {copy.dashboard_setup}
+                                    </ButtonLink>
+                                    <br />
+                                </>
+                            )}
                         </AccountRow>
                         {loaderData.accounts
                             .filter((a) => a.providerId !== "credential")

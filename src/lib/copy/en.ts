@@ -173,6 +173,7 @@ const RoutesCopy: R = {
         login: { title: "Log in" },
         logout: { title: "Log out" },
         register: { title: "Sign up" },
+        setup: { title: "Setup account" },
         twoFactor: { title: "Two factor check" },
         twoFactorBackup: { title: "Backup code verification" },
     },
@@ -258,6 +259,8 @@ export const copy = {
     password_change: "Change Password",
     password_set: "Set Password",
     password_setup_prompt: "Set a password to sign in directly.",
+
+    dashboard_setup: "Setup",
 
     dashboard_2fa_heading: "Two-Factor Authentication",
     dashboard_2fa_description: "Use an authenticator app (TOTP) for two factor authentication.",
