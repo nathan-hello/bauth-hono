@@ -79,7 +79,6 @@ export class PinoLogExporter implements LogRecordExporter {
     private sanitize<T extends Record<string, any>>(attrs: T, keys: string[]): T {
         keys.forEach((k) => {
             if (k in attrs) {
-                console.error(`[ERROR]: ${k} is not allowed in otel logs: ${JSON.stringify(attrs)}`);
                 delete attrs[k];
             }
         });

@@ -53,9 +53,10 @@ export function FormFooter(props: { children: Child }) {
     return <div class="flex gap-4 text-xs items-center justify-center">{props.children}</div>;
 }
 
-export function Label(props: { for?: string; children: Child; center?: boolean; unmuted?: boolean }) {
+export function Label(props: { for?: string; children: Child; center?: boolean; unmuted?: boolean; hidden?: boolean }) {
     return (
         <label
+            hidden={props.hidden}
             for={props.for}
             class={
                 "flex gap-3 py-2 flex-col" +

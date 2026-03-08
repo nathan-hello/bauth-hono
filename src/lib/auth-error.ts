@@ -57,6 +57,7 @@ const AppErrorCodes = [
     "field_missing_email",
     "field_missing_password",
     "field_missing_password_repeat",
+    "field_missing_username",
     "oauth_no_url_given_by_provider",
     "internal_field_unknown_oauth_provider",
     "internal_field_missing_providerId",

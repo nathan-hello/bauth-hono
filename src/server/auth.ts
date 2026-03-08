@@ -7,6 +7,7 @@ import { db } from "@/server/drizzle/db";
 import { dotenv, optionalEnv } from "@/server/env";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import * as schema from "@/server/drizzle/schema";
+import { eq } from "drizzle-orm";
 import { passkey } from "@better-auth/passkey";
 import { username, twoFactor, emailOTP } from "better-auth/plugins";
 
@@ -252,6 +253,38 @@ export const auth = betterAuth({
     },
 
     databaseHooks: {
+        user: {
+            create: {
+                before: async (user) => {
+                    if (user.username) {
+                        return;
+                    }
+
+                    let username: string;
+                    let attempts = 0;
+                    const maxAttempts = 100;
+
+                    while (attempts < maxAttempts) {
+                        const randomSuffix = Math.random().toString(36).substring(2, 8);
+                        username = `user_${randomSuffix}`;
+
+                        const existing = db.select().from(schema.user).where(eq(schema.user.username, username)).get();
+
+                        if (existing) {
+                            attempts++;
+                            continue;
+                        }
+
+                        return { data: { ...user, username } };
+                    }
+
+                    const fallbackSuffix = Date.now().toString(36);
+                    username = `user_${fallbackSuffix}`;
+
+                    return { data: { ...user, username } };
+                },
+            },
+        },
         account: {
             create: {
                 // Extract the user's email from the OAuth provider's ID token

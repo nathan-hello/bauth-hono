@@ -10,6 +10,7 @@ StartLogging({
 import * as api from "@/routes/auth/api";
 import * as changeEmail from "@/routes/auth/change-email";
 import * as changePassword from "@/routes/auth/change-password";
+import * as changeUsername from "@/routes/auth/change-username";
 import * as dashboard from "@/routes/auth/dashboard";
 import * as del from "@/routes/auth/delete";
 import * as err from "@/routes/auth/error";
@@ -45,6 +46,9 @@ app.post(routes.auth.changeEmail, changeEmail.post);
 
 app.get(routes.auth.changePassword, changePassword.get);
 app.post(routes.auth.changePassword, changePassword.post);
+
+app.get(routes.auth.changeUsername, changeUsername.get);
+app.post(routes.auth.changeUsername, changeUsername.post);
 
 app.get(routes.auth.dashboard, dashboard.get);
 app.post(routes.auth.dashboard, dashboard.post);
