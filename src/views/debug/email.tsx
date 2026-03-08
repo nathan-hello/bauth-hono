@@ -19,3 +19,31 @@ export function DebugEmailPage() {
         </div>
     );
 }
+
+export function RegisterEmailDevInfo() {
+    if (process.env.NODE_ENV !== "development") {
+        return null;
+    }
+
+    const emails = ["delivered+user1@resend.dev", "delivered+user2@resend.dev", "delivered+user3@resend.dev"];
+
+    return (
+        <pre className="mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 text-[10px] leading-relaxed">
+            <div className="flex flex-col">
+                <span>Use one of the following addresses:</span>
+                {emails.map((e) => {
+                    return (
+                        <div key={e} className="flex flex-row justify-between w-full">
+                            <pre className="mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 text-[10px] leading-relaxed">
+                                {e}
+                            </pre>
+                        </div>
+                    );
+                })}
+                <pre className="mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 text-[10px] leading-relaxed">
+                    https://resend.com/docs/dashboard/emails/send-test-emails
+                </pre>
+            </div>
+        </pre>
+    );
+}

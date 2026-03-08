@@ -57,29 +57,13 @@ type DashboardProps = {
     loaderData: DashboardLoaderData;
 };
 
-function getOauthProviders() {
-    const providers = Object.entries(auth.options.socialProviders)
-        .map(([k, v]) => {
-            if (v.enabled) {
-                return { id: k, label: capitalize(k) };
-            }
-        })
-        .filter((e) => e !== undefined);
-
-    return providers;
-}
-
-function capitalize(s: string) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
 export function DashboardPage({ actionData, loaderData }: DashboardProps) {
     const hasCredential = loaderData.accounts.some((a) => a.providerId === "credential");
     const linkedProviderIds = new Set(loaderData.accounts.map((a) => a.providerId));
     const oauthProviders = getOauthProviders();
 
     return (
-        <Layout title={copy.routes.dashboard.title}>
+        <Layout meta={copy.routes.auth.dashboard}>
             <Card>
                 <Header>{copy.dashboard_title}</Header>
                 <Section>
@@ -514,4 +498,20 @@ function SessionsSection({
             )}
         </Section>
     );
+}
+
+function getOauthProviders() {
+    const providers = Object.entries(auth.options.socialProviders)
+        .map(([k, v]) => {
+            if (v.enabled) {
+                return { id: k, label: capitalize(k) };
+            }
+        })
+        .filter((e) => e !== undefined);
+
+    return providers;
+}
+
+function capitalize(s: string) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
 }

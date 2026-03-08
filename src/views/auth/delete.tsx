@@ -24,7 +24,7 @@ export function DeleteAccountPage({
           : copy.delete_section_header_confirm;
 
     return (
-        <Layout title={copy.routes.dashboard.title}>
+        <Layout meta={copy.routes.auth.delete}>
             <TwoFactorSwitchHiddenForm currentType={state?.verificationType} />
             <Card>
                 <Header>{copy.delete_title}</Header>
@@ -93,7 +93,7 @@ export function DeleteAccountPage({
 
 export function DeleteSuccessPage() {
     return (
-        <Layout title={copy.routes.dashboard.title}>
+        <Layout meta={copy.routes.auth.delete}>
             <Card>
                 <Header>{copy.delete_title}</Header>
                 <Section>

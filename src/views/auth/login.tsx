@@ -13,7 +13,7 @@ type LoginProps = {
 
 export function LoginPage({ result, email }: LoginProps) {
     return (
-        <Layout title={copy.routes.login.title}>
+        <Layout meta={copy.routes.auth.login}>
             <Card>
                 <Form method="post" action={routes.auth.login} formAction={actions.login.name} result={result}>
                     <Input

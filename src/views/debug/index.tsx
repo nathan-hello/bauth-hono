@@ -11,22 +11,22 @@ type HomeProps = {
 
 export function DebugHomePage({ session }: HomeProps) {
     return (
-        <Layout title={copy.routes.home.title}>
+        <Layout meta={copy.routes.debug.home}>
             <Card>
                 {session ? `${copy.home_signed_in_as} ${session.user.email}` : copy.home_not_signed_in}
                 <ButtonLink href={routes.debug.email}>Email</ButtonLink>
                 {session ? (
                     <>
-                        <ButtonLink href={routes.auth.dashboard}>{copy.routes.dashboard.title}</ButtonLink>
-                        <ButtonLink href={routes.auth.logout}>{copy.routes.logout.title}</ButtonLink>
+                        <ButtonLink href={routes.auth.dashboard}>{copy.routes.auth.dashboard.title}</ButtonLink>
+                        <ButtonLink href={routes.auth.logout}>{copy.routes.auth.logout.title}</ButtonLink>
                     </>
                 ) : (
                     <>
                         <ButtonLink href="/auth/login" variant="primary">
-                            {copy.routes.login.title}
+                            {copy.routes.auth.login.title}
                         </ButtonLink>
-                        <ButtonLink href={routes.auth.register}>{copy.routes.register.title}</ButtonLink>
-                        <ButtonLink href={routes.auth.forgot}>{copy.routes.forgot.title}</ButtonLink>
+                        <ButtonLink href={routes.auth.register}>{copy.routes.auth.register.title}</ButtonLink>
+                        <ButtonLink href={routes.auth.forgot}>{copy.routes.auth.forgot.title}</ButtonLink>
                     </>
                 )}
                 <details class="text-xs">
