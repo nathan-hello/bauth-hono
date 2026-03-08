@@ -181,7 +181,6 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
  * do that.
  */
 function getAuthError(e: unknown): AppError[] {
-    console.log("getAuthError", JSON.stringify(e));
     if (e === null) {
         return [];
     }

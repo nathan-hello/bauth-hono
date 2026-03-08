@@ -3,6 +3,7 @@ export const routes = {
         api: "/auth/api",
         changeEmail: "/auth/dashboard/change-email",
         changePassword: "/auth/dashboard/change-password",
+        changeUsername: "/auth/dashboard/change-username",
         dashboard: "/auth/dashboard",
         delete: "/auth/delete",
         error: "/auth/error",

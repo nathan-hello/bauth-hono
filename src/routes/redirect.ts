@@ -49,6 +49,9 @@ export class Redirect {
         Oauth: (url: string) => {
             return to(url, this.headers);
         },
+        OauthFailed: () => {
+            return to(routes.auth.login, this.headers);
+        },
         NoTwoFactorCookie: () => {
             return to(routes.auth.login, this.headers);
         },

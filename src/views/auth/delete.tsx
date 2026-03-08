@@ -40,7 +40,7 @@ export function DeleteAccountPage({
                     >
                         {hasCredential && (
                             <>
-                                <Label for="password">{copy.password}</Label>
+                                <Label hidden for="password">{copy.password}</Label>
                                 <Input
                                     type="password"
                                     name="password"

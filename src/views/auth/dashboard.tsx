@@ -65,51 +65,17 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
         <Layout meta={copy.routes.auth.dashboard}>
             <Card>
                 <Header>{copy.routes.auth.dashboard.title}</Header>
-                <Section>
-                    <Label unmuted>{loaderData.user.email}</Label>
-                    {!loaderData.user.emailVerified && (
-                        <Form
-                            method="post"
-                            action={routes.auth.dashboard}
-                            formAction={actions.email_resend_verification.name}
-                            result={actionData?.result}
-                        >
-                            <Button
-                                disabled={
-                                    actionData?.result?.action === actions.email_resend_verification.name &&
-                                    actionData.result.success
-                                }
-                                type="submit"
-                            >
-                                {copy.resend_email_verification}
-                            </Button>
-                        </Form>
-                    )}
-                </Section>
                 <Divider>
                     <Section>
+                        <UsernameSection username={loaderData.user.username} />
+                        <br />
                         <SectionHeading>{copy.dashboard_linked_accounts_heading}</SectionHeading>
                         <AccountRow name="accounts" label={copy.dashboard_linked_accounts_credential}>
-                            <br />
-                            {hasCredential ? (
-                                <>
-                                    <ButtonLink variant="primary" href={routes.auth.changeEmail}>
-                                        {copy.change_email}
-                                    </ButtonLink>
-                                    <br />
-                                    <ButtonLink variant="primary" href={routes.auth.changePassword}>
-                                        {hasCredential ? copy.password_change : copy.password_set}
-                                    </ButtonLink>
-                                    <br />
-                                </>
-                            ) : (
-                                <>
-                                    <ButtonLink variant="primary" href={routes.auth.setup}>
-                                        {copy.dashboard_setup}
-                                    </ButtonLink>
-                                    <br />
-                                </>
-                            )}
+                            <EmailAndPasswordRow
+                                hasCredential={hasCredential}
+                                emailVerified={loaderData.user.emailVerified}
+                                result={actionData?.result}
+                            />
                         </AccountRow>
                         {loaderData.accounts
                             .filter((a) => a.providerId !== "credential")
@@ -120,7 +86,9 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                                     badgeColor="blue"
                                     label={capitalize(account.providerId)}
                                 >
-                                    <p>{account.email}</p>
+                                    <Label center unmuted>
+                                        {account.email}
+                                    </Label>
                                     <UnlinkAccountForm providerId={account.providerId} />
                                 </AccountRow>
                             ))}
@@ -161,6 +129,75 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
     );
 }
 
+function EmailAndPasswordRow({
+    hasCredential,
+    result,
+    emailVerified,
+}: {
+    emailVerified: boolean;
+    hasCredential: boolean;
+    result: ActionResult | undefined;
+}) {
+    if (hasCredential) {
+        return (
+            <Card>
+                <VerifyEmailForm emailVerified={emailVerified} result={result} />
+                <ButtonLink variant="primary" href={routes.auth.changeEmail}>
+                    {copy.change_email}
+                </ButtonLink>
+                <ButtonLink variant="primary" href={routes.auth.changePassword}>
+                    {hasCredential ? copy.password_change : copy.password_set}
+                </ButtonLink>
+            </Card>
+        );
+    }
+
+    return (
+        <ButtonLink variant="primary" href={routes.auth.setup}>
+            {copy.dashboard_setup}
+        </ButtonLink>
+    );
+}
+
+function VerifyEmailForm({ result, emailVerified }: { emailVerified: boolean; result: ActionResult | undefined }) {
+    if (emailVerified) {
+        return (
+            <Label center unmuted>
+                {copy.email_verified}
+            </Label>
+        );
+    }
+    return (
+        <Form
+            method="post"
+            action={routes.auth.dashboard}
+            formAction={actions.email_resend_verification.name}
+            result={result}
+        >
+            <Button
+                disabled={result?.action === actions.email_resend_verification.name && result.success}
+                type="submit"
+            >
+                {copy.resend_email_verification}
+            </Button>
+        </Form>
+    );
+}
+
+function UsernameSection({ username }: { username: string | null | undefined }) {
+    return (
+        <>
+            <Label center unmuted>
+                @{username ?? copy.username_not_set}
+            </Label>
+            <br />
+            <ButtonLink variant="primary" href={routes.auth.changeUsername}>
+                {copy.change_username}
+            </ButtonLink>
+        </>
+    );
+}
+
 function UnlinkAccountForm({ providerId }: { providerId: string }) {
     return (
         <Form
@@ -169,9 +206,7 @@ function UnlinkAccountForm({ providerId }: { providerId: string }) {
             formAction={actions.unlink_account.name}
             kv={{ providerId: providerId }}
         >
-            <Button variant="ghost" type="submit">
-                {copy.dashboard_linked_accounts_unlink}
-            </Button>
+            <Button type="submit">{copy.dashboard_linked_accounts_unlink}</Button>
         </Form>
     );
 }
