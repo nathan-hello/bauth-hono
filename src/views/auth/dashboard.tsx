@@ -49,7 +49,6 @@ export type TotpState = {
     totpURI?: string;
     backupCodes?: string[];
     userEnabled: boolean;
-    verified?: boolean;
 };
 
 type DashboardProps = {
@@ -128,13 +127,7 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                             ))}
                     </Section>
 
-                    {hasCredential && (
-                        <TwoFactorSection
-                            state={actionData?.totp}
-                            userEnabled={loaderData.user.twoFactorEnabled}
-                            result={actionData?.result}
-                        />
-                    )}
+                    {hasCredential && <TwoFactorSection state={actionData?.totp} result={actionData?.result} />}
                     <SessionsSection sessions={loaderData.sessions} current={loaderData.session} />
 
                     <Section>
@@ -177,16 +170,8 @@ function LinkAccountForm({ provider }: { provider: string }) {
     );
 }
 
-function TwoFactorSection({
-    userEnabled,
-    state,
-    result,
-}: {
-    userEnabled?: boolean | null;
-    state?: TotpState;
-    result?: ActionResult<typeof actions>;
-}) {
-    if (userEnabled) {
+function TwoFactorSection({ state, result }: { state?: TotpState; result?: ActionResult<typeof actions> }) {
+    if (state?.userEnabled) {
         return <TwoFactorEnabled state={state} result={result} />;
     }
     if (state?.intermediateEnable) {
@@ -230,12 +215,7 @@ function TwoFactorSetup({ state, result }: { state: TotpState; result?: ActionRe
             <FormAlert color="warning">{copy.dashboard_2fa_setup_prompt}</FormAlert>
             <Section>
                 <TwoFactorTotpViewer secret={state.totpURI} />
-                <VerifyTotpForm
-                    result={result}
-                    totpURI={state.totpURI}
-                    backupCodes={state.backupCodes}
-                    intermediateEnable
-                />
+                <VerifyTotpForm result={result} state={state} />
             </Section>
             <BackupCodes
                 title={copy.dashboard_backup_codes_title}
@@ -312,7 +292,7 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
         return (
             <Section>
                 <TwoFactorTotpViewer secret={state.totpURI} />
-                <VerifyTotpForm result={result} alreadyVerified totpURI={state.totpURI} />
+                <VerifyTotpForm result={result} state={state} />
                 <br />
                 <ButtonLink href={routes.auth.dashboard}>{copy.go_back}</ButtonLink>
             </Section>
@@ -405,19 +385,7 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
     );
 }
 
-function VerifyTotpForm({
-    result,
-    alreadyVerified,
-    totpURI,
-    backupCodes,
-    intermediateEnable,
-}: {
-    result?: ActionResult<typeof actions>;
-    alreadyVerified?: boolean;
-    totpURI?: string;
-    backupCodes?: string[];
-    intermediateEnable?: boolean;
-}) {
+function VerifyTotpForm({ result, state }: { result?: ActionResult<typeof actions>; state: TotpState }) {
     return (
         <Form
             method="post"
@@ -426,14 +394,12 @@ function VerifyTotpForm({
             formAction={actions.two_factor_totp_verify.name}
             success={copy.dashboard_2fa_success}
             kv={{
-                totp_uri: totpURI,
-                backup_codes: JSON.stringify(backupCodes),
-                "already-verified": alreadyVerified,
-                intermediate_enable: intermediateEnable,
+                totp_uri: state.totpURI,
+                backup_codes: JSON.stringify(state.backupCodes),
             }}
         >
             <Label for="totp_code">
-                {alreadyVerified ? copy.dashboard_2fa_optional_verify : copy.dashboard_2fa_verify_prompt}
+                {state.userEnabled ? copy.dashboard_2fa_optional_verify : copy.dashboard_2fa_verify_prompt}
             </Label>
             <Input
                 type="text"

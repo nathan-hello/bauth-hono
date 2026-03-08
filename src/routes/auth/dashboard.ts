@@ -55,6 +55,7 @@ async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | nu
 
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async (span) => {
+        span.setAttributes(safeRequestAttrs(c.req.raw));
         const session = await getLoaderData(c.req.raw.headers);
         if (!session) {
             return new Redirect(c.req.raw).Because.NoSession();
@@ -112,11 +113,42 @@ export const post: Handler = async (c) => {
 
     return c.html(
         DashboardPage({
-            actionData: { result: { action, success: false, errors: result.error } },
+            actionData: {
+                result: { action, success: false, errors: result.error },
+                totp: await getTotpStateAfterError(c.req.raw, form),
+            },
             loaderData: loaderAfterError,
         }),
     );
 };
+
+async function getTotpStateAfterError(request: Request, form: FormData): Promise<TotpState | undefined> {
+    const totpURI = form.get("totp_uri")?.toString();
+    const backupCodesRaw = form.get("backup_codes")?.toString();
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session || !totpURI || !backupCodesRaw) {
+        return undefined;
+    }
+
+    let backupCodes: string[];
+    try {
+        backupCodes = JSON.parse(backupCodesRaw);
+    } catch {
+        return undefined;
+    }
+
+    const showTotp = totpURI && backupCodesRaw ? true : false;
+
+    const userEnabled = showTotp && session.user.twoFactorEnabled ? true : false;
+    const intermediateEnable = showTotp && !session.user.twoFactorEnabled;
+
+    return {
+        intermediateEnable,
+        userEnabled,
+        totpURI,
+        backupCodes,
+    };
+}
 
 async function RevokeSession(request: Request, form: FormData): Promise<ActionReturnData> {
     const token = form.get("session")?.toString();
@@ -232,72 +264,38 @@ async function SetPassword(request: Request, form: FormData): Promise<ActionRetu
 async function TwoFactorTotpVerify(request: Request, form: FormData): Promise<ActionReturnData> {
     const code = form.get("totp_code")?.toString();
     const totpURI = form.get("totp_uri")?.toString();
-    const alreadyVerified = form.get("already-verified")?.toString();
-    const intermediateEnable = form.get("intermediate_enable")?.toString();
     const backupCodesRaw = form.get("backup_codes")?.toString();
+
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session) {
+        throw new AppError("SESSION_EXPIRED");
+    }
+
     if (!code) {
         throw new AppError("INVALID_CODE");
     }
     if (!totpURI) {
         throw new AppError("internal_field_missing_totp_uri");
     }
-    if (!alreadyVerified) {
-        throw new AppError("internal_field_missing_already_verified");
-    }
-    const errorTotp = (): TotpState => ({
-        intermediateEnable: intermediateEnable === "true" ? true : undefined,
-        totpURI,
-        backupCodes: backupCodesRaw ? JSON.parse(backupCodesRaw) : undefined,
-        userEnabled: alreadyVerified === "true",
+
+    const result = await auth.api.verifyTOTP({
+        body: { code },
+        headers: request.headers,
+        returnHeaders: true,
     });
-    try {
-        const result = await auth.api.verifyTOTP({
-            body: { code },
-            headers: request.headers,
-            returnHeaders: true,
-        });
-        return {
-            result: {
-                action: "two_factor_totp_verify",
-                success: true,
-            },
-            headers: result.headers,
-            totp: {
-                verified: true,
-                totpURI: alreadyVerified === "true" ? totpURI : undefined,
-                userEnabled: alreadyVerified === "true",
-            },
-        };
-    } catch (error) {
-        if (
-            error !== null &&
-            typeof error === "object" &&
-            "body" in error &&
-            typeof error.body === "object" &&
-            error.body !== null &&
-            "code" in error.body &&
-            typeof error.body.code === "string" &&
-            error.body.code === "INVALID_CODE"
-        ) {
-            return {
-                result: {
-                    action: "two_factor_totp_verify",
-                    success: false,
-                    errors: [new AppError("INVALID_CODE")],
-                },
-                totp: errorTotp(),
-            };
-        }
-        console.log("unknown error: ", JSON.stringify(error));
-        return {
-            result: {
-                action: "two_factor_totp_verify",
-                success: false,
-                errors: [new AppError("generic_error")],
-            },
-            totp: errorTotp(),
-        };
-    }
+    return {
+        result: {
+            action: "two_factor_totp_verify",
+            success: true,
+        },
+        headers: result.headers,
+        totp: {
+            userEnabled: true,
+            totpURI: totpURI,
+            backupCodes: backupCodesRaw ? JSON.parse(backupCodesRaw) : undefined,
+            intermediateEnable: false,
+        },
+    };
 }
 
 async function TwoFactorDisable(request: Request, form: FormData): Promise<ActionReturnData> {
