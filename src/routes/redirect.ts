@@ -46,6 +46,9 @@ export class Redirect {
     };
 
     Because = {
+        NotAnAdmin: () => {
+            return to(routes.auth.dashboard, this.headers);
+        },
         Oauth: (url: string) => {
             return to(url, this.headers);
         },

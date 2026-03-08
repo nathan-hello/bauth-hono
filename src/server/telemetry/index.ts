@@ -61,13 +61,17 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
 
     task<R>(name: string, fn: (span: Span) => R | Promise<R>): TaskResult<R> | Promise<TaskResult<R>> {
         return this.tracer.startActiveSpan(name, (span) => {
+            this.info("START");
             try {
                 const result = fn(span);
+
+                span.setAttribute("promise", result instanceof Promise ? true : false);
 
                 if (result instanceof Promise) {
                     return result
                         .then((data): TaskResult<R> => {
-                            span.setStatus({ code: SpanStatusCode.OK });
+                            this.handleSuccess(span, name);
+                            span.end();
                             return {
                                 ok: true as const,
                                 data,
@@ -76,16 +80,16 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
                         })
                         .catch((err): TaskResult<R> => {
                             this.handleError(span, name, err);
+                            span.end();
                             return {
                                 ok: false as const,
                                 error: getAuthError(err),
                                 traceId: span.spanContext().traceId,
                             };
-                        })
-                        .finally(() => span.end());
+                        });
                 }
 
-                span.setStatus({ code: SpanStatusCode.OK });
+                this.handleSuccess(span, name);
                 span.end();
                 return {
                     ok: true as const,
@@ -102,6 +106,11 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
                 };
             }
         });
+    }
+
+    private handleSuccess(span: Span, name: string) {
+        span.setStatus({ code: SpanStatusCode.OK });
+        this.emit(name, SeverityNumber.INFO, "INFO", { success: true });
     }
 
     private handleError(span: Span, name: string, error: unknown): void {

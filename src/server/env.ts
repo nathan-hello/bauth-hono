@@ -53,8 +53,24 @@ export const dotenv = loadEnv(
 );
 
 export const optionalEnv = loadOptionalEnv(
+    "BETTER_AUTH_INITIAL_ADMIN_IDS",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "APPLE_CLIENT_ID",
     "APPLE_CLIENT_SECRET",
 );
+
+export const envAdmins = () => {
+    if (!optionalEnv.BETTER_AUTH_INITIAL_ADMIN_IDS) {
+        return;
+    }
+
+    try {
+        const s = JSON.parse(optionalEnv.BETTER_AUTH_INITIAL_ADMIN_IDS);
+        if (Array.isArray(s) && s.length > 0 && s.every((elem) => typeof elem === "string")) {
+            return s;
+        }
+    } catch {
+        return;
+    }
+};

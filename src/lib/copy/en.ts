@@ -1,6 +1,10 @@
 import type { TErrorCodes } from "@/lib/auth-error";
-import type {auth} from "@/server/auth";
+import type { auth } from "@/server/auth";
 import { routes } from "@/routes/routes";
+
+export const BA_INTERNAL_COPY = {
+    you_have_been_banned: "You have been banned.",
+};
 
 // prettier-ignore
 const BA_CALLBACK_ERRORS_COPY = {
@@ -50,29 +54,31 @@ const InternallyGeneratedErrors = {
     code_invalid                            : "Invalid verification code.",
     field_missing_code                      : "Missing OTP",
     field_missing_email                     : "Missing email",
+    field_missing_new_username              : "Missing new username",
     field_missing_password                  : "Missing password",
     field_missing_password_repeat           : "Missing password",
     field_missing_username                  : "Missing username",
     generic_error                           : "Something wrong happened.",
     internal_field_missing_action           : "Internal error (500) - 502",
+    internal_field_missing_already_verified : "Internal error (500) - 509",
     internal_field_missing_new_email        : "Internal error (500) - 503",
     internal_field_missing_oauth            : "Internal error (500) - 504",
     internal_field_missing_password         : "Internal error (500) - 505",
     internal_field_missing_providerId       : "Internal error (500) - 506",
     internal_field_missing_session          : "Internal error (500) - 507",
     internal_field_missing_token            : "Internal error (500) - 508",
-    internal_field_missing_already_verified : "Internal error (500) - 509",
     internal_field_missing_totp_uri         : "Internal error (500) - 510",
-    internal_field_unknown_oauth_provider   : "Internal error (500) - 511",
-    oauth_no_url_given_by_provider          : "Internal error (500) - 512",
-    totp_uri_not_found                      : "Internal error (500) - 513",
-    password_mismatch                       : "Passwords do not match.",
+    internal_field_missing_user_id          : "Internal error (500) - 511",
+    internal_field_unknown_oauth_provider   : "Internal error (500) - 512",
+    oauth_no_url_given_by_provider          : "Internal error (500) - 513",
     otp_failed                              : "Verification failed.",
+    password_mismatch                       : "Passwords do not match.",
+    totp_uri_not_found                      : "Internal error (500) - 513",
 }
 
 type a<T> = {
-  [K in keyof T]: string
-}
+    [K in keyof T]: string;
+};
 // prettier-ignore
 const BetterAuthErrors: a<typeof auth.$ERROR_CODES>  = {
     ASYNC_VALIDATION_NOT_SUPPORTED               : "Async validation not supported.",
@@ -184,6 +190,7 @@ type R<T = typeof routes> = {
 const RoutesCopy: R = {
     auth: {
         api: { title: "/auth/api" },
+        admin: { title: "Admin" },
         changeEmail: { title: "Change email" },
         changePassword: { title: "Change password" },
         changeUsername: { title: "Change username" },
@@ -325,7 +332,6 @@ export const copy = {
     delete_section_header_2fa_only: "Enter your 2FA code to verify deleting your account.",
     delete_section_header_confirm: "Are you sure you want to delete your account?",
 
-
     delete_go_back: "Back to safety",
     delete_success_header: "Your account has been successfully deleted.",
 
@@ -352,4 +358,5 @@ export const copy = {
     email_change_from: "From",
     email_change_to: "to",
 
+    you_have_been_banned: "You have been banned.",
 };
