@@ -15,11 +15,22 @@ const resend = new Resend(dotenv.RESEND_ACCESS_TOKEN);
 const tel = new Telemetry("auth.hooks");
 const baTel = new Telemetry("better-auth");
 
-export function validateUsername(username: string) {
-    if (username === "admin") {
-        return false;
+export function validateUsername(username: string): boolean {
+    if (username === "admin" || username.length === 0) return false;
+
+    for (let i = 0; i < username.length; i++) {
+        const code = username.charCodeAt(i);
+
+        const isNumeric = code >= "0".charCodeAt(0) && code <= "9".charCodeAt(0);
+        const isUpper = code >= "A".charCodeAt(0) && code <= "Z".charCodeAt(0);
+        const isLower = code >= "a".charCodeAt(0) && code <= "z".charCodeAt(0);
+
+        if (!(isNumeric || isUpper || isLower)) {
+            return false;
+        }
     }
-    return /^[a-zA-Z0-9_-]+$/.test(username);
+
+    return true;
 }
 
 export const auth = betterAuth({
@@ -78,6 +89,9 @@ export const auth = betterAuth({
         username({
             usernameValidator: validateUsername,
             displayUsernameValidator: validateUsername,
+            maxUsernameLength: 32,
+            minUsernameLength: 1,
+            usernameNormalization: (s) => s,
         }),
         twoFactor({
             issuer: dotenv.PRODUCTION_URL,
