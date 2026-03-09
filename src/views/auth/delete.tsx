@@ -1,21 +1,20 @@
 import { copy } from "@/lib/copy";
-import type { ActionResult } from "@/lib/types";
-import { actions } from "@/routes/auth/delete";
+import { type DeleteActionData, type DeleteLoaderData, actions } from "@/routes/auth/delete";
 import { routes } from "@/routes/routes";
-import { TwoFactorState } from "@/views/auth/2fa";
+import { TwoFactorActionState } from "@/views/auth/2fa";
 import { Layout } from "@/views/components/layout";
 import { Button, ButtonLink, Card, Form, Header, Input, Label, Section } from "@/views/components/ui";
 
 export function DeleteAccountPage({
-    hasCredential,
-    state,
-    result,
+    loaderData,
+    actionData,
 }: {
-    hasCredential: boolean;
-    state?: TwoFactorState;
-    result?: ActionResult<typeof actions>;
+    loaderData: DeleteLoaderData;
+    actionData?: DeleteActionData;
 }) {
-    const headerCopy = hasCredential
+    const state = actionData?.state;
+
+    const headerCopy = loaderData.hasCredential
         ? state
             ? copy.delete_section_header
             : copy.delete_section_header_password_only
@@ -35,12 +34,14 @@ export function DeleteAccountPage({
                     <Form
                         method="post"
                         action={routes.auth.delete}
-                        result={result}
+                        result={actionData?.result}
                         formAction={actions.delete_account.name}
                     >
-                        {hasCredential && (
+                        {loaderData.hasCredential && (
                             <>
-                                <Label hidden for="password">{copy.password}</Label>
+                                <Label hidden for="password">
+                                    {copy.password}
+                                </Label>
                                 <Input
                                     type="password"
                                     name="password"
@@ -109,7 +110,11 @@ export function DeleteSuccessPage() {
     );
 }
 
-function TwoFactorSwitchHiddenForm({ currentType }: { currentType: "totp" | "email" | undefined }) {
+function TwoFactorSwitchHiddenForm({
+    currentType,
+}: {
+    currentType: TwoFactorActionState["verificationType"] | undefined;
+}) {
     if (currentType === undefined) {
         return null;
     }
@@ -124,7 +129,11 @@ function TwoFactorSwitchHiddenForm({ currentType }: { currentType: "totp" | "ema
     );
 }
 
-function TwoFactorSwitch({ currentType = "totp" }: { currentType: "totp" | "email" | undefined }) {
+function TwoFactorSwitch({
+    currentType = "totp",
+}: {
+    currentType: TwoFactorVerificationState["verificationType"] | undefined;
+}) {
     if (!currentType) {
         return null;
     }

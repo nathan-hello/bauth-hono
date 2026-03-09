@@ -1,4 +1,6 @@
 import type { Context, Handler } from "hono";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import type { RouteActionData } from "@/lib/types";
 import { auth, validateUsername } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { RegisterPage } from "@/views/auth/register";
@@ -14,6 +16,14 @@ export const actions = {
     oauth: { name: "oauth", handler: RegisterOauth },
 };
 
+export type RegisterLoaderData = {};
+
+export type RegisterActionState = {
+    email?: string;
+};
+
+export type RegisterActionData = RouteActionData<typeof actions, RegisterActionState>;
+
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async () => {
         tel.debug("REQUEST", safeRequestAttrs(c.req.raw));
@@ -21,7 +31,17 @@ export const get: Handler = async (c) => {
         if (existing) {
             return new Redirect(c.req.raw).Because.HasSession();
         }
-        return c.html(RegisterPage({}));
+        const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, RegisterActionState>>(
+            c.req.raw.headers.get("cookie"),
+        );
+
+        return c.html(
+            RegisterPage({
+                loaderData: {},
+                actionData: deserializeActionData<typeof actions, RegisterActionState>(flash.actionData),
+            }),
+            { headers: flash.headers },
+        );
     });
     if (result.ok) {
         return result.data;
@@ -42,7 +62,12 @@ export const post: Handler = async (c) => {
     if (result.ok) return result.data;
 
     const email = form.get("email")?.toString();
-    return c.html(RegisterPage({ result: { action, success: false, errors: result.error }, email }));
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, RegisterActionState>({
+            result: { action, success: false, errors: result.error },
+            state: { email },
+        }),
+    );
 };
 
 async function Register(c: Context, form: FormData) {

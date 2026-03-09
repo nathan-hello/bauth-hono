@@ -1,6 +1,8 @@
 import type { Handler } from "hono";
 import { Context } from "hono";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
+import type { RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -13,6 +15,12 @@ export const actions = {
     change_username: { name: "change_username", handler: ChangeUsername },
 };
 
+export type ChangeUsernameLoaderData = {
+    username: string;
+};
+
+export type ChangeUsernameActionData = RouteActionData<typeof actions>;
+
 type ActionReturnData = {
     headers?: Headers;
 };
@@ -24,12 +32,19 @@ export const get: Handler = async (c) => {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    return c.html(ChangeUsernamePage({ username: session.user.username || "" }));
+    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions>>(c.req.raw.headers.get("cookie"));
+
+    return c.html(
+        ChangeUsernamePage({
+            loaderData: { username: session.user.username || "" },
+            actionData: deserializeActionData<typeof actions, undefined>(flash.actionData),
+        }),
+        { headers: flash.headers },
+    );
 };
 
 export async function post(c: Context) {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (!session) {
+    if (!(await auth.api.getSession({ headers: c.req.raw.headers }))) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
@@ -44,9 +59,8 @@ export async function post(c: Context) {
         return new Redirect(c.req.raw, result.data.headers).After.OAuth();
     }
 
-    return c.html(
-        ChangeUsernamePage({
-            username: session.user.username || "",
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, undefined>({
             result: { action: "change_username", success: false, errors: result.error },
         }),
     );

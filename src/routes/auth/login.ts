@@ -1,4 +1,6 @@
 import type { Handler } from "hono";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import type { RouteActionData } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -17,6 +19,14 @@ export const actions = {
     oauth: { name: "oauth", handler: LogInOauth },
 };
 
+export type LoginLoaderData = {};
+
+export type LoginActionState = {
+    email?: string;
+};
+
+export type LoginActionData = RouteActionData<typeof actions, LoginActionState>;
+
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
@@ -33,7 +43,17 @@ export const get: Handler = async (c) => {
             }
         }
 
-        return c.html(LoginPage({}));
+        const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, LoginActionState>>(
+            c.req.raw.headers.get("cookie"),
+        );
+
+        return c.html(
+            LoginPage({
+                loaderData: {},
+                actionData: deserializeActionData<typeof actions, LoginActionState>(flash.actionData),
+            }),
+            { headers: flash.headers },
+        );
     });
     if (result.ok) {
         return result.data;
@@ -54,7 +74,12 @@ export const post: Handler = async (c) => {
 
     if (result.ok) return result.data;
 
-    return c.html(LoginPage({ result: { action, success: false, errors: result.error }, email }));
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, LoginActionState>({
+            result: { action, success: false, errors: result.error },
+            state: { email },
+        }),
+    );
 };
 
 async function LogIn(c: Context, form: FormData) {

@@ -1,5 +1,7 @@
 import { Context, Handler } from "hono";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
+import type { RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -13,6 +15,12 @@ export const actions = {
     change_password: { name: "change_password", handler: ChangePassword },
     set_password: { name: "set_password", handler: SetPassword },
 };
+
+export type ChangePasswordLoaderData = {
+    hasCredential: boolean;
+};
+
+export type ChangePasswordActionData = RouteActionData<typeof actions>;
 
 type ActionReturnData = {
     headers?: Headers;
@@ -28,7 +36,15 @@ export const get: Handler = async (c) => {
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
 
-    return c.html(ChangePasswordPage({ hasCredential }));
+    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions>>(c.req.raw.headers.get("cookie"));
+
+    return c.html(
+        ChangePasswordPage({
+            loaderData: { hasCredential },
+            actionData: deserializeActionData<typeof actions, undefined>(flash.actionData),
+        }),
+        { headers: flash.headers },
+    );
 };
 
 export async function post(c: Context) {
@@ -36,9 +52,6 @@ export async function post(c: Context) {
     if (!session) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
-
-    const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
-    const hasCredential = accounts.some((a) => a.providerId === "credential");
 
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
@@ -50,12 +63,18 @@ export async function post(c: Context) {
     });
 
     if (result.ok) {
-        return c.html(ChangePasswordPage({ hasCredential, result: { action, success: true } }), {
-            headers: result.data.headers,
-        });
+        return new Redirect(c.req.raw, result.data.headers).Flash(
+            serializeActionData<typeof actions, undefined>({
+                result: { action, success: true },
+            }),
+        );
     }
 
-    return c.html(ChangePasswordPage({ hasCredential, result: { action, success: false, errors: result.error } }));
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, undefined>({
+            result: { action, success: false, errors: result.error },
+        }),
+    );
 }
 
 async function ChangePassword(request: Request, form: FormData): Promise<ActionReturnData> {

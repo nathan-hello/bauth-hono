@@ -1,28 +1,27 @@
 import { copy } from "@/lib/copy";
-import type { ActionResult } from "@/lib/types";
-import { actions } from "@/routes/auth/login";
+import { type LoginActionData, type LoginLoaderData, actions } from "@/routes/auth/login";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, Form } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 import { OauthButtons } from "@/views/components/oauth";
 
 type LoginProps = {
-    result?: ActionResult<typeof actions>;
-    email?: string;
+    loaderData: LoginLoaderData;
+    actionData?: LoginActionData;
 };
 
-export function LoginPage({ result, email }: LoginProps) {
+export function LoginPage({ actionData }: LoginProps) {
     return (
         <Layout meta={copy.routes.auth.login}>
             <Card>
-                <Form method="post" action={routes.auth.login} formAction={actions.login.name} result={result}>
+                <Form method="post" action={routes.auth.login} formAction={actions.login.name} result={actionData?.result}>
                     <Input
                         type="text"
                         name="email"
                         required
                         placeholder={copy.email_or_username}
-                        autofocus={!result}
-                        value={email ?? ""}
+                        autofocus={!actionData?.result}
+                        value={actionData?.state?.email ?? ""}
                     />
                     <Input
                         required

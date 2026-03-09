@@ -1,6 +1,5 @@
 import { copy } from "@/lib/copy";
-import type { ActionResult } from "@/lib/types";
-import { actions } from "@/routes/auth/register";
+import { type RegisterActionData, type RegisterLoaderData, actions } from "@/routes/auth/register";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, Form } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
@@ -8,17 +7,17 @@ import { OauthButtons } from "@/views/components/oauth";
 import { RegisterEmailDevInfo } from "@/views/debug/email";
 
 type RegisterProps = {
-    result?: ActionResult<typeof actions>;
-    email?: string;
+    loaderData: RegisterLoaderData;
+    actionData?: RegisterActionData;
 };
 
-export function RegisterPage({ result, email }: RegisterProps) {
+export function RegisterPage({ actionData }: RegisterProps) {
     return (
         <Layout meta={copy.routes.auth.register}>
             <Card>
-                <Form method="post" action={routes.auth.register} formAction={actions.register.name} result={result}>
+                <Form method="post" action={routes.auth.register} formAction={actions.register.name} result={actionData?.result}>
                     <Input type="text" name="username" required placeholder={copy.username} />
-                    <Input type="text" name="email" value={email ?? ""} required placeholder={copy.email} />
+                    <Input type="text" name="email" value={actionData?.state?.email ?? ""} required placeholder={copy.email} />
                     <Input
                         type="password"
                         name="password"

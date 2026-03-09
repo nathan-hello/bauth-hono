@@ -1,16 +1,15 @@
 import { copy } from "@/lib/copy";
-import type { ActionResult } from "@/lib/types";
-import { actions } from "@/routes/auth/change-username";
+import { type ChangeUsernameActionData, type ChangeUsernameLoaderData, actions } from "@/routes/auth/change-username";
 import { Layout } from "@/views/components/layout";
 import { Input, Button, ButtonLink, Card, Form, Header, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type Props = {
-    username: string;
-    result?: ActionResult<typeof actions>;
+    loaderData: ChangeUsernameLoaderData;
+    actionData?: ChangeUsernameActionData;
 };
 
-export function ChangeUsernamePage({ username, result }: Props) {
+export function ChangeUsernamePage({ loaderData, actionData }: Props) {
     return (
         <Layout meta={copy.routes.auth.changeUsername}>
             <Card>
@@ -19,11 +18,11 @@ export function ChangeUsernamePage({ username, result }: Props) {
                     <Form
                         method="post"
                         action={routes.auth.changeUsername}
-                        result={result}
+                        result={actionData?.result}
                         formAction={actions.change_username.name}
                         success={copy.dashboard_username_changed}
                     >
-                        <Input type="text" name="username" value={username} required placeholder={copy.username} />
+                        <Input type="text" name="username" value={loaderData.username} required placeholder={copy.username} />
                         <Button type="submit">{copy.change_username}</Button>
                     </Form>
                     <br />

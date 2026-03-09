@@ -1,5 +1,7 @@
 import { AppError } from "@/lib/auth-error";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
+import type { RouteActionData } from "@/lib/types";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { routes } from "@/routes/routes";
@@ -16,7 +18,18 @@ export const actions = {
     switch_otp: { name: "switch_otp", handler: SwitchOtp },
 };
 
-type DeleteActionData = {
+export type DeleteLoaderData = {
+    hasCredential: boolean;
+};
+
+export type DeleteActionState = {
+    deleted?: boolean;
+    verificationType?: "email" | "totp";
+};
+
+export type DeleteActionData = RouteActionData<typeof actions, DeleteActionState>;
+
+type DeleteActionResult = {
     data?: {
         deleted?: boolean;
         verificationType?: "email" | "totp";
@@ -30,13 +43,31 @@ export async function get(c: Context) {
     if (!session) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
+
+    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, DeleteActionState>>(
+        c.req.raw.headers.get("cookie"),
+    );
+    const actionData = deserializeActionData<typeof actions, DeleteActionState>(flash.actionData);
+    if (actionData?.state?.deleted) {
+        return c.html(DeleteSuccessPage(), { headers: flash.headers });
+    }
+
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
+
     return c.html(
         DeleteAccountPage({
-            hasCredential,
-            state: session.user.twoFactorEnabled ? { verificationType: "totp" } : undefined,
+            loaderData: { hasCredential },
+            actionData:
+                actionData ??
+                (session.user.twoFactorEnabled
+                    ? {
+                          result: { action: actions.delete_account.name, success: true },
+                          state: { verificationType: "totp" },
+                      }
+                    : undefined),
         }),
+        { headers: flash.headers },
     );
 }
 
@@ -45,8 +76,7 @@ export async function post(c: Context) {
     if (!session) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
-    const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
-    const hasCredential = accounts.some((a) => a.providerId === "credential");
+
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
@@ -58,27 +88,30 @@ export async function post(c: Context) {
 
     if (result.ok) {
         if (result.data.data?.deleted) {
-            return c.html(DeleteSuccessPage());
+            return new Redirect(c.req.raw, result.data.headers).Flash(
+                serializeActionData<typeof actions, DeleteActionState>({
+                    result: { action: action || actions.delete_account.name, success: true },
+                    state: { deleted: true },
+                }),
+            );
         }
 
-        return c.html(
-            DeleteAccountPage({
-                hasCredential,
+        return new Redirect(c.req.raw, result.data.headers).Flash(
+            serializeActionData<typeof actions, DeleteActionState>({
+                result: { action: action || actions.delete_account.name, success: true },
                 state: result.data.data?.verificationType
                     ? { verificationType: result.data.data.verificationType }
                     : undefined,
             }),
-            { headers: result.data.headers },
         );
     }
 
-    return c.html(
-        DeleteAccountPage({
-            hasCredential,
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, DeleteActionState>({
+            result: { action, success: false, errors: result.error },
             state: session.user.twoFactorEnabled
                 ? { verificationType: getOtpType(form.get("otp-type")?.toString()) }
                 : undefined,
-            result: { action, success: false, errors: result.error },
         }),
     );
 }
@@ -89,12 +122,12 @@ function getOtpType(s: string | undefined): "email" | "totp" {
     return "totp";
 }
 
-async function ResendEmail(request: Request, _: FormData): Promise<DeleteActionData> {
+async function ResendEmail(request: Request, _: FormData): Promise<DeleteActionResult> {
     await auth.api.sendTwoFactorOTP({ headers: request.headers });
     return { data: { verificationType: "email", resentEmail: true } };
 }
 
-async function SwitchOtp(request: Request, form: FormData): Promise<DeleteActionData> {
+async function SwitchOtp(request: Request, form: FormData): Promise<DeleteActionResult> {
     const to = form.get("to")?.toString();
     const type: "email" | "totp" = to === "email" ? "email" : "totp";
     if (type === "email") {
@@ -103,7 +136,7 @@ async function SwitchOtp(request: Request, form: FormData): Promise<DeleteAction
     return { data: { verificationType: type } };
 }
 
-async function DeleteAccount(request: Request, form: FormData): Promise<DeleteActionData> {
+async function DeleteAccount(request: Request, form: FormData): Promise<DeleteActionResult> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) {
         throw new AppError("FAILED_TO_GET_SESSION");

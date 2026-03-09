@@ -23,13 +23,8 @@ import { raw } from "hono/html";
 import { routes } from "@/routes/routes";
 import { generateQrSvg } from "@/lib/qr";
 import { BAuthSession, type ActionResult } from "@/lib/types";
-import { actions } from "@/routes/auth/dashboard";
+import { actions, type DashboardActionData } from "@/routes/auth/dashboard";
 import { auth } from "@/server/auth";
-
-export type DashboardActionData = {
-    result?: ActionResult<typeof actions>;
-    totp?: TotpState;
-};
 
 export type LinkedAccount = {
     id: string;
@@ -110,7 +105,7 @@ export function DashboardPage({ actionData, loaderData }: DashboardProps) {
                         <TwoFactorSection
                             state={{
                                 userEnabled: loaderData.user.twoFactorEnabled ? true : false,
-                                ...actionData?.totp,
+                                ...actionData?.state,
                             }}
                             result={actionData?.result}
                         />

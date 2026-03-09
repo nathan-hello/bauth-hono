@@ -1,4 +1,6 @@
 import type { Handler } from "hono";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import type { ActionResult, RouteActionData } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -6,21 +8,13 @@ import {
     DashboardLoaderData,
     DashboardPage,
     LinkedAccount,
-    type DashboardActionData,
     type TotpState,
 } from "@/views/auth/dashboard";
 import { routes } from "@/routes/routes";
-import { convertSetCookiesToCookies } from "@/lib/cookies";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry("route.dashboard");
-
-type ActionReturnData = {
-    result?: DashboardActionData["result"];
-    totp?: TotpState;
-    headers?: Headers;
-};
 
 export const actions = {
     change_password: { name: "change_password", handler: PasswordChange },
@@ -36,6 +30,14 @@ export const actions = {
     unlink_account: { name: "unlink_account", handler: UnlinkAccount },
     link_account: { name: "link_account", handler: LinkAccount },
 } as const;
+
+export type DashboardActionData = RouteActionData<typeof actions, TotpState>;
+
+type ActionReturnData = {
+    result?: ActionResult<typeof actions>;
+    state?: TotpState;
+    headers?: Headers;
+};
 
 async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | null> {
     const session = await auth.api.getSession({ headers });
@@ -61,7 +63,15 @@ export const get: Handler = async (c) => {
             return new Redirect(c.req.raw).Because.NoSession();
         }
 
-        return c.html(DashboardPage({ loaderData: session }));
+        const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, TotpState>>(c.req.raw.headers.get("cookie"));
+
+        return c.html(
+            DashboardPage({
+                loaderData: session,
+                actionData: deserializeActionData<typeof actions, TotpState>(flash.actionData),
+            }),
+            { headers: flash.headers },
+        );
     });
     if (result.ok) {
         return result.data;
@@ -89,35 +99,18 @@ export const post: Handler = async (c) => {
             return result.data;
         }
 
-        const headersForLoader = result.data.headers
-            ? convertSetCookiesToCookies(c.req.raw.headers, result.data.headers)
-            : c.req.raw.headers;
-        const loaderAfterSuccess = await getLoaderData(headersForLoader);
-        if (!loaderAfterSuccess) {
-            return new Redirect(c.req.raw).Because.NoSession();
-        }
-
-        return c.html(
-            DashboardPage({
-                actionData: { result: result.data.result, totp: result.data.totp },
-                loaderData: loaderAfterSuccess,
+        return new Redirect(c.req.raw, result.data.headers).Flash(
+            serializeActionData<typeof actions, TotpState>({
+                result: result.data.result ?? { action: action, success: true },
+                state: result.data.state,
             }),
-            { headers: result.data.headers },
         );
     }
 
-    const loaderAfterError = await getLoaderData(c.req.raw.headers);
-    if (!loaderAfterError) {
-        return new Redirect(c.req.raw).Because.NoSession();
-    }
-
-    return c.html(
-        DashboardPage({
-            actionData: {
-                result: { action, success: false, errors: result.error },
-                totp: await getTotpStateAfterError(c.req.raw, form),
-            },
-            loaderData: loaderAfterError,
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, TotpState>({
+            result: { action, success: false, errors: result.error },
+            state: await getTotpStateAfterError(c.req.raw, form),
         }),
     );
 };
@@ -219,7 +212,7 @@ async function TwoFactorEnable(request: Request, form: FormData): Promise<Action
         returnHeaders: true,
     });
     return {
-        totp: {
+        state: {
             intermediateEnable: true,
             totpURI: result.response.totpURI,
             backupCodes: result.response.backupCodes,
@@ -289,7 +282,7 @@ async function TwoFactorTotpVerify(request: Request, form: FormData): Promise<Ac
             success: true,
         },
         headers: result.headers,
-        totp: {
+        state: {
             userEnabled: true,
             totpURI: totpURI,
             backupCodes: backupCodesRaw ? JSON.parse(backupCodesRaw) : undefined,
@@ -323,7 +316,7 @@ async function TwoFactorGetTotpUri(request: Request, form: FormData): Promise<Ac
     });
     return {
         headers: result.headers,
-        totp: {
+        state: {
             totpURI: result.response.totpURI,
             userEnabled: true,
         },
@@ -346,7 +339,7 @@ async function TwoFactorGetBackupCodes(request: Request, form: FormData): Promis
     });
     return {
         headers: result.headers,
-        totp: {
+        state: {
             backupCodes: result.response.backupCodes,
             userEnabled: true,
         },
