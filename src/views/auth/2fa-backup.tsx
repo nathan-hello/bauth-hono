@@ -2,14 +2,9 @@ import { copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label, ButtonLink } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
-import { actions } from "@/routes/auth/2fa-backup";
-import { ActionResult } from "@/lib/types";
+import { type TwoFactorBackupActionData, type TwoFactorBackupLoaderData, actions } from "@/routes/auth/2fa-backup";
 
-export type ActionReturnData = {
-    result?: ActionResult<typeof actions>;
-};
-
-export function TwoFactorBackupPage({ result }: ActionReturnData) {
+export function TwoFactorBackupPage({ actionData }: { loaderData: TwoFactorBackupLoaderData; actionData?: TwoFactorBackupActionData }) {
     return (
         <Layout meta={copy.routes.auth.twoFactorBackup}>
             <Card>
@@ -17,15 +12,15 @@ export function TwoFactorBackupPage({ result }: ActionReturnData) {
                     {copy.twofa_prompt_backup}
                 </Label>
 
-                <ErrorAlerts errors={result?.action === "top-of-page" ? result.errors : undefined} />
+                <ErrorAlerts errors={actionData?.result.action === "top-of-page" ? actionData.result.errors : undefined} />
 
-                <BackupCodeVerificationForm result={result} />
+                <BackupCodeVerificationForm result={actionData?.result} />
             </Card>
         </Layout>
     );
 }
 
-function BackupCodeVerificationForm({ result }: { result: ActionReturnData["result"] }) {
+function BackupCodeVerificationForm({ result }: { result: TwoFactorBackupActionData["result"] | undefined }) {
     return (
         <>
             <Form

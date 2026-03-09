@@ -1,16 +1,15 @@
 import { copy } from "@/lib/copy";
-import type { ActionResult } from "@/lib/types";
-import { actions } from "@/routes/auth/setup";
+import { type SetupActionData, type SetupLoaderData, actions } from "@/routes/auth/setup";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, ButtonLink, Form, Header, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type Props = {
-    email: string;
-    result?: ActionResult<typeof actions>;
+    loaderData: SetupLoaderData;
+    actionData?: SetupActionData;
 };
 
-export function SetupPage({ email, result }: Props) {
+export function SetupPage({ loaderData, actionData }: Props) {
     return (
         <Layout meta={copy.routes.auth.setup}>
             <Card>
@@ -20,9 +19,9 @@ export function SetupPage({ email, result }: Props) {
                         method="post"
                         action={routes.auth.setup}
                         formAction={actions.setup.name}
-                        result={result}
+                        result={actionData?.result}
                     >
-                        <Input type="email" name="email" value={email} required placeholder={copy.email} />
+                        <Input type="email" name="email" value={loaderData.email} required placeholder={copy.email} />
                         <Input
                             type="password"
                             name="new_password"

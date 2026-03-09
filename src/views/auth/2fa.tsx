@@ -2,20 +2,14 @@ import { copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label, ButtonLink } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
-import { actions } from "@/routes/auth/2fa";
-import { ActionResult } from "@/lib/types";
+import { type TwoFactorActionData, type TwoFactorLoaderData, actions } from "@/routes/auth/2fa";
 
-export type ActionReturnData = {
-    result?: ActionResult<typeof actions>;
+export type TwoFactorActionState = {
     verificationType?: "totp" | "email";
 };
 
-export type TwoFactorState = {
-    verificationType: "totp" | "email";
-};
-
-export function TwoFactorPage(state: ActionReturnData | null) {
-    const verificationType = state?.verificationType || "totp";
+export function TwoFactorPage({ actionData }: { loaderData: TwoFactorLoaderData; actionData?: TwoFactorActionData }) {
+    const verificationType = actionData?.state?.verificationType || "totp";
 
     return (
         <Layout meta={copy.routes.auth.twoFactor}>
@@ -24,10 +18,10 @@ export function TwoFactorPage(state: ActionReturnData | null) {
                     {verificationType === "totp" ? copy.twofa_prompt_totp : copy.twofa_prompt_email}
                 </Label>
 
-                <ErrorAlerts errors={state?.result?.action === "top-of-page" ? state.result.errors : undefined} />
+                <ErrorAlerts errors={actionData?.result.action === "top-of-page" ? actionData.result.errors : undefined} />
 
-                {verificationType === "email" && <EmailVerificationForm result={state?.result} />}
-                {verificationType === "totp" && <TotpVerificationForm result={state?.result} />}
+                {verificationType === "email" && <EmailVerificationForm result={actionData?.result} />}
+                {verificationType === "totp" && <TotpVerificationForm result={actionData?.result} />}
                 <FormFooter>
                     <TextLink href={routes.auth.twoFactorBackup}>{copy.twofa_use_backup}</TextLink>
                     <TextLink href="/auth/login">{copy.back_to_login}</TextLink>
@@ -37,7 +31,7 @@ export function TwoFactorPage(state: ActionReturnData | null) {
     );
 }
 
-function EmailVerificationForm({ result }: { result: ActionReturnData["result"] }) {
+function EmailVerificationForm({ result }: { result: TwoFactorActionData["result"] | undefined }) {
     return (
         <>
             <Form
@@ -70,7 +64,7 @@ function EmailVerificationForm({ result }: { result: ActionReturnData["result"] 
     );
 }
 
-function TotpVerificationForm({ result }: { result: ActionReturnData["result"] }) {
+function TotpVerificationForm({ result }: { result: TwoFactorActionData["result"] | undefined }) {
     return (
         <>
             <Form method="post" action={routes.auth.twoFactor} formAction={actions.verify_totp.name} result={result}>

@@ -1,9 +1,9 @@
 import type { Handler } from "hono";
 import { Context } from "hono";
 import { desc, like, or, type InferSelectModel } from "drizzle-orm";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import { convertSetCookiesToCookies } from "@/lib/cookies";
-import type { ActionResult } from "@/lib/types";
+import type { ActionResult, RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -27,13 +27,11 @@ export const actions = {
 
 export type AdminUser = InferSelectModel<typeof schema.user>;
 
-export type AdminActionResult = ActionResult<typeof actions> & {
+export type AdminActionState = {
     userId?: string;
 };
 
-export type AdminActionData = {
-    result?: AdminActionResult;
-};
+export type AdminActionData = RouteActionData<typeof actions, AdminActionState>;
 
 export type AdminFilters = {
     q: string;
@@ -49,7 +47,8 @@ export type AdminLoaderData = {
 
 type ActionReturnData = {
     headers?: Headers;
-    result?: AdminActionResult;
+    result?: ActionResult<typeof actions>;
+    state?: AdminActionState;
 };
 
 async function getLoaderData(filters: AdminFilters): Promise<AdminLoaderData> {
@@ -117,11 +116,20 @@ export const get: Handler = async (c) => {
 
     const loaderData = await getLoaderData(filters);
 
-    return c.html(AdminPage({ loaderData }));
+    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, AdminActionState>>(
+        c.req.raw.headers.get("cookie"),
+    );
+
+    return c.html(
+        AdminPage({
+            loaderData,
+            actionData: deserializeActionData<typeof actions, AdminActionState>(flash.actionData),
+        }),
+        { headers: flash.headers },
+    );
 };
 
 export async function post(c: Context) {
-    const filters = getFilters(c.req.raw.url);
     const adminState = await userIsAdmin(c.req.raw.headers);
     if (!adminState.session) {
         return new Redirect(c.req.raw).Because.NoSession();
@@ -131,7 +139,6 @@ export async function post(c: Context) {
         return new Redirect(c.req.raw, adminState.headers).Because.NotAnAdmin();
     }
 
-    const loaderDataBefore = await getLoaderData(filters);
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
     const userId = form.get("userId")?.toString();
@@ -143,34 +150,22 @@ export async function post(c: Context) {
     });
 
     if (result.ok) {
-        const headersForLoader = result.data.headers
-            ? convertSetCookiesToCookies(c.req.raw.headers, result.data.headers)
-            : c.req.raw.headers;
-        const adminStateAfter = await userIsAdmin(headersForLoader);
-        if (!adminStateAfter.session) {
-            return new Redirect(c.req.raw).Because.NoSession();
-        }
-        if (!adminStateAfter.success) {
-            return new Redirect(c.req.raw, adminStateAfter.headers).Because.NotAnAdmin();
-        }
-
-        const loaderDataAfter = await getLoaderData(filters);
-        return c.html(AdminPage({ loaderData: loaderDataAfter, actionData: { result: result.data.result } }), {
-            headers: result.data.headers,
-        });
+        return new Redirect(c.req.raw, result.data.headers).Flash(
+            serializeActionData<typeof actions, AdminActionState>({
+                result: result.data.result ?? { action, success: true },
+                state: result.data.state,
+            }),
+        );
     }
 
-    return c.html(
-        AdminPage({
-            loaderData: loaderDataBefore,
-            actionData: {
-                result: {
-                    action,
-                    success: false,
-                    errors: result.error,
-                    userId,
-                },
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, AdminActionState>({
+            result: {
+                action,
+                success: false,
+                errors: result.error,
             },
+            state: { userId },
         }),
     );
 }
@@ -192,7 +187,8 @@ async function BanUser(request: Request, form: FormData): Promise<ActionReturnDa
 
     return {
         headers: r.headers,
-        result: { action: actions.ban_user.name, success: true, userId },
+        result: { action: actions.ban_user.name, success: true },
+        state: { userId },
     };
 }
 
@@ -215,7 +211,8 @@ async function UpdateBan(request: Request, form: FormData): Promise<ActionReturn
 
     return {
         headers: r.headers,
-        result: { action: actions.update_ban.name, success: true, userId },
+        result: { action: actions.update_ban.name, success: true },
+        state: { userId },
     };
 }
 
@@ -230,7 +227,8 @@ async function UnbanUser(request: Request, form: FormData): Promise<ActionReturn
 
     return {
         headers: r.headers,
-        result: { action: actions.unban_user.name, success: true, userId },
+        result: { action: actions.unban_user.name, success: true },
+        state: { userId },
     };
 }
 
@@ -255,7 +253,8 @@ async function UpdateProfile(request: Request, form: FormData): Promise<ActionRe
 
     return {
         headers: r.headers,
-        result: { action: actions.update_profile.name, success: true, userId },
+        result: { action: actions.update_profile.name, success: true },
+        state: { userId },
     };
 }
 
@@ -274,7 +273,8 @@ async function UpdateRole(request: Request, form: FormData): Promise<ActionRetur
 
     return {
         headers: r.headers,
-        result: { action: actions.update_role.name, success: true, userId },
+        result: { action: actions.update_role.name, success: true },
+        state: { userId },
     };
 }
 
@@ -297,7 +297,8 @@ async function UpdateHandles(request: Request, form: FormData): Promise<ActionRe
 
     return {
         headers: r.headers,
-        result: { action: actions.update_handles.name, success: true, userId },
+        result: { action: actions.update_handles.name, success: true },
+        state: { userId },
     };
 }
 

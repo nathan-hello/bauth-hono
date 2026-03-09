@@ -1,5 +1,7 @@
 import { Context } from "hono";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
+import type { RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -14,6 +16,13 @@ export const actions = {
     resend_verification: { name: "resend_verification", handler: ResendVerification },
 };
 
+export type ChangeEmailLoaderData = {
+    currentEmail: string;
+    emailVerified: boolean;
+};
+
+export type ChangeEmailActionData = RouteActionData<typeof actions>;
+
 type ActionReturnData = {
     verificationSent?: boolean;
     headers?: Headers;
@@ -25,17 +34,22 @@ export async function get(c: Context) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
+    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions>>(c.req.raw.headers.get("cookie"));
+
     return c.html(
         ChangeEmailPage({
-            currentEmail: session.user.email,
-            emailVerified: session.user.emailVerified,
+            loaderData: {
+                currentEmail: session.user.email,
+                emailVerified: session.user.emailVerified,
+            },
+            actionData: deserializeActionData<typeof actions, undefined>(flash.actionData),
         }),
+        { headers: flash.headers },
     );
 }
 
 export async function post(c: Context) {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (!session) {
+    if (!(await auth.api.getSession({ headers: c.req.raw.headers }))) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
@@ -49,21 +63,15 @@ export async function post(c: Context) {
     });
 
     if (result.ok) {
-        return c.html(
-            ChangeEmailPage({
-                currentEmail: session.user.email,
-                emailVerified: session.user.emailVerified,
+        return new Redirect(c.req.raw, result.data.headers).Flash(
+            serializeActionData<typeof actions, undefined>({
                 result: { action, success: true },
-                verificationSent: result.data.verificationSent,
             }),
-            { headers: result.data.headers },
         );
     }
 
-    return c.html(
-        ChangeEmailPage({
-            currentEmail: session.user.email,
-            emailVerified: session.user.emailVerified,
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, undefined>({
             result: { action, success: false, errors: result.error },
         }),
     );

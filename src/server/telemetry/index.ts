@@ -61,7 +61,6 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
 
     task<R>(name: string, fn: (span: Span) => R | Promise<R>): TaskResult<R> | Promise<TaskResult<R>> {
         return this.tracer.startActiveSpan(name, (span) => {
-            this.info("START");
             try {
                 const result = fn(span);
 

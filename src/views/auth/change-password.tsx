@@ -1,22 +1,26 @@
 import { copy } from "@/lib/copy";
 import type { ActionResult } from "@/lib/types";
-import { actions } from "@/routes/auth/change-password";
+import { type ChangePasswordActionData, type ChangePasswordLoaderData, actions } from "@/routes/auth/change-password";
 import { Layout } from "@/views/components/layout";
 import { Input, Button, ButtonLink, Card, Form, Header, Label, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type Props = {
-    hasCredential: boolean;
-    result?: ActionResult<typeof actions>;
+    loaderData: ChangePasswordLoaderData;
+    actionData?: ChangePasswordActionData;
 };
 
-export function ChangePasswordPage({ hasCredential, result }: Props) {
+export function ChangePasswordPage({ loaderData, actionData }: Props) {
     return (
         <Layout meta={copy.routes.auth.changePassword}>
             <Card>
-                <Header>{hasCredential ? copy.password_change : copy.password_set}</Header>
+                <Header>{loaderData.hasCredential ? copy.password_change : copy.password_set}</Header>
                 <Section>
-                    {hasCredential ? <ChangePasswordForm result={result} /> : <SetPasswordForm result={result} />}
+                    {loaderData.hasCredential ? (
+                        <ChangePasswordForm result={actionData?.result} />
+                    ) : (
+                        <SetPasswordForm result={actionData?.result} />
+                    )}
                 </Section>
                 <Section>
                     <ButtonLink href={routes.auth.dashboard}>{copy.go_back}</ButtonLink>

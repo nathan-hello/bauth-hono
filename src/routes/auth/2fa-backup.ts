@@ -1,9 +1,11 @@
-import type { Context, Handler } from "hono";
+import type { Handler } from "hono";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { TwoFactorBackupPage } from "@/views/auth/2fa-backup";
 import { parse } from "cookie";
+import type { RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { findAction } from "@/routes/auth/lib/check-action";
@@ -15,27 +17,39 @@ export const actions = {
     verify_backup_code: { name: "verify_backup_code", handler: VerifyBackupCode },
 };
 
+export type TwoFactorBackupLoaderData = {};
+
+export type TwoFactorBackupActionData = RouteActionData<typeof actions>;
+
 export const get: Handler = async (c) => {
     const result = await tel.task("GET", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
 
         const cookies = c.req.raw.headers.get("cookie");
         if (!cookies) {
-            return c.html(TwoFactorBackupPage({}));
+            return c.html(TwoFactorBackupPage({ loaderData: {} }));
         }
 
         const parsed = parse(cookies);
         const cookieKey = dotenv.COOKIE_PREFIX + ".two_factor";
         if (!parsed[cookieKey] && !parsed["__Secure." + cookieKey]) {
-            return c.html(TwoFactorBackupPage({}));
+            return c.html(TwoFactorBackupPage({ loaderData: {} }));
         }
 
-        return c.html(TwoFactorBackupPage({}));
+        const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions>>(c.req.raw.headers.get("cookie"));
+
+        return c.html(
+            TwoFactorBackupPage({
+                loaderData: {},
+                actionData: deserializeActionData<typeof actions, undefined>(flash.actionData),
+            }),
+            { headers: flash.headers },
+        );
     });
     if (result.ok) {
         return result.data;
     }
-    return c.html(TwoFactorBackupPage({}));
+    return c.html(TwoFactorBackupPage({ loaderData: {} }));
 };
 
 export const post: Handler = async (c) => {
@@ -52,11 +66,11 @@ export const post: Handler = async (c) => {
         if (result.data instanceof Headers) {
             return new Redirect(c.req.raw, result.data).After.Login();
         }
-        return c.html(TwoFactorBackupPage(result.data));
+        return new Redirect(c.req.raw).Flash(serializeActionData<typeof actions, undefined>(result.data));
     }
 
-    return c.html(
-        TwoFactorBackupPage({
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, undefined>({
             result: { action, success: false, errors: result.error },
         }),
     );

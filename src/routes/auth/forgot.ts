@@ -1,6 +1,8 @@
 import type { Handler } from "hono";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
+import type { RouteActionData } from "@/lib/types";
 import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { ForgotPage, type ForgotStep } from "@/views/auth/forgot";
@@ -15,6 +17,16 @@ export const actions = {
     forgot: { name: "forgot", handler: Forgot },
 };
 
+export type ForgotLoaderData = {};
+
+export type ForgotActionState = {
+    step: ForgotStep;
+    email?: string;
+    code?: string;
+};
+
+export type ForgotActionData = RouteActionData<typeof actions, ForgotActionState>;
+
 type ActionReturnData = {
     step: ForgotStep;
     email?: string;
@@ -28,7 +40,17 @@ export const get: Handler = async (c) => {
         if (!existing) {
             return new Redirect(c.req.raw).Because.NoSession();
         }
-        return c.html(ForgotPage({ step: "start" }));
+        const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, ForgotActionState>>(
+            c.req.raw.headers.get("cookie"),
+        );
+
+        return c.html(
+            ForgotPage({
+                loaderData: {},
+                actionData: deserializeActionData<typeof actions, ForgotActionState>(flash.actionData),
+            }),
+            { headers: flash.headers },
+        );
     });
     if (result.ok) {
         return result.data;
@@ -43,14 +65,14 @@ export const post: Handler = async (c) => {
     const email = form.get("email")?.toString();
 
     if (!step || !["start", "code", "update", "try-again"].includes(step)) {
-        return c.html(
-            ForgotPage({
-                step: "start",
+        return new Redirect(c.req.raw).Flash(
+            serializeActionData<typeof actions, ForgotActionState>({
                 result: {
                     action: "forgot",
                     success: false,
                     errors: [new AppError("generic_error")],
                 },
+                state: { step: "start" },
             }),
         );
     }
@@ -65,25 +87,35 @@ export const post: Handler = async (c) => {
         if (result.data instanceof Response) {
             return result.data;
         }
-        return c.html(ForgotPage({ step: result.data.step, email: result.data.email, code: result.data.code }));
+        return new Redirect(c.req.raw).Flash(
+            serializeActionData<typeof actions, ForgotActionState>({
+                result: { action: action || actions.forgot.name, success: true },
+                state: { step: result.data.step, email: result.data.email, code: result.data.code },
+            }),
+        );
     }
 
     // TOO_MANY_ATTEMPTS is a special case because we want to advance
     // the 'step' to 'try-again'
     if (result.error instanceof APIError && result.error.body?.code === "TOO_MANY_ATTEMPTS") {
-        return c.html(
-            ForgotPage({
-                step: "try-again",
+        return new Redirect(c.req.raw).Flash(
+            serializeActionData<typeof actions, ForgotActionState>({
                 result: {
                     action: "forgot",
                     success: false,
                     errors: [new AppError("TOO_MANY_ATTEMPTS")],
                 },
+                state: { step: "try-again" },
             }),
         );
     }
 
-    return c.html(ForgotPage({ step, result: { action: "forgot", success: false, errors: result.error }, email }));
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, ForgotActionState>({
+            result: { action: "forgot", success: false, errors: result.error },
+            state: { step, email },
+        }),
+    );
 };
 
 async function Forgot(c: Context, form: FormData): Promise<ActionReturnData | Response> {

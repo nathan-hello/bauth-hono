@@ -75,7 +75,7 @@ export function AdminPage({ loaderData, error, actionData }: AdminProps) {
                                 user={user}
                                 actionData={actionData}
                                 filters={loaderData.filters}
-                                open={actionData?.result?.userId === user.id}
+                                open={actionData?.state?.userId === user.id}
                             />
                         ))
                     )}
@@ -405,7 +405,7 @@ function InlineResult({
     userId: string;
 }) {
     const result = actionData?.result;
-    if (!result || result.action !== action || result.userId !== userId) {
+    if (!result || result.action !== action || actionData?.state?.userId !== userId) {
         return null;
     }
 

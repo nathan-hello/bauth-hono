@@ -1,8 +1,10 @@
 import type { Context, Handler } from "hono";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import type { RouteActionData } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { ActionReturnData, TwoFactorPage } from "@/views/auth/2fa";
+import { TwoFactorActionState, TwoFactorPage } from "@/views/auth/2fa";
 import { parse } from "cookie";
 import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
@@ -17,6 +19,10 @@ export const actions = {
     verify_totp: { name: "verify_totp", handler: VerifyTotp },
     verify_email: { name: "verify_email", handler: VerifyEmail },
 };
+
+export type TwoFactorLoaderData = {};
+
+export type TwoFactorActionData = RouteActionData<typeof actions, TwoFactorActionState>;
 
 
 export const get: Handler = async (c) => {
@@ -34,7 +40,17 @@ export const get: Handler = async (c) => {
             return new Redirect(c.req.raw).Because.NoTwoFactorCookie();
         }
 
-        return c.html(TwoFactorPage({}));
+        const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, TwoFactorActionState>>(
+            c.req.raw.headers.get("cookie"),
+        );
+
+        return c.html(
+            TwoFactorPage({
+                loaderData: {},
+                actionData: deserializeActionData<typeof actions, TwoFactorActionState>(flash.actionData),
+            }),
+            { headers: flash.headers },
+        );
     });
     if (result.ok) {
         return result.data;
@@ -56,25 +72,27 @@ export const post: Handler = async (c) => {
         if (result.data instanceof Headers) {
             return new Redirect(c.req.raw, result.data).After.Login();
         }
-        return c.html(TwoFactorPage(result.data));
+        return new Redirect(c.req.raw).Flash(serializeActionData<typeof actions, TwoFactorActionState>(result.data));
     }
 
     const verificationType =
         action === "verify_email" || action === "resend_email" ? ("email" as const) : ("totp" as const);
 
-    return c.html(
-        TwoFactorPage({
-            verificationType,
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, TwoFactorActionState>({
             result: {
                 action,
                 success: false,
                 errors: result.error,
             },
+            state: {
+                verificationType,
+            },
         }),
     );
 };
 
-async function Switch(c: Context, form: FormData): Promise<ActionReturnData> {
+async function Switch(c: Context, form: FormData): Promise<TwoFactorActionData> {
     const to = form.get("to")?.toString();
     if (to === "email") {
         await auth.api.sendTwoFactorOTP({
@@ -89,11 +107,11 @@ async function Switch(c: Context, form: FormData): Promise<ActionReturnData> {
             action: "switch",
             success: true,
         },
-        verificationType,
+        state: { verificationType },
     };
 }
 
-async function ResendEmail(c: Context, _form: FormData): Promise<ActionReturnData> {
+async function ResendEmail(c: Context, _form: FormData): Promise<TwoFactorActionData> {
     const { status } = await auth.api.sendTwoFactorOTP({
         body: { trustDevice: true },
         headers: c.req.raw.headers,
@@ -107,7 +125,7 @@ async function ResendEmail(c: Context, _form: FormData): Promise<ActionReturnDat
             action: "resend_email",
             success: true,
         },
-        verificationType: "email",
+        state: { verificationType: "email" },
     };
 }
 

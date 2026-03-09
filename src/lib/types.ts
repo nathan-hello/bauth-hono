@@ -10,6 +10,14 @@ export type ActionKeys<TActions> = {
     [K in keyof TActions]: TActions[K] extends { name: string } ? TActions[K]["name"] : never;
 };
 
+export type RouteActionData<
+    TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } },
+    TState = undefined,
+> = {
+    result: ActionResult<TActions>;
+    state?: TState;
+};
+
 export type BAuthSessionMaybe = {
     session: {
         id: string;

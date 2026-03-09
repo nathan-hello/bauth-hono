@@ -1,6 +1,8 @@
 import type { Handler } from "hono";
 import { Context } from "hono";
+import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
+import type { RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -14,6 +16,12 @@ export const actions = {
     setup: { name: "setup", handler: Setup },
 };
 
+export type SetupLoaderData = {
+    email: string;
+};
+
+export type SetupActionData = RouteActionData<typeof actions>;
+
 type ActionReturnData = {
     headers?: Headers;
 };
@@ -25,7 +33,15 @@ export const get: Handler = async (c) => {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    return c.html(SetupPage({ email: session.user.email }));
+    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions>>(c.req.raw.headers.get("cookie"));
+
+    return c.html(
+        SetupPage({
+            loaderData: { email: session.user.email },
+            actionData: deserializeActionData<typeof actions, undefined>(flash.actionData),
+        }),
+        { headers: flash.headers },
+    );
 };
 
 export async function post(c: Context) {
@@ -47,7 +63,11 @@ export async function post(c: Context) {
         return new Redirect(c.req.raw, result.data.headers).After.OAuth();
     }
 
-    return c.html(SetupPage({ email: session.user.email, result: { action, success: false, errors: result.error } }));
+    return new Redirect(c.req.raw).Flash(
+        serializeActionData<typeof actions, undefined>({
+            result: { action, success: false, errors: result.error },
+        }),
+    );
 }
 
 async function Setup(request: Request, form: FormData): Promise<ActionReturnData> {

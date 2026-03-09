@@ -1,18 +1,15 @@
 import { copy } from "@/lib/copy";
-import type { ActionResult } from "@/lib/types";
-import { actions } from "@/routes/auth/change-email";
+import { type ChangeEmailActionData, type ChangeEmailLoaderData, actions } from "@/routes/auth/change-email";
 import { Layout } from "@/views/components/layout";
 import { Input, Button, ButtonLink, Card, Form, Header, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
 type Props = {
-    currentEmail: string;
-    emailVerified: boolean;
-    result?: ActionResult<typeof actions>;
-    verificationSent?: boolean;
+    loaderData: ChangeEmailLoaderData;
+    actionData?: ChangeEmailActionData;
 };
 
-export function ChangeEmailPage({ result }: Props) {
+export function ChangeEmailPage({ actionData }: Props) {
     return (
         <Layout meta={copy.routes.auth.changeEmail}>
             <Card>
@@ -21,7 +18,7 @@ export function ChangeEmailPage({ result }: Props) {
                     <Form
                         method="post"
                         action={routes.auth.changeEmail}
-                        result={result}
+                        result={actionData?.result}
                         formAction={actions.change_email.name}
                         success={copy.email_verification_sent}
                     >

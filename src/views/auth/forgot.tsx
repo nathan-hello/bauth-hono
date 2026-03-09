@@ -1,6 +1,5 @@
 import { copy } from "@/lib/copy";
-import type { ActionResult } from "@/lib/types";
-import { actions } from "@/routes/auth/forgot";
+import { type ForgotActionData, type ForgotLoaderData, actions } from "@/routes/auth/forgot";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, Form, Label } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
@@ -8,17 +7,19 @@ import { routes } from "@/routes/routes";
 export type ForgotStep = "start" | "code" | "update" | "try-again";
 
 type ForgotProps = {
-    result?: ActionResult<typeof actions>;
-    email?: string;
-    code?: string;
-    step: ForgotStep;
+    loaderData: ForgotLoaderData;
+    actionData?: ForgotActionData;
 };
 
-export function ForgotPage({ result, email, code, step }: ForgotProps) {
+export function ForgotPage({ actionData }: ForgotProps) {
+    const step = actionData?.state?.step ?? "start";
+    const email = actionData?.state?.email;
+    const code = actionData?.state?.code;
+
     return (
         <Layout meta={copy.routes.auth.forgot}>
             <Card>
-                <Form method="post" action={routes.auth.forgot} formAction={actions.forgot.name} result={result}>
+                <Form method="post" action={routes.auth.forgot} formAction={actions.forgot.name} result={actionData?.result}>
                     {step === "start" && (
                         <>
                             <input type="hidden" name="step" value="start" />
