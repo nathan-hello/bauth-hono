@@ -2,9 +2,9 @@ import { useCopy, type Copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label, ButtonLink } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
-import { Props, actions } from "@/routes/auth/backup-code";
+import { BackupCodeProps, actions } from "@/routes/auth/backup-code";
 
-export function TwoFactorBackupPage(props: Props) {
+export function TwoFactorBackupPage(props: BackupCodeProps) {
     return (
         <Layout meta={props.copy.routes.auth.twoFactorBackup} copy={props.copy}>
             <Card>
@@ -22,7 +22,7 @@ export function TwoFactorBackupPage(props: Props) {
     );
 }
 
-function BackupCodeVerificationForm(props: Props) {
+function BackupCodeVerificationForm(props: BackupCodeProps) {
     const copy = useCopy();
     return (
         <>

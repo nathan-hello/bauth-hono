@@ -10,12 +10,6 @@ export type HandlerData<TState> =
     | { response: Response }
     | null;
 
-export type ComponentProps<TActions extends { [K: string]: { name: string } }, TState> = {
-    result?: ActionResult<TActions, TState>;
-    state: TState;
-    copy: Copy;
-};
-
 export type ActionResult<TActions extends { [K: string]: { name: string } }, TState> = TaskResult<
     HandlerData<TState>,
     { action: ActionNames<TActions> | undefined }
