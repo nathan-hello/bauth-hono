@@ -1,22 +1,21 @@
-import type { Handler } from "hono";
-import { Context, Hono } from "hono";
+import { Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import { AppEnv, type RouteActionData } from "@/lib/types";
+import { AppEnv, BaseProps } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
-import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { ChangeUsernamePage } from "@/views/auth/change-username";
 import { Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
+import { findAction } from "@/routes/auth/lib/check-action";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.changeUsername);
-const flash = new Flash<typeof actions>();
+const flash = new Flash<typeof actions, State>(undefined);
 
-type ActionReturnData = { headers?: Headers };
-export type ChangeUsernameLoaderData = { username: string };
-export type ChangeUsernameActionData = RouteActionData<typeof actions>;
+type State = undefined;
+export type ChangeUsernameProps = BaseProps<typeof actions, State> & { username: string };
 
 export const actions = { change_username: { name: "change_username", handler: ChangeUsername } };
 
@@ -29,40 +28,36 @@ app.get("/", async (c) => {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
+    const { state, result, headers } = flash.Consume(c.req.raw.headers);
 
     return c.html(
         ChangeUsernamePage({
-            loaderData: { username: session.user.username || "" },
-            actionData,
+            state,
+            result,
             copy,
+            username: session.user.username ?? copy.username_not_set,
         }),
         { headers },
     );
 });
 
 app.post("/", async (c) => {
-    if (!(await auth.api.getSession({ headers: c.req.raw.headers }))) {
-        return new Redirect(c.req.raw).Because.NoSession();
-    }
-
     const form = await c.req.formData();
+    const action = form.get("action")?.toString();
 
-    const result = await tel.task("POST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw, form));
-        return await ChangeUsername(c.req.raw, form);
-    });
+    const result = await tel.task(
+        "POST",
+        async () => {
+            const handler = findAction(actions, action);
+            return await handler(c.req.raw, form);
+        },
+        { action },
+    );
 
-    if (result.ok) {
-        return new Redirect(c.req.raw, result.data.headers).After.OAuth();
-    }
-
-    return flash.Respond(c.req.raw, undefined, {
-        result: { action: "change_username", success: false, errors: result.error },
-    });
+    return flash.Respond(c.req.raw, result);
 });
 
-async function ChangeUsername(request: Request, form: FormData): Promise<ActionReturnData> {
+async function ChangeUsername(request: Request, form: FormData): Promise<{ response: Response }> {
     const username = form.get("username")?.toString();
 
     if (!username) throw new AppError("field_missing_username");
@@ -73,7 +68,7 @@ async function ChangeUsername(request: Request, form: FormData): Promise<ActionR
         returnHeaders: true,
     });
 
-    return { headers: r.headers };
+    return { response: new Redirect(request, r.headers).After.OAuth() };
 }
 
 export default app;

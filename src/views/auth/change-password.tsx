@@ -8,9 +8,9 @@ export function ChangePasswordPage(props: ChangePasswordProps) {
     return (
         <Layout meta={props.copy.routes.auth.changePassword} copy={props.copy}>
             <Card>
-                <Header>{props.state.hasCredential ? props.copy.password_change : props.copy.password_set}</Header>
+                <Header>{props.hasCredential ? props.copy.password_change : props.copy.password_set}</Header>
                 <Section>
-                    {props.state.hasCredential ? (
+                    {props.hasCredential ? (
                         <ChangePasswordForm result={props.result} />
                     ) : (
                         <SetPasswordForm result={props.result} />
