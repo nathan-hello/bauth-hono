@@ -20,6 +20,7 @@ const baTel = new Telemetry("better-auth");
 
 export const auth = betterAuth({
     baseURL: dotenv.PRODUCTION_URL,
+    appName: dotenv.PRODUCTION_URL,
     secret: dotenv.BETTER_AUTH_SECRET,
 
     emailVerification: {
@@ -87,6 +88,7 @@ export const auth = betterAuth({
         }),
         twoFactor({
             issuer: dotenv.PRODUCTION_URL,
+            trustDeviceMaxAge: 60 * 60 * 24 * 365,
             otpOptions: {
                 storeOTP: "plain",
                 sendOTP: async (data, _request) => {
