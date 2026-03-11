@@ -1,22 +1,21 @@
-import { Context, Hono } from "hono";
+import { Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import { AppEnv, type RouteActionData } from "@/lib/types";
+import { ActionResult, AppEnv } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
-import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { ChangeEmailPage } from "@/views/auth/change-email";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
-import { createCopy } from "@/lib/copy";
+import { Copy, createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.changeEmail);
-const flash = new Flash<typeof actions>();
+const flash = new Flash<typeof actions, State>({ currentEmail: "", emailVerified: false });
 
-type ActionReturnData = { verificationSent?: boolean; headers?: Headers };
-export type ChangeEmailLoaderData = { currentEmail: string; emailVerified: boolean };
-export type ChangeEmailActionData = RouteActionData<typeof actions>;
+export type State = { currentEmail: string; emailVerified: boolean };
+export type ChangeEmailProps = { result: ActionResult<typeof actions, State>; state: State; copy: Copy };
 
 export const actions = {
     change_email: { name: "change_email", handler: ChangeEmail },
@@ -54,24 +53,19 @@ app.post("/", async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    const result = await tel.task("POST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw, form));
-        const handler = findAction(actions, action);
-        return await handler(c.req.raw, form);
-    });
+    const result = await tel.task(
+        "POST",
+        async () => {
+            const handler = findAction(actions, action);
+            return await handler(c.req.raw, form);
+        },
+        { action },
+    );
 
-    if (result.ok) {
-        return flash.Respond(c.req.raw, result.data.headers, {
-            result: { action, success: true },
-        });
-    }
-
-    return flash.Respond(c.req.raw, undefined, {
-        result: { action, success: false, errors: result.error },
-    });
+    return flash.Respond(c.req.raw, result);
 });
 
-async function ChangeEmail(request: Request, form: FormData): Promise<ActionReturnData> {
+async function ChangeEmail(request: Request, form: FormData): Promise<{ headers: Headers }> {
     const newEmail = form.get("new_email")?.toString();
     if (!newEmail) throw new AppError("field_missing_email");
     const r = await auth.api.changeEmail({
@@ -82,13 +76,13 @@ async function ChangeEmail(request: Request, form: FormData): Promise<ActionRetu
     return { headers: r.headers };
 }
 
-async function ResendVerification(request: Request, _: FormData): Promise<ActionReturnData> {
+async function ResendVerification(request: Request, _: FormData): Promise<null> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) throw new AppError("SESSION_EXPIRED");
     await auth.api.sendVerificationEmail({
         body: { email: session.user.email },
     });
-    return { verificationSent: true };
+    return null;
 }
 
 export default app;

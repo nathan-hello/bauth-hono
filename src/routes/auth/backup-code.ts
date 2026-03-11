@@ -5,19 +5,19 @@ import { dotenv } from "@/server/env";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { TwoFactorBackupPage } from "@/views/auth/backup-code";
 import { parse } from "cookie";
-import {  AppEnv, ComponentProps } from "@/lib/types";
+import { ActionResult, AppEnv } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
-import { createCopy } from "@/lib/copy";
+import { Copy, createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.twoFactorBackup);
 const flash = new Flash<typeof actions>(undefined);
 
 export const actions = { verify_backup_code: { name: "verify_backup_code", handler: VerifyBackupCode } };
-export type Props = ComponentProps<typeof actions, undefined>;
+export type BackupCodeProps = { result?: ActionResult<typeof actions, undefined>; state: undefined; copy: Copy };
 
 app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
@@ -86,4 +86,3 @@ async function VerifyBackupCode(request: Request, form: FormData): Promise<{ res
 }
 
 export default app;
-

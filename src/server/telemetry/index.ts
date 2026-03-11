@@ -26,6 +26,9 @@ type TaskFailure<TMeta extends Attributes | undefined = undefined> = {
     meta: TMeta;
 };
 
+// TODO: use this in all route handlers (or a middleware???)
+type RequestSetter = (request: Request) => void;
+
 export type TaskResult<R, TMeta extends Attributes | undefined = undefined> =
     | TaskSuccess<R, TMeta>
     | TaskFailure<TMeta>;
@@ -72,22 +75,40 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
         return getLoggerProvider().getLogger(this.namespace);
     }
 
-    task<R>(name: string, fn: (span: Span) => Promise<R>): Promise<TaskResult<R, undefined>>;
-    task<R>(name: string, fn: (span: Span) => R): TaskResult<R, undefined>;
-    task<R, TMeta extends Attributes>(
+    // Overload 1: Simple Async
+    task<R>(name: string, fn: (span: Span, setRequest: RequestSetter) => Promise<R>): Promise<TaskResult<R, undefined>>;
+
+    // Overload 2: Simple Sync
+    task<R>(name: string, fn: (span: Span, setRequest: RequestSetter) => R): TaskResult<R, undefined>;
+
+    // Overload 3: Meta Async
+    task<R, TMeta extends Attributes & { request?: Request }>(
         name: string,
-        fn: (span: Span) => Promise<R>,
+        fn: (span: Span, setRequest: RequestSetter) => Promise<R>,
         meta: TMeta,
     ): Promise<TaskResult<R, TMeta>>;
-    task<R, TMeta extends Attributes>(name: string, fn: (span: Span) => R, meta: TMeta): TaskResult<R, TMeta>;
-    task<R, TMeta extends Attributes | undefined = undefined>(
+
+    // Overload 4: Meta Sync
+    task<R, TMeta extends Attributes & { request?: Request }>(
         name: string,
-        fn: (span: Span) => R | Promise<R>,
+        fn: (span: Span, setRequest: RequestSetter) => R,
+        meta: TMeta,
+    ): TaskResult<R, TMeta>;
+
+    // Implementation
+    task<R, TMeta extends (Attributes & { request?: Request }) | undefined = undefined>(
+        name: string,
+        fn: (span: Span, setRequest: RequestSetter) => R | Promise<R>,
         meta?: TMeta,
     ): TaskResult<R, TMeta> | Promise<TaskResult<R, TMeta>> {
         return this.tracer.startActiveSpan(name, (span) => {
             try {
-                const result = fn(span);
+                let req: Request;
+                const cb = (r: Request) => {
+                    req = r;
+                };
+
+                const result = fn(span, cb);
                 const traceId = span.spanContext().traceId;
 
                 span.setAttribute("promise", result instanceof Promise);
