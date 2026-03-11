@@ -4,7 +4,7 @@ import { TaskResult } from "@/server/telemetry";
 export type ActionNames<TActions extends { [K: string]: { name: string } }> = TActions[keyof TActions]["name"];
 
 export type ActionResult<TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } }> =
-    TaskResult<null> & { action: ActionNames<TActions> };
+    TaskResult<null> & { action: ActionNames<TActions> | string | undefined };
 
 export type ActionKeys<TActions> = {
     [K in keyof TActions]: TActions[K] extends { name: string } ? TActions[K]["name"] : never;
@@ -16,6 +16,14 @@ export type RouteActionData<
 > = {
     result: ActionResult<TActions>;
     state?: TState;
+};
+
+export type Props<
+    TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } },
+    TState = undefined,
+> = {
+    result?: ActionResult<TActions>;
+    state: TState;
 };
 
 export type BAuthSessionMaybe = {

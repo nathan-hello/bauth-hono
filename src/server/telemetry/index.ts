@@ -1,4 +1,4 @@
-import { trace, SpanStatusCode, type Span, context } from "@opentelemetry/api";
+import { trace, SpanStatusCode, type Span, context, Attributes } from "@opentelemetry/api";
 import { LogAttributes, SeverityNumber, type AnyValue } from "@opentelemetry/api-logs";
 import { getLoggerProvider } from "@/server/telemetry/sdk";
 import { AppError, ResendErrorCodes } from "@/lib/auth-error";
@@ -12,7 +12,9 @@ export type TelemetryLogSchema = {
     error: [string, Record<string, AnyValue>];
 };
 
-export type TaskResult<R> = { ok: true; traceId: string; data: R } | { ok: false; traceId: string; error: AppError[] };
+export type TaskResult<R, TMeta extends Attributes | undefined = undefined> =
+    | { ok: true; traceId: string; data: R; meta?: TMeta }
+    | { ok: false; traceId: string; error: AppError[]; meta?: TMeta };
 
 const SENSITIVE_KEYS = new Set([
     "password",
@@ -56,10 +58,9 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
         return getLoggerProvider().getLogger(this.namespace);
     }
 
-    task<R>(name: string, fn: (span: Span) => Promise<R>): Promise<TaskResult<R>>;
-    task<R>(name: string, fn: (span: Span) => R): TaskResult<R>;
-
-    task<R>(name: string, fn: (span: Span) => R | Promise<R>): TaskResult<R> | Promise<TaskResult<R>> {
+    task<R, TMeta extends Attributes | undefined >(name: string, fn: (span: Span) => Promise<R>, meta: TMeta): Promise<TaskResult<R,TMeta>>;
+    task<R, TMeta extends Attributes | undefined >(name: string, fn: (span: Span) => R, meta: TMeta): TaskResult<R,TMeta>;
+    task<R, TMeta extends Attributes | undefined >(name: string, fn: (span: Span) => R | Promise<R>, meta: TMeta): TaskResult<R,TMeta> | Promise<TaskResult<R,TMeta>> {
         return this.tracer.startActiveSpan(name, (span) => {
             try {
                 const result = fn(span);
@@ -68,21 +69,23 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
 
                 if (result instanceof Promise) {
                     return result
-                        .then((data): TaskResult<R> => {
+                        .then((data): TaskResult<R, TMeta> => {
                             this.handleSuccess(span, name);
                             span.end();
                             return {
                                 ok: true as const,
                                 data,
+                                meta,
                                 traceId: span.spanContext().traceId,
                             };
                         })
-                        .catch((err): TaskResult<R> => {
+                        .catch((err): TaskResult<R, TMeta> => {
                             this.handleError(span, name, err);
                             span.end();
                             return {
                                 ok: false as const,
                                 error: getAuthError(err),
+                                meta,
                                 traceId: span.spanContext().traceId,
                             };
                         });
@@ -93,6 +96,7 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
                 return {
                     ok: true as const,
                     data: result,
+                    meta,
                     traceId: span.spanContext().traceId,
                 };
             } catch (err) {
@@ -101,6 +105,7 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
                 return {
                     ok: false as const,
                     error: getAuthError(err),
+                    meta,
                     traceId: span.spanContext().traceId,
                 };
             }

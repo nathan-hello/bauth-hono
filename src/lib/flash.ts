@@ -139,7 +139,7 @@ export class Flash<
     }
 
     Consume(headers: Headers): {
-        state: RouteActionData<TActions, TState>["state"];
+        state: TState extends undefined ? undefined : NonNullable<RouteActionData<TActions, TState>["state"]>;
         result: RouteActionData<TActions, TState>["result"] | undefined;
         headers: Headers;
     } {
@@ -151,7 +151,7 @@ export class Flash<
         responseHeaders.append("Set-Cookie", serialize(flashCookieName(), "", flashCookieOptions(0)));
 
         if (!raw) {
-            return { state: this.defaultState, result: undefined, headers: responseHeaders };
+            return { state: this.defaultState as NonNullable<TState>, result: undefined, headers: responseHeaders };
         }
 
         const actionData = decodeFlash<SerializedActionData<TActions, TState>>(raw);

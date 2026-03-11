@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import { Flash } from "@/lib/flash";
-import { AppEnv, type RouteActionData } from "@/lib/types";
+import { AppEnv, Props, type RouteActionData } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -14,10 +14,12 @@ import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.twoFactor);
-const flash = new Flash<typeof actions, State>();
+const flash = new Flash<typeof actions, State>({ verificationType: "totp" });
 
 export type State = { verificationType?: "totp" | "email" };
-export type Props = RouteActionData<typeof actions, State>;
+export type TwoFactorProps = { result: ActionResult<typeof actions, State>; copy: Copy };
+export type ComponentProps = Props<typeof actions, State>;
+export type HandlerResult = RouteActionData<typeof actions, State>;
 
 export const actions = {
     switch: { name: "switch", handler: Switch },
@@ -43,11 +45,11 @@ app.get("/", async (c) => {
             return new Redirect(c.req.raw).Because.NoTwoFactorCookie();
         }
 
-        const { state: flashed, headers } = flash.Consume(c.req.raw.headers);
+        const { state, result, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             TwoFactorPage({
-                props: flashed,
+                props: { state, result },
                 copy,
             }),
             { headers },
@@ -76,14 +78,13 @@ app.post("/", async (c) => {
         return flash.Respond(c.req.raw, undefined, result.data);
     }
 
-    const verificationType =
-        action === "verify_email" || action === "resend_email" ? ("email" as const) : ("totp" as const);
+    const verificationType: State["verificationType"] =
+        action === "verify_email" || action === "resend_email" ? "email" : "totp";
 
     return flash.Respond(c.req.raw, undefined, {
         result: {
             action,
-            success: false,
-            errors: result.error,
+            ...result,
         },
         state: {
             verificationType,
@@ -91,7 +92,7 @@ app.post("/", async (c) => {
     });
 });
 
-async function Switch(c: Context<AppEnv>, form: FormData): Promise<Props> {
+async function Switch(c: Context<AppEnv>, form: FormData): Promise<HandlerResult> {
     const to = form.get("to")?.toString();
     if (to === "email") {
         await auth.api.sendTwoFactorOTP({
@@ -110,7 +111,7 @@ async function Switch(c: Context<AppEnv>, form: FormData): Promise<Props> {
     };
 }
 
-async function ResendEmail(c: Context<AppEnv>, _form: FormData): Promise<Props> {
+async function ResendEmail(c: Context<AppEnv>, _form: FormData): Promise<HandlerResult> {
     const { status } = await auth.api.sendTwoFactorOTP({
         body: { trustDevice: true },
         headers: c.req.raw.headers,
