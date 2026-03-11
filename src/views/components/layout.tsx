@@ -1,7 +1,8 @@
 import { RouteMetadata } from "@/lib/copy/en";
 import type { Child } from "hono/jsx";
+import { CopyProvider, type Copy } from "@/lib/copy";
 
-export function Layout({ meta, children }: { meta: RouteMetadata; children: Child }) {
+export function Layout({ meta, children, copy }: { meta: RouteMetadata; children: Child; copy: Copy }) {
     return (
         <html lang="en" style={{ backgroundColor: "#C297A0" }}>
             <head>
@@ -30,7 +31,7 @@ export function Layout({ meta, children }: { meta: RouteMetadata; children: Chil
                 <a href="/">
                     <img src="/favicon.svg" class="py-2 cursor-pointer mx-auto h-10 w-auto" />
                 </a>
-                {children}
+                <CopyProvider copy={copy}>{children}</CopyProvider>
             </body>
         </html>
     );

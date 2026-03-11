@@ -1,5 +1,5 @@
 import { ErrorPage } from "@/views/components/error";
-import { copy } from "@/lib/copy";
+import type { Copy } from "@/lib/copy";
 import { routes } from "./routes";
 import { TaskResult } from "@/server/telemetry";
 import { auth } from "@/server/auth";
@@ -68,7 +68,7 @@ export class Redirect {
             } catch {
                 return this.Because.NoSession();
             }
-                return this.Because.NoSession();
+            return this.Because.NoSession();
         },
         TwoFactorRequired: () => {
             return to(routes.auth.twoFactor, this.headers);
@@ -79,7 +79,7 @@ export class Redirect {
         HasSession: () => {
             return to(routes.auth.dashboard, this.headers);
         },
-        OauthUserIsBanned: () => {
+        OauthUserIsBanned: (copy: Copy) => {
             return new Response(
                 ErrorPage({
                     status: 403,
@@ -91,7 +91,7 @@ export class Redirect {
                 },
             );
         },
-        Error: (result: Extract<TaskResult<any>, { ok: false }>): Response => {
+        Error: (copy: Copy, result: Extract<TaskResult<any>, { ok: false }>): Response => {
             return new Response(
                 ErrorPage({
                     status: 500,

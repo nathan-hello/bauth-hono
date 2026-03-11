@@ -1,5 +1,5 @@
 import * as emails from "@/views/email/emails";
-import { copy, internal_copy } from "@/lib/copy";
+import { copy } from "@/lib/copy";
 import { Resend } from "resend";
 import { Telemetry } from "@/server/telemetry";
 import { betterAuth } from "better-auth/minimal";
@@ -76,7 +76,6 @@ export const auth = betterAuth({
             roles: adminRole.roles,
             defaultRole: "user",
             adminUserIds: envAdmins(),
-            bannedUserMessage: internal_copy.you_have_been_banned,
         }),
         passkey({ rpID: dotenv.PRODUCTION_URL, rpName: dotenv.PRODUCTION_URL }),
         username({
