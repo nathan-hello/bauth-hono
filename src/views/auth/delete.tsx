@@ -1,25 +1,11 @@
-import { useCopy, type Copy } from "@/lib/copy";
-import { type DeleteActionData, type DeleteLoaderData, actions } from "@/routes/auth/delete";
+import { useCopy } from "@/lib/copy";
+import { DeleteProps, actions } from "@/routes/auth/delete";
 import { routes } from "@/routes/routes";
-import { TwoFactorActionState } from "@/views/auth/2fa";
 import { Layout } from "@/views/components/layout";
 import { Button, ButtonLink, Card, Form, Header, Input, Label, Section } from "@/views/components/ui";
 
-export function DeleteAccountPage({
-    loaderData,
-    actionData,
-    copy,
-}: {
-    loaderData: DeleteLoaderData;
-    actionData?: DeleteActionData;
-    copy: Copy;
-}) {
-    const state = actionData?.state;
-
+export function DeleteAccountPage({ state, result, hasCredential, hasTwoFactor, copy }: DeleteProps) {
     function getHeaderCopy() {
-        const hasCredential = loaderData?.hasCredential;
-        const hasTwoFactor = loaderData?.hasTwoFactor;
-
         if (hasCredential && hasTwoFactor) {
             return copy.delete_section_header_password_and_2fa;
         }
@@ -36,7 +22,7 @@ export function DeleteAccountPage({
 
     return (
         <Layout meta={copy.routes.auth.delete} copy={copy}>
-            <TwoFactorSwitchHiddenForm currentType={state?.verificationType} />
+            <TwoFactorSwitchHiddenForm state={state} hasTwoFactor={hasTwoFactor} />
             <Card>
                 <Header>{copy.routes.auth.delete.title}</Header>
                 <Section>
@@ -46,10 +32,10 @@ export function DeleteAccountPage({
                     <Form
                         method="post"
                         action={routes.auth.delete}
-                        result={actionData?.result}
+                        result={result}
                         formAction={actions.delete_account.name}
                     >
-                        {loaderData.hasCredential && (
+                        {hasCredential && (
                             <>
                                 <Label hidden for="password">
                                     {copy.password}
@@ -83,7 +69,7 @@ export function DeleteAccountPage({
                                     autocomplete="one-time-code"
                                 />
 
-                                <TwoFactorSwitch currentType={state?.verificationType} />
+                                <TwoFactorSwitch state={state} hasTwoFactor={hasTwoFactor} />
                             </>
                         )}
 
@@ -102,7 +88,7 @@ export function DeleteAccountPage({
     );
 }
 
-export function DeleteSuccessPage({ copy }: { copy: Copy }) {
+export function DeleteSuccessPage({ copy }: { copy: DeleteProps["copy"] }) {
     return (
         <Layout meta={copy.routes.auth.delete} copy={copy}>
             <Card>
@@ -113,7 +99,9 @@ export function DeleteSuccessPage({ copy }: { copy: Copy }) {
                     </Label>
                 </Section>
                 <Section>
-                    <ButtonLink variant="primary" href={routes.index}>{copy.go_home}</ButtonLink>
+                    <ButtonLink variant="primary" href={routes.index}>
+                        {copy.go_home}
+                    </ButtonLink>
                 </Section>
             </Card>
         </Layout>
@@ -121,11 +109,10 @@ export function DeleteSuccessPage({ copy }: { copy: Copy }) {
 }
 
 function TwoFactorSwitchHiddenForm({
-    currentType,
-}: {
-    currentType: TwoFactorActionState["verificationType"] | undefined;
-}) {
-    if (currentType === undefined) {
+    state,
+    hasTwoFactor,
+}: {state: DeleteProps["state"] ; hasTwoFactor: boolean }) {
+    if (!hasTwoFactor || !state.verificationType) {
         return null;
     }
     return (
@@ -134,23 +121,22 @@ function TwoFactorSwitchHiddenForm({
             method="post"
             action={routes.auth.delete}
             formAction={actions.switch_otp.name}
-            kv={{ to: currentType === "email" ? "totp" : "email" }}
+            kv={{ to: state.verificationType }}
         />
     );
 }
 
 function TwoFactorSwitch({
-    currentType = "totp",
-}: {
-    currentType: TwoFactorActionState["verificationType"] | undefined;
-}) {
+    state,
+    hasTwoFactor,
+}: {state: DeleteProps["state"] ; hasTwoFactor: boolean }) {
     const copy = useCopy();
-    if (!currentType) {
+    if (!hasTwoFactor || !state.verificationType) {
         return null;
     }
     return (
         <Button form={actions.switch_otp} variant="ghost" type="submit">
-            {currentType === "email" ? copy.twofa_switch_to_totp : copy.twofa_switch_to_email}
+            {state.verificationType === "email" ? copy.twofa_switch_to_totp : copy.twofa_switch_to_email}
         </Button>
     );
 }

@@ -1,7 +1,7 @@
 import { AppError } from "@/lib/auth-error";
 import { Flash } from "@/lib/flash";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
-import { AppEnv, type RouteActionData } from "@/lib/types";
+import { AppEnv, BaseProps } from "@/lib/types";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { routes } from "@/routes/routes";
@@ -13,11 +13,10 @@ import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.delete);
-const flash = new Flash<typeof actions, DeleteActionState>();
+const flash = new Flash<typeof actions, State>({ success: false, verificationType: "totp" });
 
-export type DeleteActionData = RouteActionData<typeof actions, DeleteActionState>;
-export type DeleteLoaderData = { hasCredential: boolean; hasTwoFactor: boolean };
-export type DeleteActionState = { deleted?: boolean; verificationType?: "email" | "totp" };
+type State = { success?: boolean; verificationType?: "totp" | "email" };
+export type DeleteProps = BaseProps<typeof actions, State> & { hasCredential: boolean; hasTwoFactor: boolean };
 
 export const actions = {
     delete_account: { name: "delete_account", handler: DeleteAccount },
@@ -25,11 +24,13 @@ export const actions = {
     switch_otp: { name: "switch_otp", handler: SwitchOtp },
 };
 
-export async function get(c: Context) {
+app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
-    const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
-    if (actionData?.state?.deleted) {
+    // This is before auth.api.getSession() because when an account is
+    // deleted, after the Redirect, the user's session token is cleared.
+    const { state, headers, result } = flash.Consume(c.req.raw.headers);
+    if (state?.success) {
         return c.html(DeleteSuccessPage({ copy }), { headers });
     }
 
@@ -45,15 +46,17 @@ export async function get(c: Context) {
 
     return c.html(
         DeleteAccountPage({
-            loaderData: { hasCredential, hasTwoFactor },
-            actionData: actionData,
+            state,
+            result,
             copy,
+            hasTwoFactor,
+            hasCredential,
         }),
         { headers },
     );
-}
+});
 
-export async function post(c: Context) {
+app.post("/", async (c) => {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) {
         return new Redirect(c.req.raw).Because.NoSession();
@@ -62,48 +65,36 @@ export async function post(c: Context) {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    const result = await tel.task("POST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw, form));
-        const handler = findAction(actions, action);
-        let data = await handler(c.req.raw, form);
+    const result = await tel.task(
+        "POST",
+        async (span) => {
+            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+            const handler = findAction(actions, action);
+            return await handler(c.req.raw, form);
+        },
+        { action },
+    );
 
-        if (!state.verificationType && session.user.twoFactorEnabled) {
-            state.verificationType = getOtpType(form.get("otp-type")?.toString());
-        }
-
-        return { state, headers };
+    return flash.Respond(c.req.raw, result, {
+        state: { verificationType: getOtpType(form.get("otp-type")?.toString()) },
     });
+});
 
-    if (result.ok) {
-        return flash.Respond(c.req.raw, result.data.headers, {
-            result: { action: action, success: true },
-            state: result.data.state,
-        });
-    }
-
-    return flash.Respond(c.req.raw, undefined, {
-        result: { action, success: false, errors: result.error },
-        state: session.user.twoFactorEnabled
-            ? { verificationType: getOtpType(form.get("otp-type")?.toString()) }
-            : undefined,
-    });
-}
-
-async function ResendEmail(request: Request, _: FormData): Promise<DeleteActionState> {
+async function ResendEmail(request: Request, _: FormData): Promise<{ state: State }> {
     await auth.api.sendTwoFactorOTP({ headers: request.headers });
-    return  { verificationType: "email", resentEmail: true  };
+    return { state: { verificationType: "email" } };
 }
 
-async function SwitchOtp(request: Request, form: FormData): Promise<DeleteActionState> {
+async function SwitchOtp(request: Request, form: FormData): Promise<{ state: State }> {
     const to = form.get("to")?.toString();
     const type: "email" | "totp" = to === "email" ? "email" : "totp";
     if (type === "email") {
         await auth.api.sendTwoFactorOTP({ headers: request.headers });
     }
-    return  { verificationType: type  };
+    return { state: { verificationType: type } };
 }
 
-async function DeleteAccount(request: Request, form: FormData): Promise<DeleteActionState> {
+async function DeleteAccount(request: Request, form: FormData): Promise<{ state: State; headers: Headers }> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) {
         throw new AppError("FAILED_TO_GET_SESSION");
@@ -132,7 +123,7 @@ async function DeleteAccount(request: Request, form: FormData): Promise<DeleteAc
             headers: request.headers,
             returnHeaders: true,
         });
-        return { state: { deleted: true }, headers: result.headers };
+        return { state: { success: true }, headers: result.headers };
     }
 
     if (!password) {
@@ -145,7 +136,7 @@ async function DeleteAccount(request: Request, form: FormData): Promise<DeleteAc
         returnHeaders: true,
     });
 
-    return { state: { deleted: true }, headers: result.headers };
+    return { state: { success: true }, headers: result.headers };
 }
 
 async function checkOtp(request: Request, form: FormData): Promise<Headers> {
