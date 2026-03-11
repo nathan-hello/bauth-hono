@@ -1,4 +1,4 @@
-import type { Handler } from "hono";
+import { Hono, type Handler } from "hono";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { routes } from "@/routes/routes";
@@ -6,7 +6,9 @@ import { AppError } from "@/lib/auth-error";
 import { Redirect } from "@/routes/redirect";
 import { ErrorPage } from "@/views/components/error";
 import { createCopy } from "@/lib/copy";
+import { AppEnv } from "@/lib/types";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.logout);
 
 export const get: Handler = async (c) => {
@@ -37,3 +39,5 @@ export const get: Handler = async (c) => {
 
     return c.html(ErrorPage({ status: 500, message: result.traceId, copy }));
 };
+
+export default app;

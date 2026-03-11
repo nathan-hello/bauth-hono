@@ -379,3 +379,5 @@ async function UnlinkAccount(request: Request, form: FormData): Promise<ActionRe
     });
     return { headers: result.headers };
 }
+
+export default app;

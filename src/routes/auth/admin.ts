@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { desc, like, or } from "drizzle-orm";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import type { ActionResult, FullUser, AppEnv, RouteActionData } from "@/lib/types";
+import type { ActionResult, FullUser, AppEnv } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -12,18 +12,22 @@ import { Redirect } from "@/routes/redirect";
 import { db } from "@/server/drizzle/db";
 import { roles } from "@/server/lib/admin";
 import * as schema from "@/server/drizzle/schema";
-import { createCopy } from "@/lib/copy";
+import { Copy, createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.admin);
-const flash = new Flash<typeof actions, AdminActionState>();
+const flash = new Flash<typeof actions, State>({});
 
-export type AdminActionState = { userId?: string };
-export type AdminActionData = RouteActionData<typeof actions, AdminActionState>;
+export type State = { userId?: string };
+export type Search = { users: FullUser[]; filters: AdminFilters; hasNextPage: boolean };
+export type AdminProps = {
+    result: ActionResult<typeof actions, State> | undefined;
+    state: State;
+    copy: Copy;
+    search: Search;
+};
 
 export type AdminFilters = { q: string; page: number; limit: number };
-export type AdminLoaderData = { users: FullUser[]; filters: AdminFilters; hasNextPage: boolean };
-type ActionReturnData = { headers?: Headers; result?: ActionResult<typeof actions>; state?: AdminActionState };
 
 export const actions = {
     ban_user: { name: "ban_user", handler: BanUser },
@@ -32,7 +36,7 @@ export const actions = {
     update_profile: { name: "update_profile", handler: UpdateProfile },
     update_role: { name: "update_role", handler: UpdateRole },
     update_handles: { name: "update_handles", handler: UpdateHandles },
-} as const;
+};
 
 app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
@@ -47,18 +51,11 @@ app.get("/", async (c) => {
         return new Redirect(c.req.raw, adminState.headers).Because.NotAnAdmin();
     }
 
-    const loaderData = await getLoaderData(filters);
+    const search = await getLoaderData(filters);
 
-    const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
+    const { state, headers, result } = flash.Consume(c.req.raw.headers);
 
-    return c.html(
-        AdminPage({
-            loaderData,
-            actionData,
-            copy,
-        }),
-        { headers },
-    );
+    return c.html(AdminPage({ result, state, copy, search }), { headers });
 });
 
 app.post("/", async (c) => {
@@ -75,30 +72,20 @@ app.post("/", async (c) => {
     const action = form.get("action")?.toString();
     const userId = form.get("userId")?.toString();
 
-    const result = await tel.task("POST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw, form));
-        const handler = findAction(actions, action);
-        return await handler(c.req.raw, form);
-    });
-
-    if (result.ok) {
-        return flash.Respond(c.req.raw, result.data.headers, {
-            result: result.data.result ?? { action, success: true },
-            state: result.data.state,
-        });
-    }
-
-    return flash.Respond(c.req.raw, undefined, {
-        result: {
-            action,
-            success: false,
-            errors: result.error,
+    const result = await tel.task(
+        "POST",
+        async (span) => {
+            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+            const handler = findAction(actions, action);
+            return await handler(c.req.raw, form);
         },
-        state: { userId },
-    });
+        { action },
+    );
+
+    return flash.Respond(c.req.raw, result, { state: { userId } });
 });
 
-async function getLoaderData(filters: AdminFilters): Promise<AdminLoaderData> {
+async function getLoaderData(filters: AdminFilters): Promise<Search> {
     const whereClause = getUserSearchWhere(filters.q);
 
     const offset = (filters.page - 1) * filters.limit;
@@ -150,7 +137,7 @@ async function userIsAdmin(headers: Headers) {
     };
 }
 
-async function BanUser(request: Request, form: FormData): Promise<ActionReturnData> {
+async function BanUser(request: Request, form: FormData): Promise<{ headers: Headers; state: State }> {
     const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
     const banReason = nullableTrimmedValue(form, "ban_reason") ?? undefined;
     const banExpiresAt = optionalDateValue(form, "ban_expires_at");
@@ -167,12 +154,11 @@ async function BanUser(request: Request, form: FormData): Promise<ActionReturnDa
 
     return {
         headers: r.headers,
-        result: { action: actions.ban_user.name, success: true },
         state: { userId },
     };
 }
 
-async function UpdateBan(request: Request, form: FormData): Promise<ActionReturnData> {
+async function UpdateBan(request: Request, form: FormData): Promise<{ headers: Headers; state: State }> {
     const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
     const banReason = nullableTrimmedValue(form, "ban_reason");
     const banExpires = optionalDateValue(form, "ban_expires_at");
@@ -191,12 +177,11 @@ async function UpdateBan(request: Request, form: FormData): Promise<ActionReturn
 
     return {
         headers: r.headers,
-        result: { action: actions.update_ban.name, success: true },
         state: { userId },
     };
 }
 
-async function UnbanUser(request: Request, form: FormData): Promise<ActionReturnData> {
+async function UnbanUser(request: Request, form: FormData): Promise<{ headers: Headers; state: State }> {
     const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
 
     const r = await auth.api.unbanUser({
@@ -207,12 +192,11 @@ async function UnbanUser(request: Request, form: FormData): Promise<ActionReturn
 
     return {
         headers: r.headers,
-        result: { action: actions.unban_user.name, success: true },
         state: { userId },
     };
 }
 
-async function UpdateProfile(request: Request, form: FormData): Promise<ActionReturnData> {
+async function UpdateProfile(request: Request, form: FormData): Promise<{ headers: Headers; state: State }> {
     const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
     const name = requireFormValue(form, "name", "generic_error");
     const email = requireFormValue(form, "email", "field_missing_email");
@@ -233,12 +217,11 @@ async function UpdateProfile(request: Request, form: FormData): Promise<ActionRe
 
     return {
         headers: r.headers,
-        result: { action: actions.update_profile.name, success: true },
         state: { userId },
     };
 }
 
-async function UpdateRole(request: Request, form: FormData): Promise<ActionReturnData> {
+async function UpdateRole(request: Request, form: FormData): Promise<{ headers: Headers; state: State }> {
     const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
     const role = parseRoleValue(form);
 
@@ -253,12 +236,11 @@ async function UpdateRole(request: Request, form: FormData): Promise<ActionRetur
 
     return {
         headers: r.headers,
-        result: { action: actions.update_role.name, success: true },
         state: { userId },
     };
 }
 
-async function UpdateHandles(request: Request, form: FormData): Promise<ActionReturnData> {
+async function UpdateHandles(request: Request, form: FormData): Promise<{ headers: Headers; state: State }> {
     const userId = requireFormValue(form, "userId", "internal_field_missing_user_id");
     const username = requireFormValue(form, "username", "field_missing_username");
     const displayUsername = nullableTrimmedValue(form, "display_username");
@@ -277,7 +259,6 @@ async function UpdateHandles(request: Request, form: FormData): Promise<ActionRe
 
     return {
         headers: r.headers,
-        result: { action: actions.update_handles.name, success: true },
         state: { userId },
     };
 }

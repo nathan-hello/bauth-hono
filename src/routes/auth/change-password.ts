@@ -100,3 +100,5 @@ async function SetPassword(request: Request, form: FormData): Promise<ActionRetu
     });
     return { headers: r.headers };
 }
+
+export default app;

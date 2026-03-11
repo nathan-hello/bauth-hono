@@ -1,8 +1,8 @@
 import type { Handler } from "hono";
-import { Context } from "hono";
+import { Context, Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import type { RouteActionData } from "@/lib/types";
+import { AppEnv, type RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -11,8 +11,8 @@ import { Redirect } from "@/routes/redirect";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { createCopy } from "@/lib/copy";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.setup);
-
 const flash = new Flash<typeof actions>();
 
 export const actions = {
@@ -106,3 +106,5 @@ async function Setup(request: Request, form: FormData): Promise<ActionReturnData
 
     return { headers: passwordResult.headers };
 }
+
+export default app;

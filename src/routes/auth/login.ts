@@ -1,20 +1,21 @@
 import type { Handler } from "hono";
 import { Flash } from "@/lib/flash";
-import type { RouteActionData } from "@/lib/types";
+import { AppEnv, type RouteActionData } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { LoginPage } from "@/views/auth/login";
 import { routes } from "@/routes/routes";
-import { Context } from "hono";
+import { Context, Hono } from "hono";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { parse } from "cookie";
 import { dotenv } from "@/server/env";
 import { createCopy } from "@/lib/copy";
 
-const tel = new Telemetry(routes.auth.login);
 
+const app = new Hono<AppEnv>();
+const tel = new Telemetry(routes.auth.login);
 const flash = new Flash<typeof actions, LoginActionState>();
 
 export const actions = {
@@ -140,3 +141,5 @@ async function LogInOauth(c: Context, form: FormData) {
     // the body.
     return new Redirect(c.req.raw, data.headers).Because.Oauth(data.response.url);
 }
+
+export default app;

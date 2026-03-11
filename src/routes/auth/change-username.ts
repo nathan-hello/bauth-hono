@@ -75,3 +75,5 @@ async function ChangeUsername(request: Request, form: FormData): Promise<ActionR
 
     return { headers: r.headers };
 }
+
+export default app;

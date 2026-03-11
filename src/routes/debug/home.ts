@@ -1,10 +1,12 @@
-import type { Handler } from "hono";
+import { Hono, type Handler } from "hono";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { routes } from "@/routes/routes";
 import { DebugHomePage } from "@/views/debug/index";
 import { createCopy } from "@/lib/copy";
+import { AppEnv } from "@/lib/types";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.debug.home);
 
 export const get: Handler = async (c) => {
@@ -22,3 +24,5 @@ export const get: Handler = async (c) => {
     // Session check failed — render home without session
     return c.html(DebugHomePage({ session: null, copy }));
 };
+
+export default app;

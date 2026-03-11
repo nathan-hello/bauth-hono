@@ -1,6 +1,6 @@
-import type { Context, Handler } from "hono";
+import { Hono, type Context, type Handler } from "hono";
 import { Flash } from "@/lib/flash";
-import type { RouteActionData } from "@/lib/types";
+import { AppEnv, type RouteActionData } from "@/lib/types";
 import { auth, validateUsername } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { RegisterPage } from "@/views/auth/register";
@@ -10,8 +10,8 @@ import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.register);
-
 const flash = new Flash<typeof actions, RegisterActionState>();
 
 export const actions = {
@@ -147,3 +147,5 @@ function parseRegister(data: Record<string, string | undefined>): AppError[] | u
     }
     return errors.length > 0 ? errors : undefined;
 }
+
+export default app;

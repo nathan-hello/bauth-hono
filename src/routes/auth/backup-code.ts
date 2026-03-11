@@ -84,3 +84,6 @@ async function VerifyBackupCode(request: Request, form: FormData): Promise<{ res
 
     return { response: new Redirect(request, headers).After.Login() };
 }
+
+export default app;
+

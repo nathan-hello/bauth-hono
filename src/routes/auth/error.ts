@@ -1,7 +1,10 @@
 import { createCopy } from "@/lib/copy";
+import { AppEnv } from "@/lib/types";
 import { Redirect } from "@/routes/redirect";
 import { ErrorPage } from "@/views/components/error";
-import { Handler } from "hono";
+import { Handler, Hono } from "hono";
+
+const app = new Hono<AppEnv>();
 
 export const get: Handler = (c) => {
     const copy = createCopy(c.req.raw);
@@ -22,3 +25,7 @@ export const get: Handler = (c) => {
 
     return c.html(ErrorPage({ status: 500, message, copy }));
 };
+
+
+
+export default app;
