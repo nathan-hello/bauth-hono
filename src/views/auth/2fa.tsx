@@ -2,10 +2,10 @@ import { useCopy, type Copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
-import { type ComponentProps, actions } from "@/routes/auth/2fa";
+import { type TwoFactorProps, actions } from "@/routes/auth/2fa";
 
-export function TwoFactorPage({ props, copy }: { props: ComponentProps; copy: Copy }) {
-    const verificationType = props?.state?.verificationType || "totp";
+export function TwoFactorPage({ result, state, copy }: TwoFactorProps) {
+    const verificationType = state?.verificationType || "totp";
 
     return (
         <Layout meta={copy.routes.auth.twoFactor} copy={copy}>
@@ -14,10 +14,10 @@ export function TwoFactorPage({ props, copy }: { props: ComponentProps; copy: Co
                     {verificationType === "totp" ? copy.twofa_prompt_totp : copy.twofa_prompt_email}
                 </Label>
 
-                <ErrorAlerts errors={props?.result.action === "top-of-page" ? props.result.errors : undefined} />
+                <ErrorAlerts errors={result?.meta?.action === "top-of-page" ? result.error : undefined} />
 
-                {verificationType === "email" && <EmailVerificationForm result={props?.result} />}
-                {verificationType === "totp" && <TotpVerificationForm result={props?.result} />}
+                {verificationType === "email" && <EmailVerificationForm result={result} />}
+                {verificationType === "totp" && <TotpVerificationForm result={result} />}
                 <FormFooter>
                     <TextLink href={routes.auth.twoFactorBackup}>{copy.twofa_use_backup}</TextLink>
                     <TextLink href="/auth/login">{copy.back_to_login}</TextLink>
@@ -27,7 +27,7 @@ export function TwoFactorPage({ props, copy }: { props: ComponentProps; copy: Co
     );
 }
 
-function EmailVerificationForm({ result }: { result: ComponentProps["result"] | undefined }) {
+function EmailVerificationForm({ result }: { result: TwoFactorProps["result"] | undefined }) {
     const copy = useCopy();
     return (
         <>
@@ -61,7 +61,7 @@ function EmailVerificationForm({ result }: { result: ComponentProps["result"] | 
     );
 }
 
-function TotpVerificationForm({ result }: { result: ComponentProps["result"] | undefined }) {
+function TotpVerificationForm({ result }: { result: TwoFactorProps["result"] | undefined }) {
     const copy = useCopy();
     return (
         <>

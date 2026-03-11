@@ -1,5 +1,5 @@
 import { AppError, type TErrorCodes } from "@/lib/auth-error";
-import type { ActionNames, RouteActionData } from "@/lib/types";
+import type { ActionNames, ActionResult, HandlerData } from "@/lib/types";
 import { parse, serialize } from "cookie";
 import { dotenv } from "@/server/env";
 
@@ -9,13 +9,13 @@ export type SerializedActionResult<
     TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } },
 > =
     | {
-          action: ActionNames<TActions> | string | undefined;
+          meta: { action: ActionNames<TActions> | "top-of-page" };
           ok: true;
           traceId: string;
           data: null;
       }
     | {
-          action: ActionNames<TActions> | string | undefined;
+          meta: { action: ActionNames<TActions> | "top-of-page" };
           ok: false;
           error: TErrorCodes[];
           traceId: string;
@@ -23,80 +23,153 @@ export type SerializedActionResult<
 
 export type SerializedActionData<
     TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } },
-    TState extends FlashValue | undefined = undefined,
+    TFlash extends FlashValue | undefined = undefined,
 > = {
     result: SerializedActionResult<TActions>;
-    state?: TState;
+    state?: TFlash;
 };
 
-export function serializeActionData<
-    TActions extends { [K: string]: { name: string } },
-    TState extends FlashValue | undefined,
->(actionData: RouteActionData<TActions, TState>): SerializedActionData<TActions, TState> {
-    if (actionData.result.ok) {
+export class Flash<
+    TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } },
+    TState extends FlashValue | undefined = undefined,
+> {
+    constructor(private defaultState: TState) {}
+    Respond(
+        request: Request,
+        taskResult: ActionResult<TActions, TState>,
+        dataOverride?: HandlerData<TState>,
+    ): Response {
+        const url = new URL(request.url);
+        const headers = new Headers({ Location: `${url.pathname}${url.search}` });
+
+        let r: ActionResult<TActions, TState> & { data?: HandlerData<TState> } = taskResult;
+
+        if (dataOverride) {
+            r.data = dataOverride;
+        }
+
+        if (r.data && "response" in r.data) {
+            return r.data.response;
+        }
+
+        if (r.data && "headers" in r.data) {
+            for (const cookie of r.data.headers.getSetCookie()) {
+                headers.append("Set-Cookie", cookie);
+            }
+        }
+
+        const actionResult: ActionResult<TActions, TState> = {
+            ...taskResult,
+        };
+
+        if (r.data && "state" in r.data && r.data.state !== undefined) {
+            const serialized = this.serializeActionData(actionResult, r.data.state);
+            headers.append("Set-Cookie", serialize(flashCookieName(), encodeFlash(serialized), flashCookieOptions(60)));
+        }
+
+        return new Response(null, { status: 303, headers });
+    }
+
+    Consume(headers: Headers): {
+        state: TState;
+        result: ActionResult<TActions, TState> | undefined;
+        headers: Headers;
+    } {
+        const cookie = headers.get("cookie");
+        const parsed = parse(cookie || "");
+
+        const responseHeaders = new Headers();
+        responseHeaders.append("Set-Cookie", serialize(flashCookieName(), "", flashCookieOptions(0)));
+
+        const raw = parsed[flashCookieName()];
+        if (!raw) {
+            return { state: this.defaultState as NonNullable<TState>, result: undefined, headers: responseHeaders };
+        }
+
+        const actionData = this.decodeFlash(raw);
+        if (!actionData) {
+            return { state: this.defaultState, result: undefined, headers: responseHeaders };
+        }
+
+        const unmarshal = this.deserializeActionData(actionData);
+        if (!unmarshal) {
+            return { state: this.defaultState, result: undefined, headers: responseHeaders };
+        }
+
+        return {
+            state: unmarshal?.state ?? this.defaultState,
+            result: unmarshal.result,
+            headers: responseHeaders,
+        };
+    }
+
+    private serializeActionData(
+        result: ActionResult<TActions, TState>,
+        state: TState extends undefined ? undefined : Partial<TState>,
+    ): SerializedActionData<TActions, TState extends undefined ? undefined : Partial<TState>> {
+        if (result.ok) {
+            return {
+                result: {
+                    meta: { action: result.meta.action ?? "top-of-page" },
+                    ok: true,
+                    traceId: result.traceId,
+                    data: null,
+                },
+                state: state === null ? undefined : state,
+            };
+        }
+
         return {
             result: {
-                action: actionData.result.action,
-                ok: true,
+                meta: { action: result.meta.action ?? "top-of-page" },
+                traceId: result.traceId,
+                ok: false,
+                error: result.error.map((error) => error.code),
+            },
+            state: state === null ? undefined : state,
+        };
+    }
+
+    private deserializeActionData(actionData: SerializedActionData<TActions, TState>): {
+        result: ActionResult<TActions, TState>;
+        state: TState | undefined;
+    } {
+        if (actionData.result.ok) {
+            return {
+                result: {
+                    ok: true,
+                    traceId: actionData.result.traceId,
+                    meta: actionData.result.meta,
+                    data: null,
+                },
+                state: actionData.state,
+            };
+        }
+
+        return {
+            result: {
+                meta: actionData.result.meta,
+                ok: false,
+                error: actionData.result.error.map((error) => new AppError(error)),
                 traceId: actionData.result.traceId,
-                data: null,
             },
             state: actionData.state,
         };
     }
-
-    return {
-        result: {
-            action: actionData.result.action,
-            traceId: actionData.result.traceId,
-            ok: false,
-            error: actionData.result.error.map((error) => error.code),
-        },
-        state: actionData.state,
-    };
-}
-
-export function deserializeActionData<
-    TActions extends { [K: string]: { name: string } },
-    TState extends FlashValue | undefined,
->(actionData: SerializedActionData<TActions, TState> | undefined): RouteActionData<TActions, TState> | undefined {
-    if (!actionData) {
-        return undefined;
+    private decodeFlash(value: string): SerializedActionData<TActions, TState> | undefined {
+        try {
+            return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as SerializedActionData<
+                TActions,
+                TState
+            >;
+        } catch {
+            return undefined;
+        }
     }
-
-    if (actionData.result.ok) {
-        return {
-            result: {
-                ok: true,
-                traceId: actionData.result.traceId,
-                action: actionData.result.action ?? "top-of-page",
-                data: null,
-            },
-            state: actionData.state,
-        };
-    }
-
-    return {
-        result: {
-            action: actionData.result.action ?? "top-of-page",
-            ok: false,
-            error: actionData.result.error.map((error) => new AppError(error)),
-            traceId: actionData.result.traceId,
-        },
-        state: actionData.state,
-    };
 }
 
 export function encodeFlash<T extends FlashValue>(value: T): string {
     return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
-}
-
-export function decodeFlash<T extends FlashValue>(value: string): T | undefined {
-    try {
-        return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as T;
-    } catch {
-        return undefined;
-    }
 }
 
 function flashCookieName() {
@@ -111,59 +184,4 @@ function flashCookieOptions(maxAge: number) {
         secure: process.env.NODE_ENV === "production",
         maxAge,
     };
-}
-
-export class Flash<
-    TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } },
-    TState extends FlashValue | undefined = undefined,
-> {
-    constructor(private defaultState: TState) {}
-    Respond(
-        request: Request,
-        existingHeaders: Headers | undefined,
-        actionData: RouteActionData<TActions, TState>,
-    ): Response {
-        const url = new URL(request.url);
-        const headers = new Headers({ Location: `${url.pathname}${url.search}` });
-
-        if (existingHeaders) {
-            for (const cookie of existingHeaders.getSetCookie()) {
-                headers.append("Set-Cookie", cookie);
-            }
-        }
-
-        const serialized = serializeActionData<TActions, TState>(actionData);
-        headers.append("Set-Cookie", serialize(flashCookieName(), encodeFlash(serialized), flashCookieOptions(60)));
-
-        return new Response(null, { status: 303, headers });
-    }
-
-    Consume(headers: Headers): {
-        state: TState extends undefined ? undefined : NonNullable<RouteActionData<TActions, TState>["state"]>;
-        result: RouteActionData<TActions, TState>["result"] | undefined;
-        headers: Headers;
-    } {
-        const cookie = headers.get("cookie");
-        const parsed = parse(cookie || "");
-        const raw = parsed[flashCookieName()];
-
-        const responseHeaders = new Headers();
-        responseHeaders.append("Set-Cookie", serialize(flashCookieName(), "", flashCookieOptions(0)));
-
-        if (!raw) {
-            return { state: this.defaultState as NonNullable<TState>, result: undefined, headers: responseHeaders };
-        }
-
-        const actionData = decodeFlash<SerializedActionData<TActions, TState>>(raw);
-        const unmarshal = deserializeActionData<TActions, TState>(actionData);
-        if (!unmarshal) {
-            return { state: this.defaultState, result: undefined, headers: responseHeaders };
-        }
-
-        return {
-            state: unmarshal?.state ?? this.defaultState,
-            result: unmarshal.result,
-            headers: responseHeaders,
-        };
-    }
 }

@@ -2,25 +2,27 @@ import { useCopy, type Copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label, ButtonLink } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
-import { type TwoFactorBackupActionData, type TwoFactorBackupLoaderData, actions } from "@/routes/auth/backup-code";
+import { Props, actions } from "@/routes/auth/backup-code";
 
-export function TwoFactorBackupPage({ actionData, copy }: { loaderData: TwoFactorBackupLoaderData; actionData?: TwoFactorBackupActionData; copy: Copy }) {
+export function TwoFactorBackupPage(props: Props) {
     return (
-        <Layout meta={copy.routes.auth.twoFactorBackup} copy={copy}>
+        <Layout meta={props.copy.routes.auth.twoFactorBackup} copy={props.copy}>
             <Card>
                 <Label center for="verify-form">
-                    {copy.twofa_prompt_backup}
+                    {props.copy.twofa_prompt_backup}
                 </Label>
 
-                <ErrorAlerts errors={actionData?.result.action === "top-of-page" ? actionData.result.errors : undefined} />
+                <ErrorAlerts
+                    errors={props.result && !props.result.ok && props.result?.meta.action === "top-of-page" ? props.result.error : undefined}
+                />
 
-                <BackupCodeVerificationForm result={actionData?.result} />
+                <BackupCodeVerificationForm  {...props}/>
             </Card>
         </Layout>
     );
 }
 
-function BackupCodeVerificationForm({ result }: { result: TwoFactorBackupActionData["result"] | undefined }) {
+function BackupCodeVerificationForm(props: Props) {
     const copy = useCopy();
     return (
         <>
@@ -28,7 +30,7 @@ function BackupCodeVerificationForm({ result }: { result: TwoFactorBackupActionD
                 id="verify-form"
                 method="post"
                 action={routes.auth.twoFactorBackup}
-                result={result}
+                result={props.result}
                 formAction={actions.verify_backup_code.name}
             >
                 <Input

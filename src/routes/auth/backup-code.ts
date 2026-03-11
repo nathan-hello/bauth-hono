@@ -1,11 +1,11 @@
-import { Hono, type Handler } from "hono";
+import { Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { TwoFactorBackupPage } from "@/views/auth/backup-code";
 import { parse } from "cookie";
-import { AppEnv, type RouteActionData } from "@/lib/types";
+import {  AppEnv, ComponentProps } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { findAction } from "@/routes/auth/lib/check-action";
@@ -14,12 +14,10 @@ import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.twoFactorBackup);
-const flash = new Flash<typeof actions>();
-
-export type TwoFactorBackupLoaderData = {};
-export type TwoFactorBackupActionData = RouteActionData<typeof actions>;
+const flash = new Flash<typeof actions>(undefined);
 
 export const actions = { verify_backup_code: { name: "verify_backup_code", handler: VerifyBackupCode } };
+export type Props = ComponentProps<typeof actions, undefined>;
 
 app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
@@ -38,12 +36,12 @@ app.get("/", async (c) => {
             return await new Redirect(c.req.raw).Because.TwoFactorCookieNotFound();
         }
 
-        const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
+        const { result, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             TwoFactorBackupPage({
-                loaderData: {},
-                actionData,
+                state: undefined,
+                result,
                 copy,
             }),
             { headers },
@@ -59,25 +57,20 @@ app.post("/", async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    const result = await tel.task("POST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw, form));
-        const handler = findAction(actions, action);
-        return await handler(c.req.raw, form);
-    });
+    const result = await tel.task(
+        "POST",
+        async (span) => {
+            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+            const handler = findAction(actions, action);
+            return await handler(c.req.raw, form);
+        },
+        { action },
+    );
 
-    if (result?.ok) {
-        if (result.data instanceof Headers) {
-            return new Redirect(c.req.raw, result.data).After.Login();
-        }
-        return flash.Respond(c.req.raw, undefined, result.data);
-    }
-
-    return flash.Respond(c.req.raw, undefined, {
-        result: { action, success: false, errors: result.error },
-    });
+    return flash.Respond(c.req.raw, result);
 });
 
-async function VerifyBackupCode(request: Request, form: FormData): Promise<Headers> {
+async function VerifyBackupCode(request: Request, form: FormData): Promise<{ response: Response }> {
     const code = form.get("code")?.toString();
     if (!code) {
         throw new AppError("INVALID_OTP");
@@ -88,5 +81,6 @@ async function VerifyBackupCode(request: Request, form: FormData): Promise<Heade
         returnHeaders: true,
     });
     tel.debug("BACKUP_CODE_VERIFIED");
-    return headers;
+
+    return { response: new Redirect(request, headers).After.Login() };
 }

@@ -74,7 +74,7 @@ export function Label(props: { for?: string; children: Child; center?: boolean; 
 export function Form(
     props: PropsWithChildren<JSX.IntrinsicElements["form"]> & {
         flexRow?: true;
-        result?: ActionResult;
+        result?: ActionResult<any,any>;
         formAction?: string;
         success?: string;
         kv?: Record<string, boolean | number | string | undefined>;
@@ -82,7 +82,7 @@ export function Form(
 ) {
     const { children, class: _className, flexRow, result, formAction, success, ...rest } = props;
 
-    const active = result && result.action === formAction;
+    const active = result && result.meta?.action === formAction;
 
     return (
         <form class={`flex gap-4 pt-4 ${flexRow ? "flex-row" : "flex-col"}`} {...rest}>
@@ -94,8 +94,8 @@ export function Form(
                     }
                     return <input type="hidden" name={k} value={v.toString()} />;
                 })}
-            {active && !result.success && <ErrorAlerts errors={result.errors} />}
-            {active && result.success && success && <FormAlert color="success">{success}</FormAlert>}
+            {active && !result.ok && <ErrorAlerts errors={result.error} />}
+            {active && result.ok && success && <FormAlert color="success">{success}</FormAlert>}
             {children}
         </form>
     );
