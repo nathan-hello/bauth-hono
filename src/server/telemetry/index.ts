@@ -1,4 +1,4 @@
-import { trace, SpanStatusCode, type Span, context, Attributes } from "@opentelemetry/api";
+import { trace, SpanStatusCode, type Span, context, type Attributes } from "@opentelemetry/api";
 import { LogAttributes, SeverityNumber, type AnyValue } from "@opentelemetry/api-logs";
 import { getLoggerProvider } from "@/server/telemetry/sdk";
 import { AppError, ResendErrorCodes } from "@/lib/auth-error";
@@ -12,9 +12,23 @@ export type TelemetryLogSchema = {
     error: [string, Record<string, AnyValue>];
 };
 
+type TaskSuccess<R, TMeta extends Attributes | undefined = undefined> = {
+    ok: true;
+    traceId: string;
+    data: R;
+    meta: TMeta;
+};
+
+type TaskFailure<TMeta extends Attributes | undefined = undefined> = {
+    ok: false;
+    traceId: string;
+    error: AppError[];
+    meta: TMeta;
+};
+
 export type TaskResult<R, TMeta extends Attributes | undefined = undefined> =
-    | { ok: true; traceId: string; data: R; meta?: TMeta }
-    | { ok: false; traceId: string; error: AppError[]; meta?: TMeta };
+    | TaskSuccess<R, TMeta>
+    | TaskFailure<TMeta>;
 
 const SENSITIVE_KEYS = new Set([
     "password",
@@ -58,14 +72,25 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
         return getLoggerProvider().getLogger(this.namespace);
     }
 
-    task<R, TMeta extends Attributes | undefined >(name: string, fn: (span: Span) => Promise<R>, meta: TMeta): Promise<TaskResult<R,TMeta>>;
-    task<R, TMeta extends Attributes | undefined >(name: string, fn: (span: Span) => R, meta: TMeta): TaskResult<R,TMeta>;
-    task<R, TMeta extends Attributes | undefined >(name: string, fn: (span: Span) => R | Promise<R>, meta: TMeta): TaskResult<R,TMeta> | Promise<TaskResult<R,TMeta>> {
+    task<R>(name: string, fn: (span: Span) => Promise<R>): Promise<TaskResult<R, undefined>>;
+    task<R>(name: string, fn: (span: Span) => R): TaskResult<R, undefined>;
+    task<R, TMeta extends Attributes>(
+        name: string,
+        fn: (span: Span) => Promise<R>,
+        meta: TMeta,
+    ): Promise<TaskResult<R, TMeta>>;
+    task<R, TMeta extends Attributes>(name: string, fn: (span: Span) => R, meta: TMeta): TaskResult<R, TMeta>;
+    task<R, TMeta extends Attributes | undefined = undefined>(
+        name: string,
+        fn: (span: Span) => R | Promise<R>,
+        meta?: TMeta,
+    ): TaskResult<R, TMeta> | Promise<TaskResult<R, TMeta>> {
         return this.tracer.startActiveSpan(name, (span) => {
             try {
                 const result = fn(span);
+                const traceId = span.spanContext().traceId;
 
-                span.setAttribute("promise", result instanceof Promise ? true : false);
+                span.setAttribute("promise", result instanceof Promise);
 
                 if (result instanceof Promise) {
                     return result
@@ -73,20 +98,20 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
                             this.handleSuccess(span, name);
                             span.end();
                             return {
-                                ok: true as const,
+                                meta: meta as TMeta,
+                                traceId,
                                 data,
-                                meta,
-                                traceId: span.spanContext().traceId,
+                                ok: true as const,
                             };
                         })
                         .catch((err): TaskResult<R, TMeta> => {
                             this.handleError(span, name, err);
                             span.end();
                             return {
+                                meta: meta as TMeta,
+                                traceId,
                                 ok: false as const,
                                 error: getAuthError(err),
-                                meta,
-                                traceId: span.spanContext().traceId,
                             };
                         });
                 }
@@ -94,24 +119,24 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
                 this.handleSuccess(span, name);
                 span.end();
                 return {
-                    ok: true as const,
+                    meta: meta as TMeta,
+                    traceId,
                     data: result,
-                    meta,
-                    traceId: span.spanContext().traceId,
+                    ok: true as const,
                 };
             } catch (err) {
                 this.handleError(span, name, err);
                 span.end();
+                const traceId = span.spanContext().traceId;
                 return {
+                    meta: meta as TMeta,
+                    traceId,
                     ok: false as const,
                     error: getAuthError(err),
-                    meta,
-                    traceId: span.spanContext().traceId,
                 };
             }
         });
     }
-
     private handleSuccess(span: Span, name: string) {
         span.setStatus({ code: SpanStatusCode.OK });
         this.emit(name, SeverityNumber.INFO, "INFO", { success: true });

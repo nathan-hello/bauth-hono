@@ -91,7 +91,7 @@ export class Redirect {
                 },
             );
         },
-        Error: (copy: Copy, result: Extract<TaskResult<any>, { ok: false }>): Response => {
+        Error: (copy: Copy, result: Extract<TaskResult<any, any>, { ok: false }>): Response => {
             const page = ErrorPage({
                 status: 500,
                 message: `${copy.report_this_trace_id}: ${result.traceId}`,

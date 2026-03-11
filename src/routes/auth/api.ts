@@ -22,3 +22,5 @@ app.post("/", async (c) => {
 
     return new Redirect(c.req.raw).Because.Error(copy, result);
 });
+
+export default app;
