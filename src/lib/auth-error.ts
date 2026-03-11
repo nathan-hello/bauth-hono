@@ -1,6 +1,6 @@
 import { APIError } from "better-auth";
 import { auth } from "@/server/auth";
-import { copy } from "@/lib/copy";
+import { defaultCopy as copy } from "@/lib/copy";
 
 const BetterAuthCallbackErrors = [
     "invalid_callback_request",

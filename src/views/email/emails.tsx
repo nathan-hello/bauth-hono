@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { defaultCopy as copy } from "@/lib/copy";
 import { EmailLayout } from "@/views/email/layout";
 
 export function EmailOtp({ email, otp, url }: { email: string; otp: string; url: string }) {

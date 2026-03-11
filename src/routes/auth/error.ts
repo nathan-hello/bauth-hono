@@ -1,9 +1,10 @@
-import { copy } from "@/lib/copy";
+import { createCopy } from "@/lib/copy";
 import { Redirect } from "@/routes/redirect";
 import { ErrorPage } from "@/views/components/error";
 import { Handler } from "hono";
 
 export const get: Handler = (c) => {
+    const copy = createCopy(c.req.raw);
     const err = c.req.query("error");
 
     // This happens when a user clicks on oauth but cancels
@@ -13,11 +14,11 @@ export const get: Handler = (c) => {
     }
 
     if (err === "banned") {
-        return new Redirect(c.req.raw).Because.OauthUserIsBanned();
+        return new Redirect(c.req.raw).Because.OauthUserIsBanned(copy);
     }
 
     const message =
         err !== undefined && err in copy.error ? copy.error[err as keyof typeof copy.error] : `Unknown error: ${err}`;
 
-    return c.html(ErrorPage({ status: 500, message }));
+    return c.html(ErrorPage({ status: 500, message, copy }));
 };

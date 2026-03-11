@@ -8,6 +8,7 @@ import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { ChangeUsernamePage } from "@/views/auth/change-username";
 import { Redirect } from "@/routes/redirect";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry(routes.auth.changeUsername);
 
@@ -28,6 +29,8 @@ type ActionReturnData = {
 };
 
 export const get: Handler = async (c) => {
+    const copy = createCopy(c.req.raw);
+
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
     if (!session) {
@@ -40,6 +43,7 @@ export const get: Handler = async (c) => {
         ChangeUsernamePage({
             loaderData: { username: session.user.username || "" },
             actionData,
+            copy,
         }),
         { headers },
     );

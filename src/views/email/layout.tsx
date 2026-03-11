@@ -1,5 +1,5 @@
 import type { Child } from "hono/jsx";
-import { copy } from "@/lib/copy";
+import { defaultCopy as copy } from "@/lib/copy";
 import { routes } from "@/routes/routes";
 
 export function EmailLayout({ url, children }: { url: string; children: Child }) {

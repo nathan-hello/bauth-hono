@@ -8,6 +8,7 @@ import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { ChangeEmailPage } from "@/views/auth/change-email";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry(routes.auth.changeEmail);
 
@@ -31,6 +32,8 @@ type ActionReturnData = {
 };
 
 export async function get(c: Context) {
+    const copy = createCopy(c.req.raw);
+
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) {
         return new Redirect(c.req.raw).Because.NoSession();
@@ -45,6 +48,7 @@ export async function get(c: Context) {
                 emailVerified: session.user.emailVerified,
             },
             actionData,
+            copy,
         }),
         { headers },
     );

@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import { type DeleteActionData, type DeleteLoaderData, actions } from "@/routes/auth/delete";
 import { routes } from "@/routes/routes";
 import { TwoFactorActionState } from "@/views/auth/2fa";
@@ -8,9 +8,11 @@ import { Button, ButtonLink, Card, Form, Header, Input, Label, Section } from "@
 export function DeleteAccountPage({
     loaderData,
     actionData,
+    copy,
 }: {
     loaderData: DeleteLoaderData;
     actionData?: DeleteActionData;
+    copy: Copy;
 }) {
     const state = actionData?.state;
 
@@ -33,7 +35,7 @@ export function DeleteAccountPage({
     const headerCopy = getHeaderCopy();
 
     return (
-        <Layout meta={copy.routes.auth.delete}>
+        <Layout meta={copy.routes.auth.delete} copy={copy}>
             <TwoFactorSwitchHiddenForm currentType={state?.verificationType} />
             <Card>
                 <Header>{copy.routes.auth.delete.title}</Header>
@@ -100,9 +102,9 @@ export function DeleteAccountPage({
     );
 }
 
-export function DeleteSuccessPage() {
+export function DeleteSuccessPage({ copy }: { copy: Copy }) {
     return (
-        <Layout meta={copy.routes.auth.delete}>
+        <Layout meta={copy.routes.auth.delete} copy={copy}>
             <Card>
                 <Header>{copy.routes.auth.delete.title}</Header>
                 <Section>
@@ -142,6 +144,7 @@ function TwoFactorSwitch({
 }: {
     currentType: TwoFactorActionState["verificationType"] | undefined;
 }) {
+    const copy = useCopy();
     if (!currentType) {
         return null;
     }

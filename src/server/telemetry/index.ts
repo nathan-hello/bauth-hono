@@ -3,7 +3,7 @@ import { LogAttributes, SeverityNumber, type AnyValue } from "@opentelemetry/api
 import { getLoggerProvider } from "@/server/telemetry/sdk";
 import { AppError, ResendErrorCodes } from "@/lib/auth-error";
 import { APIError } from "better-auth";
-import { copy } from "@/lib/copy";
+import { defaultCopy as copy } from "@/lib/copy";
 
 export type TelemetryLogSchema = {
     info: [string, Record<string, AnyValue>];

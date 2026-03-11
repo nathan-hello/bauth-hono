@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import { type ForgotActionData, type ForgotLoaderData, actions } from "@/routes/auth/forgot";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, Form, Label } from "@/views/components/ui";
@@ -9,15 +9,16 @@ export type ForgotStep = "start" | "code" | "update" | "try-again";
 type ForgotProps = {
     loaderData: ForgotLoaderData;
     actionData?: ForgotActionData;
+    copy: Copy;
 };
 
-export function ForgotPage({ actionData }: ForgotProps) {
+export function ForgotPage({ actionData, copy }: ForgotProps) {
     const step = actionData?.state?.step ?? "start";
     const email = actionData?.state?.email;
     const code = actionData?.state?.code;
 
     return (
-        <Layout meta={copy.routes.auth.forgot}>
+        <Layout meta={copy.routes.auth.forgot} copy={copy}>
             <Card>
                 <Form method="post" action={routes.auth.forgot} formAction={actions.forgot.name} result={actionData?.result}>
                     {step === "start" && (

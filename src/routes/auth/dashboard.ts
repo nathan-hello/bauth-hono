@@ -13,6 +13,7 @@ import {
 import { routes } from "@/routes/routes";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry("route.dashboard");
 
@@ -58,6 +59,8 @@ async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | nu
 }
 
 export const get: Handler = async (c) => {
+    const copy = createCopy(c.req.raw);
+
     const result = await tel.task("GET", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
         const session = await getLoaderData(c.req.raw.headers);
@@ -71,6 +74,7 @@ export const get: Handler = async (c) => {
             DashboardPage({
                 loaderData: session,
                 actionData,
+                copy,
             }),
             { headers },
         );
@@ -78,7 +82,7 @@ export const get: Handler = async (c) => {
     if (result.ok) {
         return result.data;
     }
-    return new Redirect(c.req.raw).Because.Error(result);
+    return new Redirect(c.req.raw).Because.Error(copy, result);
 };
 
 export const post: Handler = async (c) => {

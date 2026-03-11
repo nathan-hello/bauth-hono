@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import { type RegisterActionData, type RegisterLoaderData, actions } from "@/routes/auth/register";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, Form } from "@/views/components/ui";
@@ -9,11 +9,12 @@ import { RegisterEmailDevInfo } from "@/views/debug/email";
 type RegisterProps = {
     loaderData: RegisterLoaderData;
     actionData?: RegisterActionData;
+    copy: Copy;
 };
 
-export function RegisterPage({ actionData }: RegisterProps) {
+export function RegisterPage({ actionData, copy }: RegisterProps) {
     return (
-        <Layout meta={copy.routes.auth.register}>
+        <Layout meta={copy.routes.auth.register} copy={copy}>
             <Card>
                 <Form method="post" action={routes.auth.register} formAction={actions.register.name} result={actionData?.result}>
                     <Input type="text" name="username" required placeholder={copy.username} />

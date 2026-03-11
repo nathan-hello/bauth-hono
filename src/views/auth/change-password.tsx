@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import type { ActionResult } from "@/lib/types";
 import { type ChangePasswordActionData, type ChangePasswordLoaderData, actions } from "@/routes/auth/change-password";
 import { Layout } from "@/views/components/layout";
@@ -8,11 +8,12 @@ import { routes } from "@/routes/routes";
 type Props = {
     loaderData: ChangePasswordLoaderData;
     actionData?: ChangePasswordActionData;
+    copy: Copy;
 };
 
-export function ChangePasswordPage({ loaderData, actionData }: Props) {
+export function ChangePasswordPage({ loaderData, actionData, copy }: Props) {
     return (
-        <Layout meta={copy.routes.auth.changePassword}>
+        <Layout meta={copy.routes.auth.changePassword} copy={copy}>
             <Card>
                 <Header>{loaderData.hasCredential ? copy.password_change : copy.password_set}</Header>
                 <Section>
@@ -31,6 +32,7 @@ export function ChangePasswordPage({ loaderData, actionData }: Props) {
 }
 
 function ChangePasswordForm({ result }: { result?: ActionResult<typeof actions> }) {
+    const copy = useCopy();
     return (
         <Form
             method="post"
@@ -72,6 +74,7 @@ function ChangePasswordForm({ result }: { result?: ActionResult<typeof actions> 
 }
 
 function SetPasswordForm({ result }: { result?: ActionResult<typeof actions> }) {
+    const copy = useCopy();
     return (
         <Form
             method="post"

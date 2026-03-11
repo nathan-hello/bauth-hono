@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import { type SetupActionData, type SetupLoaderData, actions } from "@/routes/auth/setup";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, ButtonLink, Form, Header, Section } from "@/views/components/ui";
@@ -7,11 +7,12 @@ import { routes } from "@/routes/routes";
 type Props = {
     loaderData: SetupLoaderData;
     actionData?: SetupActionData;
+    copy: Copy;
 };
 
-export function SetupPage({ loaderData, actionData }: Props) {
+export function SetupPage({ loaderData, actionData, copy }: Props) {
     return (
-        <Layout meta={copy.routes.auth.setup}>
+        <Layout meta={copy.routes.auth.setup} copy={copy}>
             <Card>
                 <Header>{copy.routes.auth.setup.title}</Header>
                 <Section>

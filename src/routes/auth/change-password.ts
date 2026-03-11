@@ -8,6 +8,7 @@ import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { ChangePasswordPage } from "@/views/auth/change-password";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry(routes.auth.changePassword);
 
@@ -29,6 +30,8 @@ type ActionReturnData = {
 };
 
 export const get: Handler = async (c) => {
+    const copy = createCopy(c.req.raw);
+
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
     if (!session) {
@@ -44,6 +47,7 @@ export const get: Handler = async (c) => {
         ChangePasswordPage({
             loaderData: { hasCredential },
             actionData,
+            copy,
         }),
         { headers },
     );
