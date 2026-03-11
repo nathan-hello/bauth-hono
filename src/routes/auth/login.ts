@@ -11,6 +11,7 @@ import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { parse } from "cookie";
 import { dotenv } from "@/server/env";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry(routes.auth.login);
 
@@ -30,6 +31,8 @@ export type LoginActionState = {
 export type LoginActionData = RouteActionData<typeof actions, LoginActionState>;
 
 export const get: Handler = async (c) => {
+    const copy = createCopy(c.req.raw);
+
     const result = await tel.task("GET", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
         const existing = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -51,6 +54,7 @@ export const get: Handler = async (c) => {
             LoginPage({
                 loaderData: {},
                 actionData,
+                copy,
             }),
             { headers },
         );
@@ -58,7 +62,7 @@ export const get: Handler = async (c) => {
     if (result.ok) {
         return result.data;
     }
-    return new Redirect(c.req.raw).Because.Error(result);
+    return new Redirect(c.req.raw).Because.Error(copy, result);
 };
 
 export const post: Handler = async (c) => {

@@ -2,10 +2,6 @@ import type { TErrorCodes } from "@/lib/auth-error";
 import type { auth } from "@/server/auth";
 import { routes } from "@/routes/routes";
 
-export const BA_INTERNAL_COPY = {
-    you_have_been_banned: "You have been banned.",
-};
-
 // prettier-ignore
 const BA_CALLBACK_ERRORS_COPY = {
     invalid_callback_request                 : "Provider gave an improper callback request.",
