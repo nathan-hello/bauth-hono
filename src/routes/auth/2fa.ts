@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import { Flash } from "@/lib/flash";
-import { AppEnv, type ActionResult } from "@/lib/types";
+import { AppEnv, BaseProps } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -10,14 +10,14 @@ import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
-import { Copy, createCopy } from "@/lib/copy";
+import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.twoFactor);
 const flash = new Flash<typeof actions, State>({ verificationType: "totp" });
 
 export type State = { verificationType: "totp" | "email" };
-export type TwoFactorProps = { result: ActionResult<typeof actions, State> | undefined; state: State; copy: Copy };
+export type TwoFactorProps = BaseProps<typeof actions, State>;
 
 export const actions = {
     switch: { name: "switch", handler: Switch },

@@ -1,7 +1,7 @@
-import { Context, Handler, Hono } from "hono";
+import { Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import { AppEnv, type RouteActionData } from "@/lib/types";
+import { AppEnv, BaseProps } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -12,11 +12,11 @@ import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.changePassword);
-const flash = new Flash<typeof actions>();
+const flash = new Flash<typeof actions, State>({ hasCredential: false });
 
-type ActionReturnData = { headers?: Headers };
-export type ChangePasswordLoaderData = { hasCredential: boolean };
-export type ChangePasswordActionData = RouteActionData<typeof actions>;
+type State = { hasCredential: boolean };
+type ActionReturnData = { headers: Headers };
+export type ChangePasswordProps = BaseProps<typeof actions, State>;
 
 export const actions = {
     change_password: { name: "change_password", handler: ChangePassword },
@@ -56,21 +56,17 @@ app.post("/", async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    const result = await tel.task("POST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw, form));
-        const handler = findAction(actions, action);
-        return await handler(c.req.raw, form);
-    });
+    const result = await tel.task(
+        "POST",
+        async (span) => {
+            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+            const handler = findAction(actions, action);
+            return await handler(c.req.raw, form);
+        },
+        { action },
+    );
 
-    if (result.ok) {
-        return flash.Respond(c.req.raw, result.data.headers, {
-            result: { action, success: true },
-        });
-    }
-
-    return flash.Respond(c.req.raw, undefined, {
-        result: { action, success: false, errors: result.error },
-    });
+    return flash.Respond(c.req.raw, result);
 });
 
 async function ChangePassword(request: Request, form: FormData): Promise<ActionReturnData> {

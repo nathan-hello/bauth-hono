@@ -19,6 +19,8 @@ export type ActionKeys<TActions> = {
     [K in keyof TActions]: TActions[K] extends { name: string } ? TActions[K]["name"] : never;
 };
 
+export type BaseProps<TActions extends { [K: string]: { name: string } }, TState> = { result?: ActionResult<TActions, TState>; state: TState; copy: Copy }
+
 export type BAuthSession = typeof auth.$Infer.Session;
 
 const appEnv = {

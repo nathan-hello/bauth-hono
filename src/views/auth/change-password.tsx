@@ -1,37 +1,30 @@
-import { useCopy, type Copy } from "@/lib/copy";
-import type { ActionResult } from "@/lib/types";
-import { type ChangePasswordActionData, type ChangePasswordLoaderData, actions } from "@/routes/auth/change-password";
+import { useCopy } from "@/lib/copy";
+import { ChangePasswordProps, actions } from "@/routes/auth/change-password";
 import { Layout } from "@/views/components/layout";
 import { Input, Button, ButtonLink, Card, Form, Header, Label, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
-type Props = {
-    loaderData: ChangePasswordLoaderData;
-    actionData?: ChangePasswordActionData;
-    copy: Copy;
-};
-
-export function ChangePasswordPage({ loaderData, actionData, copy }: Props) {
+export function ChangePasswordPage(props: ChangePasswordProps) {
     return (
-        <Layout meta={copy.routes.auth.changePassword} copy={copy}>
+        <Layout meta={props.copy.routes.auth.changePassword} copy={props.copy}>
             <Card>
-                <Header>{loaderData.hasCredential ? copy.password_change : copy.password_set}</Header>
+                <Header>{props.state.hasCredential ? props.copy.password_change : props.copy.password_set}</Header>
                 <Section>
-                    {loaderData.hasCredential ? (
-                        <ChangePasswordForm result={actionData?.result} />
+                    {props.state.hasCredential ? (
+                        <ChangePasswordForm result={props.result} />
                     ) : (
-                        <SetPasswordForm result={actionData?.result} />
+                        <SetPasswordForm result={props.result} />
                     )}
                 </Section>
                 <Section>
-                    <ButtonLink href={routes.auth.dashboard}>{copy.go_back}</ButtonLink>
+                    <ButtonLink href={routes.auth.dashboard}>{props.copy.go_back}</ButtonLink>
                 </Section>
             </Card>
         </Layout>
     );
 }
 
-function ChangePasswordForm({ result }: { result?: ActionResult<typeof actions> }) {
+function ChangePasswordForm({ result }: { result: ChangePasswordProps["result"] }) {
     const copy = useCopy();
     return (
         <Form
@@ -73,7 +66,7 @@ function ChangePasswordForm({ result }: { result?: ActionResult<typeof actions> 
     );
 }
 
-function SetPasswordForm({ result }: { result?: ActionResult<typeof actions> }) {
+function SetPasswordForm({ result }: { result: ChangePasswordProps["result"] }) {
     const copy = useCopy();
     return (
         <Form
