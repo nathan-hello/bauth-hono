@@ -48,7 +48,7 @@ export const get: Handler = async (c) => {
             }
         }
 
-        const { actionData, headers } = flash.Consume(c.req.raw.headers);
+        const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             LoginPage({

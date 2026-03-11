@@ -1,19 +1,23 @@
 import { AppError } from "@/lib/auth-error";
 import { Flash } from "@/lib/flash";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
-import type { RouteActionData } from "@/lib/types";
+import { AppEnv, type RouteActionData } from "@/lib/types";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
 import { DeleteAccountPage, DeleteSuccessPage } from "@/views/auth/delete";
-import { Context } from "hono";
+import { Context, Hono } from "hono";
 import { createCopy } from "@/lib/copy";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.delete);
-
 const flash = new Flash<typeof actions, DeleteActionState>();
+
+export type DeleteActionData = RouteActionData<typeof actions, DeleteActionState>;
+export type DeleteLoaderData = { hasCredential: boolean; hasTwoFactor: boolean };
+export type DeleteActionState = { deleted?: boolean; verificationType?: "email" | "totp" };
 
 export const actions = {
     delete_account: { name: "delete_account", handler: DeleteAccount },
@@ -21,31 +25,10 @@ export const actions = {
     switch_otp: { name: "switch_otp", handler: SwitchOtp },
 };
 
-export type DeleteLoaderData = {
-    hasCredential: boolean;
-    hasTwoFactor: boolean;
-};
-
-export type DeleteActionState = {
-    deleted?: boolean;
-    verificationType?: "email" | "totp";
-};
-
-export type DeleteActionData = RouteActionData<typeof actions, DeleteActionState>;
-
-type DeleteActionResult = {
-    state?: {
-        deleted?: boolean;
-        verificationType?: "email" | "totp";
-        resentEmail?: boolean;
-    };
-    headers?: Headers;
-};
-
 export async function get(c: Context) {
     const copy = createCopy(c.req.raw);
 
-    const { actionData, headers } = flash.Consume(c.req.raw.headers);
+    const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
     if (actionData?.state?.deleted) {
         return c.html(DeleteSuccessPage({ copy }), { headers });
     }
@@ -58,12 +41,12 @@ export async function get(c: Context) {
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
 
-    const hasTwoFactor = session.user.twoFactorEnabled ?? false
+    const hasTwoFactor = session.user.twoFactorEnabled ?? false;
 
     return c.html(
         DeleteAccountPage({
             loaderData: { hasCredential, hasTwoFactor },
-            actionData: actionData ,
+            actionData: actionData,
             copy,
         }),
         { headers },
@@ -82,11 +65,7 @@ export async function post(c: Context) {
     const result = await tel.task("POST", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw, form));
         const handler = findAction(actions, action);
-        let { state, headers } = await handler(c.req.raw, form);
-
-        if (state === undefined) {
-            state = {};
-        }
+        let data = await handler(c.req.raw, form);
 
         if (!state.verificationType && session.user.twoFactorEnabled) {
             state.verificationType = getOtpType(form.get("otp-type")?.toString());
@@ -110,21 +89,21 @@ export async function post(c: Context) {
     });
 }
 
-async function ResendEmail(request: Request, _: FormData): Promise<DeleteActionResult> {
+async function ResendEmail(request: Request, _: FormData): Promise<DeleteActionState> {
     await auth.api.sendTwoFactorOTP({ headers: request.headers });
-    return { state: { verificationType: "email", resentEmail: true } };
+    return  { verificationType: "email", resentEmail: true  };
 }
 
-async function SwitchOtp(request: Request, form: FormData): Promise<DeleteActionResult> {
+async function SwitchOtp(request: Request, form: FormData): Promise<DeleteActionState> {
     const to = form.get("to")?.toString();
     const type: "email" | "totp" = to === "email" ? "email" : "totp";
     if (type === "email") {
         await auth.api.sendTwoFactorOTP({ headers: request.headers });
     }
-    return { state: { verificationType: type } };
+    return  { verificationType: type  };
 }
 
-async function DeleteAccount(request: Request, form: FormData): Promise<DeleteActionResult> {
+async function DeleteAccount(request: Request, form: FormData): Promise<DeleteActionState> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) {
         throw new AppError("FAILED_TO_GET_SESSION");

@@ -1,7 +1,7 @@
-import { Context } from "hono";
+import { Context, Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import type { RouteActionData } from "@/lib/types";
+import { AppEnv, type RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -10,28 +10,20 @@ import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.changeEmail);
-
 const flash = new Flash<typeof actions>();
+
+type ActionReturnData = { verificationSent?: boolean; headers?: Headers };
+export type ChangeEmailLoaderData = { currentEmail: string; emailVerified: boolean };
+export type ChangeEmailActionData = RouteActionData<typeof actions>;
 
 export const actions = {
     change_email: { name: "change_email", handler: ChangeEmail },
     resend_verification: { name: "resend_verification", handler: ResendVerification },
 };
 
-export type ChangeEmailLoaderData = {
-    currentEmail: string;
-    emailVerified: boolean;
-};
-
-export type ChangeEmailActionData = RouteActionData<typeof actions>;
-
-type ActionReturnData = {
-    verificationSent?: boolean;
-    headers?: Headers;
-};
-
-export async function get(c: Context) {
+app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -39,7 +31,7 @@ export async function get(c: Context) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    const { actionData, headers } = flash.Consume(c.req.raw.headers);
+    const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
 
     return c.html(
         ChangeEmailPage({
@@ -52,9 +44,9 @@ export async function get(c: Context) {
         }),
         { headers },
     );
-}
+});
 
-export async function post(c: Context) {
+app.post("/", async (c) => {
     if (!(await auth.api.getSession({ headers: c.req.raw.headers }))) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
@@ -77,7 +69,7 @@ export async function post(c: Context) {
     return flash.Respond(c.req.raw, undefined, {
         result: { action, success: false, errors: result.error },
     });
-}
+});
 
 async function ChangeEmail(request: Request, form: FormData): Promise<ActionReturnData> {
     const newEmail = form.get("new_email")?.toString();

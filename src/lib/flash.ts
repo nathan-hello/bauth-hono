@@ -3,25 +3,22 @@ import type { ActionNames, RouteActionData } from "@/lib/types";
 import { parse, serialize } from "cookie";
 import { dotenv } from "@/server/env";
 
-export type FlashValue =
-    | string
-    | number
-    | boolean
-    | null
-    | FlashValue[]
-    | { [key: string]: FlashValue | undefined };
+export type FlashValue = string | number | boolean | null | FlashValue[] | { [key: string]: FlashValue | undefined };
 
 export type SerializedActionResult<
     TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } },
 > =
     | {
           action: ActionNames<TActions> | string | undefined;
-          success: true;
+          ok: true;
+          traceId: string;
+          data: null;
       }
     | {
           action: ActionNames<TActions> | string | undefined;
-          success: false;
-          errors: TErrorCodes[];
+          ok: false;
+          error: TErrorCodes[];
+          traceId: string;
       };
 
 export type SerializedActionData<
@@ -36,11 +33,13 @@ export function serializeActionData<
     TActions extends { [K: string]: { name: string } },
     TState extends FlashValue | undefined,
 >(actionData: RouteActionData<TActions, TState>): SerializedActionData<TActions, TState> {
-    if (actionData.result.success) {
+    if (actionData.result.ok) {
         return {
             result: {
                 action: actionData.result.action,
-                success: true,
+                ok: true,
+                traceId: actionData.result.traceId,
+                data: null,
             },
             state: actionData.state,
         };
@@ -49,8 +48,9 @@ export function serializeActionData<
     return {
         result: {
             action: actionData.result.action,
-            success: false,
-            errors: actionData.result.errors.map((error) => error.code),
+            traceId: actionData.result.traceId,
+            ok: false,
+            error: actionData.result.error.map((error) => error.code),
         },
         state: actionData.state,
     };
@@ -64,11 +64,13 @@ export function deserializeActionData<
         return undefined;
     }
 
-    if (actionData.result.success) {
+    if (actionData.result.ok) {
         return {
             result: {
-                action: actionData.result.action,
-                success: true,
+                ok: true,
+                traceId: actionData.result.traceId,
+                action: actionData.result.action ?? "top-of-page",
+                data: null,
             },
             state: actionData.state,
         };
@@ -76,9 +78,10 @@ export function deserializeActionData<
 
     return {
         result: {
-            action: actionData.result.action,
-            success: false,
-            errors: actionData.result.errors.map((error) => new AppError(error)),
+            action: actionData.result.action ?? "top-of-page",
+            ok: false,
+            error: actionData.result.error.map((error) => new AppError(error)),
+            traceId: actionData.result.traceId,
         },
         state: actionData.state,
     };
@@ -114,6 +117,7 @@ export class Flash<
     TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } },
     TState extends FlashValue | undefined = undefined,
 > {
+    constructor(private defaultState: TState) {}
     Respond(
         request: Request,
         existingHeaders: Headers | undefined,
@@ -134,7 +138,11 @@ export class Flash<
         return new Response(null, { status: 303, headers });
     }
 
-    Consume(headers: Headers): { actionData: RouteActionData<TActions, TState> | undefined; headers: Headers } {
+    Consume(headers: Headers): {
+        state: RouteActionData<TActions, TState>["state"];
+        result: RouteActionData<TActions, TState>["result"] | undefined;
+        headers: Headers;
+    } {
         const cookie = headers.get("cookie");
         const parsed = parse(cookie || "");
         const raw = parsed[flashCookieName()];
@@ -143,12 +151,18 @@ export class Flash<
         responseHeaders.append("Set-Cookie", serialize(flashCookieName(), "", flashCookieOptions(0)));
 
         if (!raw) {
-            return { actionData: undefined, headers: responseHeaders };
+            return { state: this.defaultState, result: undefined, headers: responseHeaders };
         }
 
         const actionData = decodeFlash<SerializedActionData<TActions, TState>>(raw);
+        const unmarshal = deserializeActionData<TActions, TState>(actionData);
+        if (!unmarshal) {
+            return { state: this.defaultState, result: undefined, headers: responseHeaders };
+        }
+
         return {
-            actionData: deserializeActionData<TActions, TState>(actionData),
+            state: unmarshal?.state ?? this.defaultState,
+            result: unmarshal.result,
             headers: responseHeaders,
         };
     }

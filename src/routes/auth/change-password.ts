@@ -1,7 +1,7 @@
-import { Context, Handler } from "hono";
+import { Context, Handler, Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import type { RouteActionData } from "@/lib/types";
+import { AppEnv, type RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -10,26 +10,20 @@ import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.changePassword);
-
 const flash = new Flash<typeof actions>();
+
+type ActionReturnData = { headers?: Headers };
+export type ChangePasswordLoaderData = { hasCredential: boolean };
+export type ChangePasswordActionData = RouteActionData<typeof actions>;
 
 export const actions = {
     change_password: { name: "change_password", handler: ChangePassword },
     set_password: { name: "set_password", handler: SetPassword },
 };
 
-export type ChangePasswordLoaderData = {
-    hasCredential: boolean;
-};
-
-export type ChangePasswordActionData = RouteActionData<typeof actions>;
-
-type ActionReturnData = {
-    headers?: Headers;
-};
-
-export const get: Handler = async (c) => {
+app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -41,7 +35,7 @@ export const get: Handler = async (c) => {
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
 
-    const { actionData, headers } = flash.Consume(c.req.raw.headers);
+    const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
 
     return c.html(
         ChangePasswordPage({
@@ -51,9 +45,9 @@ export const get: Handler = async (c) => {
         }),
         { headers },
     );
-};
+});
 
-export async function post(c: Context) {
+app.post("/", async (c) => {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) {
         return new Redirect(c.req.raw).Because.NoSession();
@@ -77,7 +71,7 @@ export async function post(c: Context) {
     return flash.Respond(c.req.raw, undefined, {
         result: { action, success: false, errors: result.error },
     });
-}
+});
 
 async function ChangePassword(request: Request, form: FormData): Promise<ActionReturnData> {
     const current = form.get("current")?.toString();

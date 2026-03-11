@@ -1,44 +1,16 @@
-import type { Context } from "hono";
+import { Hono } from "hono";
 import { auth } from "@/server/auth";
 import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
+import { AppEnv } from "@/lib/types";
+import { Redirect } from "@/routes/redirect";
+import { createCopy } from "@/lib/copy";
+import { routes } from "@/routes/routes";
 
-const tel = new Telemetry("api.auth");
+const app = new Hono<AppEnv>();
+const tel = new Telemetry(routes.auth.api);
 
-function errorPage(traceId: string): Response {
-    return new Response(
-        `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>500 - Server Error</title>
-  <style>
-    body { margin: 0; background: #282828; color: #e5e5e5; font-family: system-ui, sans-serif; }
-    .container { display: flex; min-height: 100vh; align-items: center; justify-content: center; }
-    .content { text-align: center; }
-    h1 { font-size: 2.5rem; font-weight: bold; margin: 0; }
-    p { margin-top: 1rem; color: #928374; }
-    .trace { font-size: 0.875rem; color: #7c6f64; margin-top: 0.5rem; }
-    a { display: inline-block; margin-top: 1.5rem; color: #689d6a; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="content">
-      <h1>500</h1>
-      <p>An unrecoverable error has occurred.</p>
-      <p class="trace">Error ID: ${traceId}</p>
-      <a href="/">Go home</a>
-    </div>
-  </div>
-</body>
-</html>`,
-        { status: 500, headers: { "Content-Type": "text/html" } },
-    );
-}
-
-export async function post(c: Context) {
+app.post("/", async (c) => {
+    const copy = createCopy(c.req.raw);
     const result = await tel.task("HANDLE", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
         return await auth.handler(c.req.raw);
@@ -48,5 +20,5 @@ export async function post(c: Context) {
         return result.data;
     }
 
-    return errorPage(result.traceId);
-}
+    return new Redirect(c.req.raw).Because.Error(copy, result);
+});

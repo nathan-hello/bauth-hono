@@ -1,12 +1,6 @@
-import { useCopy, type Copy } from "@/lib/copy";
+import { type Copy } from "@/lib/copy";
 import { routes } from "@/routes/routes";
-import {
-    actions,
-    type AdminActionData,
-    type AdminFilters,
-    type AdminLoaderData,
-    type AdminUser,
-} from "@/routes/auth/admin";
+import { actions, type AdminActionData, type AdminFilters, type AdminLoaderData } from "@/routes/auth/admin";
 import { Layout } from "@/views/components/layout";
 import {
     Badge,
@@ -22,6 +16,7 @@ import {
     Label,
     Section,
 } from "@/views/components/ui";
+import { FullUser } from "@/lib/types";
 
 type AdminProps = {
     actionData?: AdminActionData;
@@ -97,7 +92,7 @@ function UserRow({
     actionData?: AdminActionData;
     filters: AdminFilters;
     open?: boolean;
-    user: AdminUser;
+    user: FullUser;
 }) {
     const actionPath = getAdminHref(filters);
 
@@ -292,7 +287,7 @@ function UserRow({
     );
 }
 
-function UserSummary({ user }: { user: AdminUser }) {
+function UserSummary({ user }: { user: FullUser }) {
     return (
         <div class="flex w-full flex-col gap-3 pr-4 md:flex-row md:items-center md:justify-between">
             <div class="flex items-start gap-4 min-w-0">

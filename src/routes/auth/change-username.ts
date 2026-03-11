@@ -1,8 +1,8 @@
 import type { Handler } from "hono";
-import { Context } from "hono";
+import { Context, Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import type { RouteActionData } from "@/lib/types";
+import { AppEnv, type RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -10,25 +10,17 @@ import { ChangeUsernamePage } from "@/views/auth/change-username";
 import { Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.changeUsername);
-
 const flash = new Flash<typeof actions>();
 
-export const actions = {
-    change_username: { name: "change_username", handler: ChangeUsername },
-};
-
-export type ChangeUsernameLoaderData = {
-    username: string;
-};
-
+type ActionReturnData = { headers?: Headers };
+export type ChangeUsernameLoaderData = { username: string };
 export type ChangeUsernameActionData = RouteActionData<typeof actions>;
 
-type ActionReturnData = {
-    headers?: Headers;
-};
+export const actions = { change_username: { name: "change_username", handler: ChangeUsername } };
 
-export const get: Handler = async (c) => {
+app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -37,7 +29,7 @@ export const get: Handler = async (c) => {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    const { actionData, headers } = flash.Consume(c.req.raw.headers);
+    const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
 
     return c.html(
         ChangeUsernamePage({
@@ -47,9 +39,9 @@ export const get: Handler = async (c) => {
         }),
         { headers },
     );
-};
+});
 
-export async function post(c: Context) {
+app.post("/", async (c) => {
     if (!(await auth.api.getSession({ headers: c.req.raw.headers }))) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
@@ -68,7 +60,7 @@ export async function post(c: Context) {
     return flash.Respond(c.req.raw, undefined, {
         result: { action: "change_username", success: false, errors: result.error },
     });
-}
+});
 
 async function ChangeUsername(request: Request, form: FormData): Promise<ActionReturnData> {
     const username = form.get("username")?.toString();
