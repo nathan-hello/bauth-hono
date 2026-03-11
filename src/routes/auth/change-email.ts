@@ -1,21 +1,21 @@
 import { Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import { ActionResult, AppEnv } from "@/lib/types";
+import { AppEnv, BaseProps } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry } from "@/server/telemetry";
 import { ChangeEmailPage } from "@/views/auth/change-email";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
-import { Copy, createCopy } from "@/lib/copy";
+import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.changeEmail);
 const flash = new Flash<typeof actions, State>({ currentEmail: "", emailVerified: false });
 
 export type State = { currentEmail: string; emailVerified: boolean };
-export type ChangeEmailProps = { result: ActionResult<typeof actions, State>; state: State; copy: Copy };
+export type ChangeEmailProps = BaseProps<typeof actions, State>;
 
 export const actions = {
     change_email: { name: "change_email", handler: ChangeEmail },

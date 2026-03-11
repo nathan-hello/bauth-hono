@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { desc, like, or } from "drizzle-orm";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import type { ActionResult, FullUser, AppEnv } from "@/lib/types";
+import type { FullUser, AppEnv, BaseProps } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -12,7 +12,7 @@ import { Redirect } from "@/routes/redirect";
 import { db } from "@/server/drizzle/db";
 import { roles } from "@/server/lib/admin";
 import * as schema from "@/server/drizzle/schema";
-import { Copy, createCopy } from "@/lib/copy";
+import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.admin);
@@ -20,12 +20,7 @@ const flash = new Flash<typeof actions, State>({});
 
 export type State = { userId?: string };
 export type Search = { users: FullUser[]; filters: AdminFilters; hasNextPage: boolean };
-export type AdminProps = {
-    result: ActionResult<typeof actions, State> | undefined;
-    state: State;
-    copy: Copy;
-    search: Search;
-};
+export type AdminProps = BaseProps<typeof actions, State> & { search: Search };
 
 export type AdminFilters = { q: string; page: number; limit: number };
 
