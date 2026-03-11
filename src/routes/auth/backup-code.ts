@@ -10,6 +10,7 @@ import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry(routes.auth.twoFactorBackup);
 
@@ -24,6 +25,8 @@ export type TwoFactorBackupLoaderData = {};
 export type TwoFactorBackupActionData = RouteActionData<typeof actions>;
 
 export const get: Handler = async (c) => {
+    const copy = createCopy(c.req.raw);
+
     const result = await tel.task("GET", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
 
@@ -44,6 +47,7 @@ export const get: Handler = async (c) => {
             TwoFactorBackupPage({
                 loaderData: {},
                 actionData,
+                copy,
             }),
             { headers },
         );

@@ -1,4 +1,4 @@
-import { useCopy, type Copy } from "@/lib/copy";
+import { type Copy } from "@/lib/copy";
 import { type LoginActionData, type LoginLoaderData, actions } from "@/routes/auth/login";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, Form } from "@/views/components/ui";
@@ -15,7 +15,12 @@ export function LoginPage({ actionData, copy }: LoginProps) {
     return (
         <Layout meta={copy.routes.auth.login} copy={copy}>
             <Card>
-                <Form method="post" action={routes.auth.login} formAction={actions.login.name} result={actionData?.result}>
+                <Form
+                    method="post"
+                    action={routes.auth.login}
+                    formAction={actions.login.name}
+                    result={actionData?.result}
+                >
                     <Input
                         type="text"
                         name="email"
