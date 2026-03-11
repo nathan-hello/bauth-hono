@@ -5,10 +5,13 @@ import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { Redirect } from "@/routes/redirect";
 import { ErrorPage } from "@/views/components/error";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry(routes.auth.logout);
 
 export const get: Handler = async (c) => {
+    const copy = createCopy(c.req.raw);
+
     const result = await tel.task("GET", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
 
@@ -32,5 +35,5 @@ export const get: Handler = async (c) => {
         return new Redirect(c.req.raw).After.Logout();
     }
 
-    return c.html(ErrorPage({ status: 500, message: result.traceId }));
+    return c.html(ErrorPage({ status: 500, message: result.traceId, copy }));
 };

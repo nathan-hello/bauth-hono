@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import { type ChangeUsernameActionData, type ChangeUsernameLoaderData, actions } from "@/routes/auth/change-username";
 import { Layout } from "@/views/components/layout";
 import { Input, Button, ButtonLink, Card, Form, Header, Section } from "@/views/components/ui";
@@ -7,11 +7,12 @@ import { routes } from "@/routes/routes";
 type Props = {
     loaderData: ChangeUsernameLoaderData;
     actionData?: ChangeUsernameActionData;
+    copy: Copy;
 };
 
-export function ChangeUsernamePage({ loaderData, actionData }: Props) {
+export function ChangeUsernamePage({ loaderData, actionData, copy }: Props) {
     return (
-        <Layout meta={copy.routes.auth.changeUsername}>
+        <Layout meta={copy.routes.auth.changeUsername} copy={copy}>
             <Card>
                 <Header>{copy.routes.auth.changeUsername.title}</Header>
                 <Section>

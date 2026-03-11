@@ -183,27 +183,28 @@ type R<T = typeof routes> = {
     [K in keyof T]: T[K] extends string ? RouteMetadata : T[K] extends object ? R<T[K]> : T[K];
 };
 
+// prettier-ignore
 const RoutesCopy: R = {
     auth: {
-        api: { title: "/auth/api" },
-        admin: { title: "Admin" },
-        changeEmail: { title: "Change email" },
-        changePassword: { title: "Change password" },
-        changeUsername: { title: "Change username" },
-        dashboard: { title: "Account settings" },
-        delete: { title: "Delete account" },
-        error: { title: "500 Error" },
-        forgot: { title: "Forgot password" },
-        login: { title: "Log in" },
-        logout: { title: "Log out" },
-        register: { title: "Sign up" },
-        setup: { title: "Setup account" },
-        twoFactor: { title: "Two factor check" },
-        twoFactorBackup: { title: "Backup code verification" },
+        api             : { title : "/auth/api"                } ,
+        admin           : { title : "Admin"                    } ,
+        changeEmail     : { title : "Change email"             } ,
+        changePassword  : { title : "Change password"          } ,
+        changeUsername  : { title : "Change username"          } ,
+        dashboard       : { title : "Account settings"         } ,
+        delete          : { title : "Delete account"           } ,
+        error           : { title : "500 Error"                } ,
+        forgot          : { title : "Forgot password"          } ,
+        login           : { title : "Log in"                   } ,
+        logout          : { title : "Log out"                  } ,
+        register        : { title : "Sign up"                  } ,
+        setup           : { title : "Setup account"            } ,
+        twoFactor       : { title : "Two factor check"         } ,
+        twoFactorBackup : { title : "Backup code verification" } ,
     },
     debug: {
-        home: { title: "Debug home" },
-        email: { title: "Debug email" },
+        home  : { title : "Debug home"  } ,
+        email : { title : "Debug email" } ,
     },
     index: { title: "" },
 };
@@ -217,12 +218,12 @@ const OAUTH_COPY = {
     },
 };
 
-export const copy = {
+export default {
     error: ERROR_COPY,
     oauth: OAUTH_COPY,
     routes: RoutesCopy,
 
-    trace_id: "Report the following Trace ID",
+    report_this_trace_id: "Report the following Trace ID",
 
     home_signed_in_as: "Signed in as",
     home_not_signed_in: "Not signed in",

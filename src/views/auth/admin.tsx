@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import { routes } from "@/routes/routes";
 import {
     actions,
@@ -27,16 +27,17 @@ type AdminProps = {
     actionData?: AdminActionData;
     loaderData: AdminLoaderData;
     error?: string;
+    copy: Copy;
 };
 
 const textareaClass =
     "w-full min-h-24 px-4 py-3 bg-surface-raised border border-border text-fg outline-none focus:border-fg-muted resize-y";
 
-export function AdminPage({ loaderData, error, actionData }: AdminProps) {
+export function AdminPage({ loaderData, error, actionData, copy }: AdminProps) {
     const summary = getSummary(loaderData);
 
     return (
-        <Layout meta={copy.routes.auth.admin}>
+        <Layout meta={copy.routes.auth.admin} copy={copy}>
             <Card class="max-w-[min(96vw,120rem)] gap-0 overflow-hidden">
                 <Header>{copy.routes.auth.admin.title}</Header>
                 <Section>

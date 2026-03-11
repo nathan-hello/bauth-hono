@@ -13,6 +13,7 @@ import { Redirect } from "@/routes/redirect";
 import { db } from "@/server/drizzle/db";
 import { roles } from "@/server/lib/admin";
 import * as schema from "@/server/drizzle/schema";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry(routes.auth.admin);
 
@@ -106,6 +107,8 @@ async function userIsAdmin(headers: Headers) {
 }
 
 export const get: Handler = async (c) => {
+    const copy = createCopy(c.req.raw);
+
     const filters = getFilters(c.req.raw.url);
     const adminState = await userIsAdmin(c.req.raw.headers);
     if (!adminState.session) {
@@ -124,6 +127,7 @@ export const get: Handler = async (c) => {
         AdminPage({
             loaderData,
             actionData,
+            copy,
         }),
         { headers },
     );

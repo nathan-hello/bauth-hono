@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
 import {
@@ -49,15 +49,16 @@ export type TotpState = {
 type DashboardProps = {
     actionData?: DashboardActionData;
     loaderData: DashboardLoaderData;
+    copy: Copy;
 };
 
-export function DashboardPage({ actionData, loaderData }: DashboardProps) {
+export function DashboardPage({ actionData, loaderData, copy }: DashboardProps) {
     const hasCredential = loaderData.accounts.some((a) => a.providerId === "credential");
     const linkedProviderIds = new Set(loaderData.accounts.map((a) => a.providerId));
     const oauthProviders = getOauthProviders();
 
     return (
-        <Layout meta={copy.routes.auth.dashboard}>
+        <Layout meta={copy.routes.auth.dashboard} copy={copy}>
             <Card>
                 <Header>{copy.routes.auth.dashboard.title}</Header>
                 <Divider>
@@ -133,6 +134,7 @@ function EmailAndPasswordRow({
     hasCredential: boolean;
     result: ActionResult | undefined;
 }) {
+    const copy = useCopy();
     if (hasCredential) {
         return (
             <Card>
@@ -155,6 +157,7 @@ function EmailAndPasswordRow({
 }
 
 function VerifyEmailForm({ result, emailVerified }: { emailVerified: boolean; result: ActionResult | undefined }) {
+    const copy = useCopy();
     if (emailVerified) {
         return (
             <Label center unmuted>
@@ -180,6 +183,7 @@ function VerifyEmailForm({ result, emailVerified }: { emailVerified: boolean; re
 }
 
 function UsernameSection({ username }: { username: string | null | undefined }) {
+    const copy = useCopy();
     return (
         <>
             <Label center unmuted>
@@ -194,6 +198,7 @@ function UsernameSection({ username }: { username: string | null | undefined }) 
 }
 
 function UnlinkAccountForm({ providerId }: { providerId: string }) {
+    const copy = useCopy();
     return (
         <Form
             method="post"
@@ -207,6 +212,7 @@ function UnlinkAccountForm({ providerId }: { providerId: string }) {
 }
 
 function LinkAccountForm({ provider }: { provider: string }) {
+    const copy = useCopy();
     return (
         <Form
             method="post"
@@ -230,6 +236,7 @@ function TwoFactorSection({ state, result }: { state?: TotpState; result?: Actio
 }
 
 function TwoFactorDisabled({ result }: { result?: ActionResult<typeof actions> }) {
+    const copy = useCopy();
     return (
         <Section>
             <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
@@ -254,6 +261,7 @@ function TwoFactorDisabled({ result }: { result?: ActionResult<typeof actions> }
 }
 
 function TwoFactorSetup({ state, result }: { state: TotpState; result?: ActionResult<typeof actions> }) {
+    const copy = useCopy();
     if (!state.totpURI || !state.backupCodes || state.backupCodes.length === 0) {
         throw new AppError("totp_uri_not_found");
     }
@@ -276,6 +284,7 @@ function TwoFactorSetup({ state, result }: { state: TotpState; result?: ActionRe
 }
 
 async function TwoFactorTotpViewer({ secret }: { secret: string }) {
+    const copy = useCopy();
     function parseOtpauthUri(uri: string) {
         const u = new URL(uri);
         const params: Record<string, string> = {};
@@ -337,6 +346,7 @@ async function TwoFactorTotpViewer({ secret }: { secret: string }) {
 }
 
 function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: ActionResult<typeof actions> }) {
+    const copy = useCopy();
     if (state?.totpURI) {
         return (
             <Section>
@@ -435,6 +445,7 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
 }
 
 function VerifyTotpForm({ result, state }: { result?: ActionResult<typeof actions>; state: TotpState }) {
+    const copy = useCopy();
     return (
         <Form
             method="post"
@@ -472,6 +483,7 @@ function SessionsSection({
     sessions: BAuthSession["session"][];
     current: BAuthSession["session"];
 }) {
+    const copy = useCopy();
     return (
         <Section>
             <SectionHeading>{copy.dashboard_sessions_heading}</SectionHeading>

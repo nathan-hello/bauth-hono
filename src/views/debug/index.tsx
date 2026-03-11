@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import { routes } from "@/routes/routes";
 import { Layout } from "@/views/components/layout";
 import { Card, ButtonLink } from "@/views/components/ui";
@@ -7,11 +7,12 @@ type HomeProps = {
     session: {
         user: { email: string };
     } | null;
+    copy: Copy;
 };
 
-export function DebugHomePage({ session }: HomeProps) {
+export function DebugHomePage({ session, copy }: HomeProps) {
     return (
-        <Layout meta={copy.routes.debug.home}>
+        <Layout meta={copy.routes.debug.home} copy={copy}>
             <Card>
                 {session ? `${copy.home_signed_in_as} ${session.user.email}` : copy.home_not_signed_in}
                 <ButtonLink href={routes.debug.email}>Email</ButtonLink>

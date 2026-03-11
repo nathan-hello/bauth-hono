@@ -9,6 +9,7 @@ import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { SetupPage } from "@/views/auth/setup";
 import { Redirect } from "@/routes/redirect";
 import { findAction } from "@/routes/auth/lib/check-action";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry(routes.auth.setup);
 
@@ -29,6 +30,8 @@ type ActionReturnData = {
 };
 
 export const get: Handler = async (c) => {
+    const copy = createCopy(c.req.raw);
+
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
     if (!session) {
@@ -41,6 +44,7 @@ export const get: Handler = async (c) => {
         SetupPage({
             loaderData: { email: session.user.email },
             actionData,
+            copy,
         }),
         { headers },
     );

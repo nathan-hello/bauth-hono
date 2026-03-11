@@ -80,24 +80,24 @@ export class Redirect {
             return to(routes.auth.dashboard, this.headers);
         },
         OauthUserIsBanned: (copy: Copy) => {
-            return new Response(
-                ErrorPage({
-                    status: 403,
-                    message: copy.you_have_been_banned,
-                }).toString(),
-                {
+            const page = ErrorPage({
+                status: 403,
+                message: copy.you_have_been_banned,
+                copy,
+            });
+            return new Response(page.toString(), {
                     status: 403,
                     headers: { "Content-Type": "text/html; charset=utf-8" },
                 },
             );
         },
         Error: (copy: Copy, result: Extract<TaskResult<any>, { ok: false }>): Response => {
-            return new Response(
-                ErrorPage({
-                    status: 500,
-                    message: `${copy.trace_id}: ${result.traceId}`,
-                }).toString(),
-                {
+            const page = ErrorPage({
+                status: 500,
+                message: `${copy.report_this_trace_id}: ${result.traceId}`,
+                copy,
+            });
+            return new Response(page.toString(), {
                     status: 500,
                     headers: { "Content-Type": "text/html; charset=utf-8" },
                 },

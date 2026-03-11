@@ -9,6 +9,7 @@ import { auth } from "@/server/auth";
 import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
 import { DeleteAccountPage, DeleteSuccessPage } from "@/views/auth/delete";
 import { Context } from "hono";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry(routes.auth.delete);
 
@@ -42,9 +43,11 @@ type DeleteActionResult = {
 };
 
 export async function get(c: Context) {
+    const copy = createCopy(c.req.raw);
+
     const { actionData, headers } = flash.Consume(c.req.raw.headers);
     if (actionData?.state?.deleted) {
-        return c.html(DeleteSuccessPage(), { headers });
+        return c.html(DeleteSuccessPage({ copy }), { headers });
     }
 
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -61,6 +64,7 @@ export async function get(c: Context) {
         DeleteAccountPage({
             loaderData: { hasCredential, hasTwoFactor },
             actionData: actionData ,
+            copy,
         }),
         { headers },
     );

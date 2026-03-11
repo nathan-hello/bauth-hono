@@ -1,11 +1,12 @@
-import { createContext, useContext } from "hono/jsx";
-import { copy as en } from "@/lib/copy/en";
+import { Child, createContext, useContext } from "hono/jsx";
+import en from "@/lib/copy/en";
+import { User } from "better-auth";
 
 export type Copy = typeof en;
 
-const CopyContext = createContext<Copy | null>(null);
+const CopyContext = createContext<Copy>(en);
 
-export function CopyProvider({ copy, children }: { copy: Copy; children: any }) {
+export function CopyProvider({ copy, children }: { copy: Copy; children: Child }) {
     return <CopyContext.Provider value={copy}>{children}</CopyContext.Provider>;
 }
 
@@ -17,13 +18,8 @@ export function useCopy(): Copy {
     return ctx;
 }
 
-export function createCopy(_request: Request): Copy {
-    const acceptLanguage = _request.headers.get("accept-language");
-
-    // For now, always return English
-    // Future: parse accept-language and return appropriate copy
+export function createCopy(_data: Request | User): Copy {
     return en;
 }
 
-// export const internal_copy = BA_INTERNAL_COPY;
-// export { copy as defaultCopy } from "@/lib/copy/en";
+export const defaultCopy = en;

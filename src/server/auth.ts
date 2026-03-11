@@ -1,5 +1,5 @@
 import * as emails from "@/views/email/emails";
-import { copy } from "@/lib/copy";
+import { createCopy } from "@/lib/copy";
 import { Resend } from "resend";
 import { Telemetry } from "@/server/telemetry";
 import { betterAuth } from "better-auth/minimal";
@@ -28,6 +28,7 @@ export const auth = betterAuth({
         autoSignInAfterVerification: true,
         expiresIn: 60 * 60 * 24,
         sendVerificationEmail: async (data, _request) => {
+            const copy = createCopy(data.user);
             const result = await tel.task("EMAIL", async (span) => {
                 span.setAttributes({
                     "user.email": data.user.email,
@@ -91,6 +92,7 @@ export const auth = betterAuth({
             otpOptions: {
                 storeOTP: "plain",
                 sendOTP: async (data, _request) => {
+                    const copy = createCopy(data.user);
                     const result = await tel.task("EMAIL", async (span) => {
                         span.setAttributes({
                             "user.email": data.user.email,
@@ -124,9 +126,13 @@ export const auth = betterAuth({
             },
         }),
         emailOTP({
+            sendVerificationOnSignUp: true,
             expiresIn: 60 * 15,
             overrideDefaultEmailVerification: true,
             sendVerificationOTP: async (data, _request) => {
+                // This callback does not give us a user object or ID. Only email.
+                const copy = createCopy(new Request("/"));
+
                 const result = await tel.task("EMAIL", async (span) => {
                     span.setAttributes({
                         "user.email": data.email,
