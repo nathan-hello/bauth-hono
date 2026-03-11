@@ -10,6 +10,7 @@ import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
+import { createCopy } from "@/lib/copy";
 
 const tel = new Telemetry(routes.auth.twoFactor);
 
@@ -28,6 +29,8 @@ export type TwoFactorActionData = RouteActionData<typeof actions, TwoFactorActio
 
 
 export const get: Handler = async (c) => {
+    const copy = createCopy(c.req.raw);
+
     const result = await tel.task("GET", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
 
@@ -48,6 +51,7 @@ export const get: Handler = async (c) => {
             TwoFactorPage({
                 loaderData: {},
                 actionData,
+                copy,
             }),
             { headers },
         );
@@ -55,7 +59,7 @@ export const get: Handler = async (c) => {
     if (result.ok) {
         return result.data;
     }
-    return new Redirect(c.req.raw).Because.Error(result);
+    return new Redirect(c.req.raw).Because.Error(copy, result);
 };
 
 export const post: Handler = async (c) => {

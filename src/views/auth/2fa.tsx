@@ -1,6 +1,6 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
-import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label, ButtonLink } from "@/views/components/ui";
+import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 import { type TwoFactorActionData, type TwoFactorLoaderData, actions } from "@/routes/auth/2fa";
 
@@ -8,17 +8,26 @@ export type TwoFactorActionState = {
     verificationType?: "totp" | "email";
 };
 
-export function TwoFactorPage({ actionData }: { loaderData: TwoFactorLoaderData; actionData?: TwoFactorActionData }) {
+export function TwoFactorPage({
+    actionData,
+    copy,
+}: {
+    loaderData: TwoFactorLoaderData;
+    actionData?: TwoFactorActionData;
+    copy: Copy;
+}) {
     const verificationType = actionData?.state?.verificationType || "totp";
 
     return (
-        <Layout meta={copy.routes.auth.twoFactor}>
+        <Layout meta={copy.routes.auth.twoFactor} copy={copy}>
             <Card>
                 <Label center for="verify-form">
                     {verificationType === "totp" ? copy.twofa_prompt_totp : copy.twofa_prompt_email}
                 </Label>
 
-                <ErrorAlerts errors={actionData?.result.action === "top-of-page" ? actionData.result.errors : undefined} />
+                <ErrorAlerts
+                    errors={actionData?.result.action === "top-of-page" ? actionData.result.errors : undefined}
+                />
 
                 {verificationType === "email" && <EmailVerificationForm result={actionData?.result} />}
                 {verificationType === "totp" && <TotpVerificationForm result={actionData?.result} />}
@@ -32,6 +41,7 @@ export function TwoFactorPage({ actionData }: { loaderData: TwoFactorLoaderData;
 }
 
 function EmailVerificationForm({ result }: { result: TwoFactorActionData["result"] | undefined }) {
+    const copy = useCopy();
     return (
         <>
             <Form
@@ -65,6 +75,7 @@ function EmailVerificationForm({ result }: { result: TwoFactorActionData["result
 }
 
 function TotpVerificationForm({ result }: { result: TwoFactorActionData["result"] | undefined }) {
+    const copy = useCopy();
     return (
         <>
             <Form method="post" action={routes.auth.twoFactor} formAction={actions.verify_totp.name} result={result}>
@@ -86,6 +97,7 @@ function TotpVerificationForm({ result }: { result: TwoFactorActionData["result"
 }
 
 function VerificationTypeSwitcher({ currentType = "totp" }: { currentType: "totp" | "email" }) {
+    const copy = useCopy();
     if (currentType === "email") {
         return (
             <form method="post" action={routes.auth.twoFactor}>

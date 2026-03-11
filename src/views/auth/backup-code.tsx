@@ -1,12 +1,12 @@
-import { copy } from "@/lib/copy";
+import { useCopy, type Copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label, ButtonLink } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 import { type TwoFactorBackupActionData, type TwoFactorBackupLoaderData, actions } from "@/routes/auth/backup-code";
 
-export function TwoFactorBackupPage({ actionData }: { loaderData: TwoFactorBackupLoaderData; actionData?: TwoFactorBackupActionData }) {
+export function TwoFactorBackupPage({ actionData, copy }: { loaderData: TwoFactorBackupLoaderData; actionData?: TwoFactorBackupActionData; copy: Copy }) {
     return (
-        <Layout meta={copy.routes.auth.twoFactorBackup}>
+        <Layout meta={copy.routes.auth.twoFactorBackup} copy={copy}>
             <Card>
                 <Label center for="verify-form">
                     {copy.twofa_prompt_backup}
@@ -21,6 +21,7 @@ export function TwoFactorBackupPage({ actionData }: { loaderData: TwoFactorBacku
 }
 
 function BackupCodeVerificationForm({ result }: { result: TwoFactorBackupActionData["result"] | undefined }) {
+    const copy = useCopy();
     return (
         <>
             <Form

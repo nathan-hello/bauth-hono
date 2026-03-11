@@ -1,4 +1,4 @@
-import { copy } from "@/lib/copy";
+import { useCopy } from "@/lib/copy";
 import { auth } from "@/server/auth";
 
 export function OauthButtons({ formAction }: { formAction: string }) {
@@ -16,6 +16,7 @@ export function OauthButtons({ formAction }: { formAction: string }) {
 
 // https://developers.google.com/identity/branding-guidelines?hl=en#g+signin-social-scopes
 function GoogleButton({ formAction }: { formAction: string }) {
+    const copy = useCopy();
     return (
         <form method="post" action={formAction}>
             <input type="hidden" name="action" value="oauth" />
@@ -75,6 +76,7 @@ function GoogleButton({ formAction }: { formAction: string }) {
 // Then copying the OuterHTML and converting that to jsx
 // The beginning <a> tag was not in the original element.
 function AppleButton({ formAction }: { formAction: string }) {
+    const copy = useCopy();
     return (
         <form method="post" action={formAction} class="cursor-pointer select-none">
             <input type="hidden" name="action" value="oauth" />
