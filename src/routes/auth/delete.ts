@@ -1,5 +1,5 @@
 import { AppError } from "@/lib/auth-error";
-import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import { Flash } from "@/lib/flash";
 import { convertSetCookiesToCookies } from "@/lib/cookies";
 import type { RouteActionData } from "@/lib/types";
 import { findAction } from "@/routes/auth/lib/check-action";
@@ -12,6 +12,8 @@ import { Context } from "hono";
 
 const tel = new Telemetry(routes.auth.delete);
 
+const flash = new Flash<typeof actions, DeleteActionState>();
+
 export const actions = {
     delete_account: { name: "delete_account", handler: DeleteAccount },
     resend_email: { name: "resend_email", handler: ResendEmail },
@@ -20,6 +22,7 @@ export const actions = {
 
 export type DeleteLoaderData = {
     hasCredential: boolean;
+    hasTwoFactor: boolean;
 };
 
 export type DeleteActionState = {
@@ -30,7 +33,7 @@ export type DeleteActionState = {
 export type DeleteActionData = RouteActionData<typeof actions, DeleteActionState>;
 
 type DeleteActionResult = {
-    data?: {
+    state?: {
         deleted?: boolean;
         verificationType?: "email" | "totp";
         resentEmail?: boolean;
@@ -39,35 +42,27 @@ type DeleteActionResult = {
 };
 
 export async function get(c: Context) {
+    const { actionData, headers } = flash.Consume(c.req.raw.headers);
+    if (actionData?.state?.deleted) {
+        return c.html(DeleteSuccessPage(), { headers });
+    }
+
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, DeleteActionState>>(
-        c.req.raw.headers.get("cookie"),
-    );
-    const actionData = deserializeActionData<typeof actions, DeleteActionState>(flash.actionData);
-    if (actionData?.state?.deleted) {
-        return c.html(DeleteSuccessPage(), { headers: flash.headers });
-    }
-
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
 
+    const hasTwoFactor = session.user.twoFactorEnabled ?? false
+
     return c.html(
         DeleteAccountPage({
-            loaderData: { hasCredential },
-            actionData:
-                actionData ??
-                (session.user.twoFactorEnabled
-                    ? {
-                          result: { action: actions.delete_account.name, success: true },
-                          state: { verificationType: "totp" },
-                      }
-                    : undefined),
+            loaderData: { hasCredential, hasTwoFactor },
+            actionData: actionData ,
         }),
-        { headers: flash.headers },
+        { headers },
     );
 }
 
@@ -83,48 +78,37 @@ export async function post(c: Context) {
     const result = await tel.task("POST", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw, form));
         const handler = findAction(actions, action);
-        return await handler(c.req.raw, form);
+        let { state, headers } = await handler(c.req.raw, form);
+
+        if (state === undefined) {
+            state = {};
+        }
+
+        if (!state.verificationType && session.user.twoFactorEnabled) {
+            state.verificationType = getOtpType(form.get("otp-type")?.toString());
+        }
+
+        return { state, headers };
     });
 
     if (result.ok) {
-        if (result.data.data?.deleted) {
-            return new Redirect(c.req.raw, result.data.headers).Flash(
-                serializeActionData<typeof actions, DeleteActionState>({
-                    result: { action: action || actions.delete_account.name, success: true },
-                    state: { deleted: true },
-                }),
-            );
-        }
-
-        return new Redirect(c.req.raw, result.data.headers).Flash(
-            serializeActionData<typeof actions, DeleteActionState>({
-                result: { action: action || actions.delete_account.name, success: true },
-                state: result.data.data?.verificationType
-                    ? { verificationType: result.data.data.verificationType }
-                    : undefined,
-            }),
-        );
+        return flash.Respond(c.req.raw, result.data.headers, {
+            result: { action: action, success: true },
+            state: result.data.state,
+        });
     }
 
-    return new Redirect(c.req.raw).Flash(
-        serializeActionData<typeof actions, DeleteActionState>({
-            result: { action, success: false, errors: result.error },
-            state: session.user.twoFactorEnabled
-                ? { verificationType: getOtpType(form.get("otp-type")?.toString()) }
-                : undefined,
-        }),
-    );
-}
-
-function getOtpType(s: string | undefined): "email" | "totp" {
-    if (s === "email") return s;
-    if (s === "totp") return s;
-    return "totp";
+    return flash.Respond(c.req.raw, undefined, {
+        result: { action, success: false, errors: result.error },
+        state: session.user.twoFactorEnabled
+            ? { verificationType: getOtpType(form.get("otp-type")?.toString()) }
+            : undefined,
+    });
 }
 
 async function ResendEmail(request: Request, _: FormData): Promise<DeleteActionResult> {
     await auth.api.sendTwoFactorOTP({ headers: request.headers });
-    return { data: { verificationType: "email", resentEmail: true } };
+    return { state: { verificationType: "email", resentEmail: true } };
 }
 
 async function SwitchOtp(request: Request, form: FormData): Promise<DeleteActionResult> {
@@ -133,7 +117,7 @@ async function SwitchOtp(request: Request, form: FormData): Promise<DeleteAction
     if (type === "email") {
         await auth.api.sendTwoFactorOTP({ headers: request.headers });
     }
-    return { data: { verificationType: type } };
+    return { state: { verificationType: type } };
 }
 
 async function DeleteAccount(request: Request, form: FormData): Promise<DeleteActionResult> {
@@ -155,7 +139,6 @@ async function DeleteAccount(request: Request, form: FormData): Promise<DeleteAc
         // about this new session token, as the one with the original
         // request is now invalid.
         const otpHeaders = await checkOtp(request, form);
-        if (!otpHeaders) throw new AppError("otp_failed");
         headersForDelete = convertSetCookiesToCookies(request.headers, otpHeaders);
     }
 
@@ -166,7 +149,7 @@ async function DeleteAccount(request: Request, form: FormData): Promise<DeleteAc
             headers: request.headers,
             returnHeaders: true,
         });
-        return { data: { deleted: true }, headers: result.headers };
+        return { state: { deleted: true }, headers: result.headers };
     }
 
     if (!password) {
@@ -174,15 +157,15 @@ async function DeleteAccount(request: Request, form: FormData): Promise<DeleteAc
     }
 
     const result = await auth.api.deleteUser({
-        body: { password: password || undefined },
+        body: { password: password },
         headers: headersForDelete,
         returnHeaders: true,
     });
 
-    return { data: { deleted: true }, headers: result.headers };
+    return { state: { deleted: true }, headers: result.headers };
 }
 
-async function checkOtp(request: Request, form: FormData): Promise<Headers | null> {
+async function checkOtp(request: Request, form: FormData): Promise<Headers> {
     const otp = form.get("otp")?.toString();
     const type = form.get("otp-type")?.toString();
     if (!type || (type !== "email" && type !== "totp")) {
@@ -191,7 +174,6 @@ async function checkOtp(request: Request, form: FormData): Promise<Headers | nul
     if (!otp) {
         throw new AppError("INVALID_OTP");
     }
-
     let result: { headers: Headers };
     switch (type) {
         case "email":
@@ -209,4 +191,10 @@ async function checkOtp(request: Request, form: FormData): Promise<Headers | nul
             });
             return result.headers;
     }
+}
+
+function getOtpType(s: string | undefined): "email" | "totp" {
+    if (s === "email") return s;
+    if (s === "totp") return s;
+    return "totp";
 }

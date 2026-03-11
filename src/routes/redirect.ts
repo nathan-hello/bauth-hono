@@ -2,9 +2,7 @@ import { ErrorPage } from "@/views/components/error";
 import { copy } from "@/lib/copy";
 import { routes } from "./routes";
 import { TaskResult } from "@/server/telemetry";
-import { decodeFlash, encodeFlash, type FlashValue } from "@/lib/flash";
-import { dotenv } from "@/server/env";
-import { parse, serialize } from "cookie";
+import { auth } from "@/server/auth";
 
 function to(url: string, headers?: Headers): Response {
     const responseHeaders = new Headers({ Location: url });
@@ -18,64 +16,11 @@ function to(url: string, headers?: Headers): Response {
     return new Response(null, { status: 302, headers: responseHeaders });
 }
 
-function appendHeaders(target: Headers, source?: Headers) {
-    if (!source) {
-        return;
-    }
-
-    for (const cookie of source.getSetCookie()) {
-        target.append("Set-Cookie", cookie);
-    }
-}
-
-function flashCookieName() {
-    return `${dotenv.COOKIE_PREFIX}.flash`;
-}
-
-function flashCookieOptions(maxAge: number) {
-    return {
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax" as const,
-        secure: process.env.NODE_ENV === "production",
-        maxAge,
-    };
-}
-
 export class Redirect {
     constructor(
         private request: Request,
         private headers?: Headers,
     ) {}
-
-    static ConsumeFlash<T extends FlashValue>(cookie: string | null) {
-        const parsed = parse(cookie || "");
-        const raw = parsed[flashCookieName()];
-        if (!raw) {
-            return {
-                actionData: undefined,
-                headers: undefined,
-            };
-        }
-
-        const headers = new Headers();
-        headers.append("Set-Cookie", serialize(flashCookieName(), "", flashCookieOptions(0)));
-
-        return {
-            actionData: decodeFlash<T>(raw),
-            headers,
-        };
-    }
-
-    Flash<T extends FlashValue>(actionData: T): Response {
-        const url = new URL(this.request.url);
-        const headers = new Headers({ Location: `${url.pathname}${url.search}` });
-
-        appendHeaders(headers, this.headers);
-        headers.append("Set-Cookie", serialize(flashCookieName(), encodeFlash(actionData), flashCookieOptions(60)));
-
-        return new Response(null, { status: 303, headers });
-    }
 
     After = {
         Login: () => {
@@ -113,6 +58,17 @@ export class Redirect {
         },
         NoTwoFactorCookie: () => {
             return to(routes.auth.login, this.headers);
+        },
+        TwoFactorCookieNotFound: async () => {
+            try {
+                const session = await auth.api.getSession({ headers: this.request.headers });
+                if (session) {
+                    return this.After.Login();
+                }
+            } catch {
+                return this.Because.NoSession();
+            }
+                return this.Because.NoSession();
         },
         TwoFactorRequired: () => {
             return to(routes.auth.twoFactor, this.headers);

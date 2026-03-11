@@ -2,7 +2,7 @@ import { copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label, ButtonLink } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
-import { type TwoFactorBackupActionData, type TwoFactorBackupLoaderData, actions } from "@/routes/auth/2fa-backup";
+import { type TwoFactorBackupActionData, type TwoFactorBackupLoaderData, actions } from "@/routes/auth/backup-code";
 
 export function TwoFactorBackupPage({ actionData }: { loaderData: TwoFactorBackupLoaderData; actionData?: TwoFactorBackupActionData }) {
     return (

@@ -1,6 +1,6 @@
 import type { Handler } from "hono";
 import { Context } from "hono";
-import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
 import type { RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
@@ -10,6 +10,8 @@ import { ChangeUsernamePage } from "@/views/auth/change-username";
 import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.changeUsername);
+
+const flash = new Flash<typeof actions>();
 
 export const actions = {
     change_username: { name: "change_username", handler: ChangeUsername },
@@ -32,14 +34,14 @@ export const get: Handler = async (c) => {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions>>(c.req.raw.headers.get("cookie"));
+    const { actionData, headers } = flash.Consume(c.req.raw.headers);
 
     return c.html(
         ChangeUsernamePage({
             loaderData: { username: session.user.username || "" },
-            actionData: deserializeActionData<typeof actions, undefined>(flash.actionData),
+            actionData,
         }),
-        { headers: flash.headers },
+        { headers },
     );
 };
 
@@ -59,11 +61,9 @@ export async function post(c: Context) {
         return new Redirect(c.req.raw, result.data.headers).After.OAuth();
     }
 
-    return new Redirect(c.req.raw).Flash(
-        serializeActionData<typeof actions, undefined>({
-            result: { action: "change_username", success: false, errors: result.error },
-        }),
-    );
+    return flash.Respond(c.req.raw, undefined, {
+        result: { action: "change_username", success: false, errors: result.error },
+    });
 }
 
 async function ChangeUsername(request: Request, form: FormData): Promise<ActionReturnData> {

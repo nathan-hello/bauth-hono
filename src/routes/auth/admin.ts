@@ -1,7 +1,7 @@
 import type { Handler } from "hono";
 import { Context } from "hono";
 import { desc, like, or, type InferSelectModel } from "drizzle-orm";
-import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
 import type { ActionResult, RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
@@ -15,6 +15,8 @@ import { roles } from "@/server/lib/admin";
 import * as schema from "@/server/drizzle/schema";
 
 const tel = new Telemetry(routes.auth.admin);
+
+const flash = new Flash<typeof actions, AdminActionState>();
 
 export const actions = {
     ban_user: { name: "ban_user", handler: BanUser },
@@ -116,16 +118,14 @@ export const get: Handler = async (c) => {
 
     const loaderData = await getLoaderData(filters);
 
-    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, AdminActionState>>(
-        c.req.raw.headers.get("cookie"),
-    );
+    const { actionData, headers } = flash.Consume(c.req.raw.headers);
 
     return c.html(
         AdminPage({
             loaderData,
-            actionData: deserializeActionData<typeof actions, AdminActionState>(flash.actionData),
+            actionData,
         }),
-        { headers: flash.headers },
+        { headers },
     );
 };
 
@@ -150,24 +150,20 @@ export async function post(c: Context) {
     });
 
     if (result.ok) {
-        return new Redirect(c.req.raw, result.data.headers).Flash(
-            serializeActionData<typeof actions, AdminActionState>({
-                result: result.data.result ?? { action, success: true },
-                state: result.data.state,
-            }),
-        );
+        return flash.Respond(c.req.raw, result.data.headers, {
+            result: result.data.result ?? { action, success: true },
+            state: result.data.state,
+        });
     }
 
-    return new Redirect(c.req.raw).Flash(
-        serializeActionData<typeof actions, AdminActionState>({
-            result: {
-                action,
-                success: false,
-                errors: result.error,
-            },
-            state: { userId },
-        }),
-    );
+    return flash.Respond(c.req.raw, undefined, {
+        result: {
+            action,
+            success: false,
+            errors: result.error,
+        },
+        state: { userId },
+    });
 }
 
 async function BanUser(request: Request, form: FormData): Promise<ActionReturnData> {

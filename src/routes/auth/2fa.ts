@@ -1,5 +1,5 @@
 import type { Context, Handler } from "hono";
-import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import { Flash } from "@/lib/flash";
 import type { RouteActionData } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
@@ -12,6 +12,8 @@ import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.twoFactor);
+
+const flash = new Flash<typeof actions, TwoFactorActionState>();
 
 export const actions = {
     switch: { name: "switch", handler: Switch },
@@ -40,16 +42,14 @@ export const get: Handler = async (c) => {
             return new Redirect(c.req.raw).Because.NoTwoFactorCookie();
         }
 
-        const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, TwoFactorActionState>>(
-            c.req.raw.headers.get("cookie"),
-        );
+        const { actionData, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             TwoFactorPage({
                 loaderData: {},
-                actionData: deserializeActionData<typeof actions, TwoFactorActionState>(flash.actionData),
+                actionData,
             }),
-            { headers: flash.headers },
+            { headers },
         );
     });
     if (result.ok) {
@@ -72,24 +72,22 @@ export const post: Handler = async (c) => {
         if (result.data instanceof Headers) {
             return new Redirect(c.req.raw, result.data).After.Login();
         }
-        return new Redirect(c.req.raw).Flash(serializeActionData<typeof actions, TwoFactorActionState>(result.data));
+        return flash.Respond(c.req.raw, undefined, result.data);
     }
 
     const verificationType =
         action === "verify_email" || action === "resend_email" ? ("email" as const) : ("totp" as const);
 
-    return new Redirect(c.req.raw).Flash(
-        serializeActionData<typeof actions, TwoFactorActionState>({
-            result: {
-                action,
-                success: false,
-                errors: result.error,
-            },
-            state: {
-                verificationType,
-            },
-        }),
-    );
+    return flash.Respond(c.req.raw, undefined, {
+        result: {
+            action,
+            success: false,
+            errors: result.error,
+        },
+        state: {
+            verificationType,
+        },
+    });
 };
 
 async function Switch(c: Context, form: FormData): Promise<TwoFactorActionData> {

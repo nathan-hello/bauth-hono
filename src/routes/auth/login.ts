@@ -45,14 +45,14 @@ export const get: Handler = async (c) => {
             }
         }
 
-        const { actionData, responseHeaders } = flash.Consume(c.req.raw.headers);
+        const { actionData, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             LoginPage({
                 loaderData: {},
                 actionData,
             }),
-            { headers: responseHeaders },
+            { headers },
         );
     });
     if (result.ok) {

@@ -14,13 +14,23 @@ export function DeleteAccountPage({
 }) {
     const state = actionData?.state;
 
-    const headerCopy = loaderData.hasCredential
-        ? state
-            ? copy.delete_section_header
-            : copy.delete_section_header_password_only
-        : state
-          ? copy.delete_section_header_2fa_only
-          : copy.delete_section_header_confirm;
+    function getHeaderCopy() {
+        const hasCredential = loaderData?.hasCredential;
+        const hasTwoFactor = loaderData?.hasTwoFactor;
+
+        if (hasCredential && hasTwoFactor) {
+            return copy.delete_section_header_password_and_2fa;
+        }
+        if (hasCredential) {
+            return copy.delete_section_header_password_only;
+        }
+        if (hasTwoFactor) {
+            return copy.delete_section_header_2fa_only;
+        }
+        return copy.delete_section_header_oauth_no_password_or_2fa;
+    }
+
+    const headerCopy = getHeaderCopy();
 
     return (
         <Layout meta={copy.routes.auth.delete}>
@@ -78,8 +88,6 @@ export function DeleteAccountPage({
                         <Button type="submit" variant="danger">
                             {copy.delete_confirm_button}
                         </Button>
-
-                        <br />
                     </Form>
                 </Section>
                 <Section>
@@ -103,7 +111,7 @@ export function DeleteSuccessPage() {
                     </Label>
                 </Section>
                 <Section>
-                    <ButtonLink href={routes.index}>{copy.go_home}</ButtonLink>
+                    <ButtonLink variant="primary" href={routes.index}>{copy.go_home}</ButtonLink>
                 </Section>
             </Card>
         </Layout>
@@ -132,7 +140,7 @@ function TwoFactorSwitchHiddenForm({
 function TwoFactorSwitch({
     currentType = "totp",
 }: {
-    currentType: TwoFactorVerificationState["verificationType"] | undefined;
+    currentType: TwoFactorActionState["verificationType"] | undefined;
 }) {
     if (!currentType) {
         return null;

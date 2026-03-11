@@ -1,5 +1,5 @@
 import type { Handler } from "hono";
-import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import { Flash } from "@/lib/flash";
 import type { ActionResult, RouteActionData } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
@@ -15,6 +15,8 @@ import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry("route.dashboard");
+
+const flash = new Flash<typeof actions, TotpState>();
 
 export const actions = {
     change_password: { name: "change_password", handler: PasswordChange },
@@ -63,14 +65,14 @@ export const get: Handler = async (c) => {
             return new Redirect(c.req.raw).Because.NoSession();
         }
 
-        const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, TotpState>>(c.req.raw.headers.get("cookie"));
+        const { actionData, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             DashboardPage({
                 loaderData: session,
-                actionData: deserializeActionData<typeof actions, TotpState>(flash.actionData),
+                actionData,
             }),
-            { headers: flash.headers },
+            { headers },
         );
     });
     if (result.ok) {
@@ -99,20 +101,16 @@ export const post: Handler = async (c) => {
             return result.data;
         }
 
-        return new Redirect(c.req.raw, result.data.headers).Flash(
-            serializeActionData<typeof actions, TotpState>({
-                result: result.data.result ?? { action: action, success: true },
-                state: result.data.state,
-            }),
-        );
+        return flash.Respond(c.req.raw, result.data.headers, {
+            result: result.data.result ?? { action: action, success: true },
+            state: result.data.state,
+        });
     }
 
-    return new Redirect(c.req.raw).Flash(
-        serializeActionData<typeof actions, TotpState>({
-            result: { action, success: false, errors: result.error },
-            state: await getTotpStateAfterError(c.req.raw, form),
-        }),
-    );
+    return flash.Respond(c.req.raw, undefined, {
+        result: { action, success: false, errors: result.error },
+        state: await getTotpStateAfterError(c.req.raw, form),
+    });
 };
 
 async function getTotpStateAfterError(request: Request, form: FormData): Promise<TotpState | undefined> {
