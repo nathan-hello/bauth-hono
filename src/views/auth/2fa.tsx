@@ -2,9 +2,9 @@ import { useCopy, type Copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
-import { type Props, actions } from "@/routes/auth/2fa";
+import { type ComponentProps, actions } from "@/routes/auth/2fa";
 
-export function TwoFactorPage({ props, copy }: { props: Props; copy: Copy }) {
+export function TwoFactorPage({ props, copy }: { props: ComponentProps; copy: Copy }) {
     const verificationType = props?.state?.verificationType || "totp";
 
     return (
@@ -27,7 +27,7 @@ export function TwoFactorPage({ props, copy }: { props: Props; copy: Copy }) {
     );
 }
 
-function EmailVerificationForm({ result }: { result: Props["result"] | undefined }) {
+function EmailVerificationForm({ result }: { result: ComponentProps["result"] | undefined }) {
     const copy = useCopy();
     return (
         <>
@@ -61,7 +61,7 @@ function EmailVerificationForm({ result }: { result: Props["result"] | undefined
     );
 }
 
-function TotpVerificationForm({ result }: { result: Props["result"] | undefined }) {
+function TotpVerificationForm({ result }: { result: ComponentProps["result"] | undefined }) {
     const copy = useCopy();
     return (
         <>
