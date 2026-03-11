@@ -7,7 +7,8 @@ export type Copy = typeof en;
 const CopyContext = createContext<Copy>(en);
 
 export function CopyProvider({ copy, children }: { copy: Copy; children: Child }) {
-    return <CopyContext.Provider value={copy}>{children}</CopyContext.Provider>;
+    // return <CopyContext.Provider value={copy}>{children}</CopyContext.Provider>;
+    return CopyContext.Provider({ value: copy, children });
 }
 
 export function useCopy(): Copy {
