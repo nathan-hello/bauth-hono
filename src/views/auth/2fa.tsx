@@ -2,21 +2,10 @@ import { useCopy, type Copy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
-import { type TwoFactorActionData, type TwoFactorLoaderData, actions } from "@/routes/auth/2fa";
+import { type Props, actions } from "@/routes/auth/2fa";
 
-export type TwoFactorActionState = {
-    verificationType?: "totp" | "email";
-};
-
-export function TwoFactorPage({
-    actionData,
-    copy,
-}: {
-    loaderData: TwoFactorLoaderData;
-    actionData?: TwoFactorActionData;
-    copy: Copy;
-}) {
-    const verificationType = actionData?.state?.verificationType || "totp";
+export function TwoFactorPage({ props, copy }: { props: Props; copy: Copy }) {
+    const verificationType = props?.state?.verificationType || "totp";
 
     return (
         <Layout meta={copy.routes.auth.twoFactor} copy={copy}>
@@ -25,12 +14,10 @@ export function TwoFactorPage({
                     {verificationType === "totp" ? copy.twofa_prompt_totp : copy.twofa_prompt_email}
                 </Label>
 
-                <ErrorAlerts
-                    errors={actionData?.result.action === "top-of-page" ? actionData.result.errors : undefined}
-                />
+                <ErrorAlerts errors={props?.result.action === "top-of-page" ? props.result.errors : undefined} />
 
-                {verificationType === "email" && <EmailVerificationForm result={actionData?.result} />}
-                {verificationType === "totp" && <TotpVerificationForm result={actionData?.result} />}
+                {verificationType === "email" && <EmailVerificationForm result={props?.result} />}
+                {verificationType === "totp" && <TotpVerificationForm result={props?.result} />}
                 <FormFooter>
                     <TextLink href={routes.auth.twoFactorBackup}>{copy.twofa_use_backup}</TextLink>
                     <TextLink href="/auth/login">{copy.back_to_login}</TextLink>
@@ -40,7 +27,7 @@ export function TwoFactorPage({
     );
 }
 
-function EmailVerificationForm({ result }: { result: TwoFactorActionData["result"] | undefined }) {
+function EmailVerificationForm({ result }: { result: Props["result"] | undefined }) {
     const copy = useCopy();
     return (
         <>
@@ -74,7 +61,7 @@ function EmailVerificationForm({ result }: { result: TwoFactorActionData["result
     );
 }
 
-function TotpVerificationForm({ result }: { result: TwoFactorActionData["result"] | undefined }) {
+function TotpVerificationForm({ result }: { result: Props["result"] | undefined }) {
     const copy = useCopy();
     return (
         <>

@@ -45,7 +45,7 @@ export const get: Handler = async (c) => {
         if (!existing) {
             return new Redirect(c.req.raw).Because.NoSession();
         }
-        const { actionData, headers } = flash.Consume(c.req.raw.headers);
+        const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             ForgotPage({

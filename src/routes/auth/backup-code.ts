@@ -1,30 +1,27 @@
-import type { Handler } from "hono";
+import { Hono, type Handler } from "hono";
 import { Flash } from "@/lib/flash";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { TwoFactorBackupPage } from "@/views/auth/backup-code";
 import { parse } from "cookie";
-import type { RouteActionData } from "@/lib/types";
+import { AppEnv, type RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.twoFactorBackup);
-
 const flash = new Flash<typeof actions>();
 
-export const actions = {
-    verify_backup_code: { name: "verify_backup_code", handler: VerifyBackupCode },
-};
-
 export type TwoFactorBackupLoaderData = {};
-
 export type TwoFactorBackupActionData = RouteActionData<typeof actions>;
 
-export const get: Handler = async (c) => {
+export const actions = { verify_backup_code: { name: "verify_backup_code", handler: VerifyBackupCode } };
+
+app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
     const result = await tel.task("GET", async (span) => {
@@ -41,7 +38,7 @@ export const get: Handler = async (c) => {
             return await new Redirect(c.req.raw).Because.TwoFactorCookieNotFound();
         }
 
-        const { actionData, headers } = flash.Consume(c.req.raw.headers);
+        const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             TwoFactorBackupPage({
@@ -56,10 +53,9 @@ export const get: Handler = async (c) => {
         return result.data;
     }
     return await new Redirect(c.req.raw).Because.TwoFactorCookieNotFound();
+});
 
-};
-
-export const post: Handler = async (c) => {
+app.post("/", async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
@@ -79,7 +75,7 @@ export const post: Handler = async (c) => {
     return flash.Respond(c.req.raw, undefined, {
         result: { action, success: false, errors: result.error },
     });
-};
+});
 
 async function VerifyBackupCode(request: Request, form: FormData): Promise<Headers> {
     const code = form.get("code")?.toString();

@@ -23,7 +23,7 @@ import { raw } from "hono/html";
 import { routes } from "@/routes/routes";
 import { generateQrSvg } from "@/lib/qr";
 import { BAuthSession, type ActionResult } from "@/lib/types";
-import { actions, type DashboardActionData } from "@/routes/auth/dashboard";
+import { actions, TotpState, type DashboardActionData } from "@/routes/auth/dashboard";
 import { auth } from "@/server/auth";
 
 export type LinkedAccount = {
@@ -37,13 +37,6 @@ export type LinkedAccount = {
 export type DashboardLoaderData = BAuthSession & {
     sessions: BAuthSession["session"][];
     accounts: LinkedAccount[];
-};
-
-export type TotpState = {
-    intermediateEnable?: boolean;
-    totpURI?: string;
-    backupCodes?: string[];
-    userEnabled: boolean;
 };
 
 type DashboardProps = {

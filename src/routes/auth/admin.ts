@@ -1,9 +1,8 @@
-import type { Handler } from "hono";
-import { Context } from "hono";
-import { desc, like, or, type InferSelectModel } from "drizzle-orm";
+import { Hono } from "hono";
+import { desc, like, or } from "drizzle-orm";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import type { ActionResult, RouteActionData } from "@/lib/types";
+import type { ActionResult, FullUser, AppEnv, RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -15,9 +14,16 @@ import { roles } from "@/server/lib/admin";
 import * as schema from "@/server/drizzle/schema";
 import { createCopy } from "@/lib/copy";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.admin);
-
 const flash = new Flash<typeof actions, AdminActionState>();
+
+export type AdminActionState = { userId?: string };
+export type AdminActionData = RouteActionData<typeof actions, AdminActionState>;
+
+export type AdminFilters = { q: string; page: number; limit: number };
+export type AdminLoaderData = { users: FullUser[]; filters: AdminFilters; hasNextPage: boolean };
+type ActionReturnData = { headers?: Headers; result?: ActionResult<typeof actions>; state?: AdminActionState };
 
 export const actions = {
     ban_user: { name: "ban_user", handler: BanUser },
@@ -28,31 +34,69 @@ export const actions = {
     update_handles: { name: "update_handles", handler: UpdateHandles },
 } as const;
 
-export type AdminUser = InferSelectModel<typeof schema.user>;
+app.get("/", async (c) => {
+    const copy = createCopy(c.req.raw);
 
-export type AdminActionState = {
-    userId?: string;
-};
+    const filters = getFilters(c.req.raw.url);
+    const adminState = await userIsAdmin(c.req.raw.headers);
+    if (!adminState.session) {
+        return new Redirect(c.req.raw).Because.NoSession();
+    }
 
-export type AdminActionData = RouteActionData<typeof actions, AdminActionState>;
+    if (!adminState.success) {
+        return new Redirect(c.req.raw, adminState.headers).Because.NotAnAdmin();
+    }
 
-export type AdminFilters = {
-    q: string;
-    page: number;
-    limit: number;
-};
+    const loaderData = await getLoaderData(filters);
 
-export type AdminLoaderData = {
-    users: AdminUser[];
-    filters: AdminFilters;
-    hasNextPage: boolean;
-};
+    const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
 
-type ActionReturnData = {
-    headers?: Headers;
-    result?: ActionResult<typeof actions>;
-    state?: AdminActionState;
-};
+    return c.html(
+        AdminPage({
+            loaderData,
+            actionData,
+            copy,
+        }),
+        { headers },
+    );
+});
+
+app.post("/", async (c) => {
+    const adminState = await userIsAdmin(c.req.raw.headers);
+    if (!adminState.session) {
+        return new Redirect(c.req.raw).Because.NoSession();
+    }
+
+    if (!adminState.success) {
+        return new Redirect(c.req.raw, adminState.headers).Because.NotAnAdmin();
+    }
+
+    const form = await c.req.formData();
+    const action = form.get("action")?.toString();
+    const userId = form.get("userId")?.toString();
+
+    const result = await tel.task("POST", async (span) => {
+        span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        const handler = findAction(actions, action);
+        return await handler(c.req.raw, form);
+    });
+
+    if (result.ok) {
+        return flash.Respond(c.req.raw, result.data.headers, {
+            result: result.data.result ?? { action, success: true },
+            state: result.data.state,
+        });
+    }
+
+    return flash.Respond(c.req.raw, undefined, {
+        result: {
+            action,
+            success: false,
+            errors: result.error,
+        },
+        state: { userId },
+    });
+});
 
 async function getLoaderData(filters: AdminFilters): Promise<AdminLoaderData> {
     const whereClause = getUserSearchWhere(filters.q);
@@ -104,70 +148,6 @@ async function userIsAdmin(headers: Headers) {
         success: response.success,
         headers: permissionHeaders,
     };
-}
-
-export const get: Handler = async (c) => {
-    const copy = createCopy(c.req.raw);
-
-    const filters = getFilters(c.req.raw.url);
-    const adminState = await userIsAdmin(c.req.raw.headers);
-    if (!adminState.session) {
-        return new Redirect(c.req.raw).Because.NoSession();
-    }
-
-    if (!adminState.success) {
-        return new Redirect(c.req.raw, adminState.headers).Because.NotAnAdmin();
-    }
-
-    const loaderData = await getLoaderData(filters);
-
-    const { actionData, headers } = flash.Consume(c.req.raw.headers);
-
-    return c.html(
-        AdminPage({
-            loaderData,
-            actionData,
-            copy,
-        }),
-        { headers },
-    );
-};
-
-export async function post(c: Context) {
-    const adminState = await userIsAdmin(c.req.raw.headers);
-    if (!adminState.session) {
-        return new Redirect(c.req.raw).Because.NoSession();
-    }
-
-    if (!adminState.success) {
-        return new Redirect(c.req.raw, adminState.headers).Because.NotAnAdmin();
-    }
-
-    const form = await c.req.formData();
-    const action = form.get("action")?.toString();
-    const userId = form.get("userId")?.toString();
-
-    const result = await tel.task("POST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw, form));
-        const handler = findAction(actions, action);
-        return await handler(c.req.raw, form);
-    });
-
-    if (result.ok) {
-        return flash.Respond(c.req.raw, result.data.headers, {
-            result: result.data.result ?? { action, success: true },
-            state: result.data.state,
-        });
-    }
-
-    return flash.Respond(c.req.raw, undefined, {
-        result: {
-            action,
-            success: false,
-            errors: result.error,
-        },
-        state: { userId },
-    });
 }
 
 async function BanUser(request: Request, form: FormData): Promise<ActionReturnData> {
@@ -397,3 +377,5 @@ function getUserSearchWhere(q: string) {
         like(schema.user.role, search),
     );
 }
+
+export default app;

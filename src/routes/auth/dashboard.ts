@@ -1,23 +1,27 @@
-import type { Handler } from "hono";
+import { Hono, type Handler } from "hono";
 import { Flash } from "@/lib/flash";
-import type { ActionResult, RouteActionData } from "@/lib/types";
+import { AppEnv, type ActionResult, type RouteActionData } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import {
-    DashboardLoaderData,
-    DashboardPage,
-    LinkedAccount,
-    type TotpState,
-} from "@/views/auth/dashboard";
+import { DashboardLoaderData, DashboardPage, LinkedAccount } from "@/views/auth/dashboard";
 import { routes } from "@/routes/routes";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
 
-const tel = new Telemetry("route.dashboard");
-
+const app = new Hono<AppEnv>();
+const tel = new Telemetry(routes.auth.dashboard);
 const flash = new Flash<typeof actions, TotpState>();
+
+type ActionReturnData = { result?: ActionResult<typeof actions>; state?: TotpState; headers?: Headers };
+export type TotpState = {
+    intermediateEnable?: boolean;
+    totpURI?: string;
+    backupCodes?: string[];
+    userEnabled: boolean;
+};
+export type DashboardActionData = RouteActionData<typeof actions, TotpState>;
 
 export const actions = {
     change_password: { name: "change_password", handler: PasswordChange },
@@ -34,31 +38,7 @@ export const actions = {
     link_account: { name: "link_account", handler: LinkAccount },
 } as const;
 
-export type DashboardActionData = RouteActionData<typeof actions, TotpState>;
-
-type ActionReturnData = {
-    result?: ActionResult<typeof actions>;
-    state?: TotpState;
-    headers?: Headers;
-};
-
-async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | null> {
-    const session = await auth.api.getSession({ headers });
-    if (!session) return null;
-
-    const allSessions = await auth.api.listSessions({ headers });
-    const accounts = (await auth.api.listUserAccounts({ headers })) as unknown as LinkedAccount[];
-    const ret = {
-        user: session.user,
-        session: session.session,
-        sessions: allSessions,
-        accounts,
-    };
-
-    return ret;
-}
-
-export const get: Handler = async (c) => {
+app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
     const result = await tel.task("GET", async (span) => {
@@ -68,7 +48,7 @@ export const get: Handler = async (c) => {
             return new Redirect(c.req.raw).Because.NoSession();
         }
 
-        const { actionData, headers } = flash.Consume(c.req.raw.headers);
+        const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             DashboardPage({
@@ -83,9 +63,9 @@ export const get: Handler = async (c) => {
         return result.data;
     }
     return new Redirect(c.req.raw).Because.Error(copy, result);
-};
+});
 
-export const post: Handler = async (c) => {
+app.post("/", async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
@@ -115,7 +95,23 @@ export const post: Handler = async (c) => {
         result: { action, success: false, errors: result.error },
         state: await getTotpStateAfterError(c.req.raw, form),
     });
-};
+});
+
+async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | null> {
+    const session = await auth.api.getSession({ headers });
+    if (!session) return null;
+
+    const allSessions = await auth.api.listSessions({ headers });
+    const accounts = (await auth.api.listUserAccounts({ headers })) as unknown as LinkedAccount[];
+    const ret = {
+        user: session.user,
+        session: session.session,
+        sessions: allSessions,
+        accounts,
+    };
+
+    return ret;
+}
 
 async function getTotpStateAfterError(request: Request, form: FormData): Promise<TotpState | undefined> {
     const totpURI = form.get("totp_uri")?.toString();
