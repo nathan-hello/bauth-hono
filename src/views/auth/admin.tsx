@@ -1,6 +1,5 @@
-import { type Copy } from "@/lib/copy";
 import { routes } from "@/routes/routes";
-import { actions, type AdminActionData, type AdminFilters, type AdminLoaderData } from "@/routes/auth/admin";
+import { actions, type AdminProps, type AdminFilters, type Search } from "@/routes/auth/admin";
 import { Layout } from "@/views/components/layout";
 import {
     Badge,
@@ -18,30 +17,23 @@ import {
 } from "@/views/components/ui";
 import { FullUser } from "@/lib/types";
 
-type AdminProps = {
-    actionData?: AdminActionData;
-    loaderData: AdminLoaderData;
-    error?: string;
-    copy: Copy;
-};
-
 const textareaClass =
     "w-full min-h-24 px-4 py-3 bg-surface-raised border border-border text-fg outline-none focus:border-fg-muted resize-y";
 
-export function AdminPage({ loaderData, error, actionData, copy }: AdminProps) {
-    const summary = getSummary(loaderData);
+export function AdminPage(props: AdminProps) {
+    const summary = getSummary(props.search);
 
     return (
-        <Layout meta={copy.routes.auth.admin} copy={copy}>
+        <Layout meta={props.copy.routes.auth.admin} copy={props.copy}>
             <Card class="max-w-[min(96vw,120rem)] gap-0 overflow-hidden">
-                <Header>{copy.routes.auth.admin.title}</Header>
+                <Header>{props.copy.routes.auth.admin.title}</Header>
                 <Section>
                     <Badge color="gray">{summary}</Badge>
                     <Form method="get" action={routes.auth.admin}>
                         <Input
                             type="search"
                             name="q"
-                            value={loaderData.filters.q}
+                            value={props.search.filters.q}
                             placeholder="Search name, email, username, role, or id"
                         />
                         <select
@@ -49,7 +41,7 @@ export function AdminPage({ loaderData, error, actionData, copy }: AdminProps) {
                             class="h-12 px-8 bg-surface-raised border border-border text-fg focus:border-fg-muted"
                         >
                             {[25, 50, 100].map((limit) => (
-                                <option value={limit} selected={loaderData.filters.limit === limit}>
+                                <option value={limit} selected={props.search.filters.limit === limit}>
                                     {limit} per page
                                 </option>
                             ))}
@@ -59,42 +51,34 @@ export function AdminPage({ loaderData, error, actionData, copy }: AdminProps) {
                     </Form>
                 </Section>
 
-                {error && <FormAlert color="danger">{error}</FormAlert>}
+                {props.result && !props.result.ok && <ErrorAlerts errors={props.result.error} />}
 
                 <Section>
-                    {loaderData.users.length === 0 ? (
+                    {props.search.users.length === 0 ? (
                         <Label center>No users match this query.</Label>
                     ) : (
-                        loaderData.users.map((user) => (
-                            <UserRow
-                                key={user.id}
-                                user={user}
-                                actionData={actionData}
-                                filters={loaderData.filters}
-                                open={actionData?.state?.userId === user.id}
-                            />
+                        props.search.users.map((user) => (
+                            <UserRow key={user.id} user={user} props={props} open={props?.state?.userId === user.id} />
                         ))
                     )}
                 </Section>
 
-                <Pagination loaderData={loaderData} />
+                <Pagination props={props} />
             </Card>
         </Layout>
     );
 }
 
 function UserRow({
-    actionData,
-    filters,
+    props,
     open,
     user,
 }: {
-    actionData?: AdminActionData;
-    filters: AdminFilters;
+    props: AdminProps;
     open?: boolean;
     user: FullUser;
 }) {
-    const actionPath = getAdminHref(filters);
+    const actionPath = getAdminHref(props.search.filters);
 
     return (
         <Details name="admin-users" open={open} title={<UserSummary user={user} />}>
@@ -137,7 +121,7 @@ function UserRow({
                             />
                         </Field>
                         <InlineResult
-                            actionData={actionData}
+                            props={props}
                             action={actions.update_profile.name}
                             userId={user.id}
                             success="Profile updated."
@@ -165,7 +149,7 @@ function UserRow({
                             />
                         </Field>
                         <InlineResult
-                            actionData={actionData}
+                            props={props}
                             action={actions.update_handles.name}
                             userId={user.id}
                             success="Handles updated."
@@ -188,7 +172,7 @@ function UserRow({
                             Supports comma-separated roles. Valid roles here are `admin`, `moderator`, and `user`.
                         </Label>
                         <InlineResult
-                            actionData={actionData}
+                            props={props}
                             action={actions.update_role.name}
                             userId={user.id}
                             success="Role updated."
@@ -230,7 +214,7 @@ function UserRow({
                                     />
                                 </Field>
                                 <InlineResult
-                                    actionData={actionData}
+                                    props={props}
                                     action={actions.update_ban.name}
                                     userId={user.id}
                                     success="Ban updated."
@@ -245,7 +229,7 @@ function UserRow({
                                 kv={{ userId: user.id }}
                             >
                                 <InlineResult
-                                    actionData={actionData}
+                                    props={props}
                                     action={actions.unban_user.name}
                                     userId={user.id}
                                     success="User unbanned."
@@ -274,7 +258,7 @@ function UserRow({
                                 Ban user
                             </Button>
                             <InlineResult
-                                actionData={actionData}
+                                props={props}
                                 action={actions.ban_user.name}
                                 userId={user.id}
                                 success="User banned."
@@ -321,19 +305,19 @@ function UserSummary({ user }: { user: FullUser }) {
     );
 }
 
-function Pagination({ loaderData }: { loaderData: AdminLoaderData }) {
-    if (!loaderData.hasNextPage && loaderData.filters.page === 1) {
+function Pagination({ props }: { props: AdminProps }) {
+    if (!props.search.hasNextPage && props.search.filters.page === 1) {
         return null;
     }
 
-    const previousHref = getAdminHref({ ...loaderData.filters, page: loaderData.filters.page - 1 });
-    const nextHref = getAdminHref({ ...loaderData.filters, page: loaderData.filters.page + 1 });
+    const previousHref = getAdminHref({ ...props.search.filters, page: props.search.filters.page - 1 });
+    const nextHref = getAdminHref({ ...props.search.filters, page: props.search.filters.page + 1 });
 
     return (
         <section class="px-6 py-5 border-t border-border bg-surface-raised/60 flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-fg-muted">Page {loaderData.filters.page}</p>
+            <p class="text-sm text-fg-muted">Page {props.search.filters.page}</p>
             <div class="flex gap-3">
-                {loaderData.filters.page > 1 ? (
+                {props.search.filters.page > 1 ? (
                     <a
                         href={previousHref}
                         class="h-12 px-4 border border-border text-fg no-underline flex items-center justify-center"
@@ -345,7 +329,7 @@ function Pagination({ loaderData }: { loaderData: AdminLoaderData }) {
                         Previous
                     </span>
                 )}
-                {loaderData.hasNextPage ? (
+                {props.search.hasNextPage ? (
                     <a
                         href={nextHref}
                         class="h-12 px-4 border border-border text-fg no-underline flex items-center justify-center"
@@ -391,28 +375,28 @@ function StatusRow({ label, value, breakWords }: { label: string; value: string;
 
 function InlineResult({
     action,
-    actionData,
+    props,
     success,
     userId,
 }: {
     action: string;
-    actionData?: AdminActionData;
+    props: AdminProps;
     success: string;
     userId: string;
 }) {
-    const result = actionData?.result;
-    if (!result || result.action !== action || actionData?.state?.userId !== userId) {
+    const result = props?.result;
+    if (!result || result.meta.action !== action || props?.state?.userId !== userId) {
         return null;
     }
 
-    if (!result.success) {
-        return <ErrorAlerts errors={result.errors} />;
+    if (!result.ok) {
+        return <ErrorAlerts errors={result.error} />;
     }
 
     return <FormAlert color="success">{success}</FormAlert>;
 }
 
-function getSummary(loaderData: AdminLoaderData) {
+function getSummary(loaderData: Search) {
     if (loaderData.users.length === 0) {
         return "0 users";
     }

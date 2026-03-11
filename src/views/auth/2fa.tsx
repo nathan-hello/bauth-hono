@@ -1,4 +1,4 @@
-import { useCopy, type Copy } from "@/lib/copy";
+import { useCopy } from "@/lib/copy";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, FormFooter, TextLink, ErrorAlerts, Form, Label } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
@@ -14,7 +14,7 @@ export function TwoFactorPage({ result, state, copy }: TwoFactorProps) {
                     {verificationType === "totp" ? copy.twofa_prompt_totp : copy.twofa_prompt_email}
                 </Label>
 
-                <ErrorAlerts errors={result?.meta?.action === "top-of-page" ? result.error : undefined} />
+                <ErrorAlerts errors={result && !result.ok && result?.meta?.action === "top-of-page" ? result.error : undefined} />
 
                 {verificationType === "email" && <EmailVerificationForm result={result} />}
                 {verificationType === "totp" && <TotpVerificationForm result={result} />}

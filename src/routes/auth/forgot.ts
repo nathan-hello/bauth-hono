@@ -1,8 +1,8 @@
-import type { Handler } from "hono";
+import { Hono, type Handler } from "hono";
 import { Flash } from "@/lib/flash";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
-import type { RouteActionData } from "@/lib/types";
+import { AppEnv, type RouteActionData } from "@/lib/types";
 import { APIError } from "better-auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { ForgotPage, type ForgotStep } from "@/views/auth/forgot";
@@ -12,8 +12,8 @@ import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
 
+const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.forgot);
-
 const flash = new Flash<typeof actions, ForgotActionState>();
 
 export const actions = {
@@ -169,3 +169,5 @@ async function Forgot(c: Context, form: FormData): Promise<ActionReturnData | Re
 
     return { step: "start" };
 }
+
+export default app;

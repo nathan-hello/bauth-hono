@@ -181,3 +181,5 @@ function getOtpType(s: string | undefined): "email" | "totp" {
     if (s === "totp") return s;
     return "totp";
 }
+
+export default app;

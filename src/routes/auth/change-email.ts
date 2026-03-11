@@ -90,3 +90,5 @@ async function ResendVerification(request: Request, _: FormData): Promise<Action
     });
     return { verificationSent: true };
 }
+
+export default app;
