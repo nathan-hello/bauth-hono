@@ -1,9 +1,9 @@
 import type { Handler } from "hono";
-import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import { Flash } from "@/lib/flash";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { TwoFactorBackupPage } from "@/views/auth/2fa-backup";
+import { TwoFactorBackupPage } from "@/views/auth/backup-code";
 import { parse } from "cookie";
 import type { RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
@@ -12,6 +12,8 @@ import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.twoFactorBackup);
+
+const flash = new Flash<typeof actions>();
 
 export const actions = {
     verify_backup_code: { name: "verify_backup_code", handler: VerifyBackupCode },
@@ -27,29 +29,30 @@ export const get: Handler = async (c) => {
 
         const cookies = c.req.raw.headers.get("cookie");
         if (!cookies) {
-            return c.html(TwoFactorBackupPage({ loaderData: {} }));
+            return await new Redirect(c.req.raw).Because.TwoFactorCookieNotFound();
         }
 
         const parsed = parse(cookies);
         const cookieKey = dotenv.COOKIE_PREFIX + ".two_factor";
         if (!parsed[cookieKey] && !parsed["__Secure." + cookieKey]) {
-            return c.html(TwoFactorBackupPage({ loaderData: {} }));
+            return await new Redirect(c.req.raw).Because.TwoFactorCookieNotFound();
         }
 
-        const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions>>(c.req.raw.headers.get("cookie"));
+        const { actionData, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             TwoFactorBackupPage({
                 loaderData: {},
-                actionData: deserializeActionData<typeof actions, undefined>(flash.actionData),
+                actionData,
             }),
-            { headers: flash.headers },
+            { headers },
         );
     });
     if (result.ok) {
         return result.data;
     }
-    return c.html(TwoFactorBackupPage({ loaderData: {} }));
+    return await new Redirect(c.req.raw).Because.TwoFactorCookieNotFound();
+
 };
 
 export const post: Handler = async (c) => {
@@ -66,14 +69,12 @@ export const post: Handler = async (c) => {
         if (result.data instanceof Headers) {
             return new Redirect(c.req.raw, result.data).After.Login();
         }
-        return new Redirect(c.req.raw).Flash(serializeActionData<typeof actions, undefined>(result.data));
+        return flash.Respond(c.req.raw, undefined, result.data);
     }
 
-    return new Redirect(c.req.raw).Flash(
-        serializeActionData<typeof actions, undefined>({
-            result: { action, success: false, errors: result.error },
-        }),
-    );
+    return flash.Respond(c.req.raw, undefined, {
+        result: { action, success: false, errors: result.error },
+    });
 };
 
 async function VerifyBackupCode(request: Request, form: FormData): Promise<Headers> {

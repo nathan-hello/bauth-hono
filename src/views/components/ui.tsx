@@ -158,7 +158,7 @@ export function Badge({ children, color }: { children: Child; color: "green" | "
 }
 
 export function Section({ children }: { children: Child }) {
-    return <section class="px-6 py-5 border-b border-border">{children}</section>;
+    return <section class="px-6 py-6 border-b border-border">{children}</section>;
 }
 
 export function SectionHeading({ children, right }: { children: Child; right?: Child }) {

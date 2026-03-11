@@ -1,5 +1,5 @@
 import type { Context, Handler } from "hono";
-import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import { Flash } from "@/lib/flash";
 import type { RouteActionData } from "@/lib/types";
 import { auth, validateUsername } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -10,6 +10,8 @@ import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.register);
+
+const flash = new Flash<typeof actions, RegisterActionState>();
 
 export const actions = {
     register: { name: "register", handler: Register },
@@ -31,16 +33,14 @@ export const get: Handler = async (c) => {
         if (existing) {
             return new Redirect(c.req.raw).Because.HasSession();
         }
-        const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions, RegisterActionState>>(
-            c.req.raw.headers.get("cookie"),
-        );
+        const { actionData, headers } = flash.Consume(c.req.raw.headers);
 
         return c.html(
             RegisterPage({
                 loaderData: {},
-                actionData: deserializeActionData<typeof actions, RegisterActionState>(flash.actionData),
+                actionData,
             }),
-            { headers: flash.headers },
+            { headers },
         );
     });
     if (result.ok) {
@@ -62,12 +62,10 @@ export const post: Handler = async (c) => {
     if (result.ok) return result.data;
 
     const email = form.get("email")?.toString();
-    return new Redirect(c.req.raw).Flash(
-        serializeActionData<typeof actions, RegisterActionState>({
-            result: { action, success: false, errors: result.error },
-            state: { email },
-        }),
-    );
+    return flash.Respond(c.req.raw, undefined, {
+        result: { action, success: false, errors: result.error },
+        state: { email },
+    });
 };
 
 async function Register(c: Context, form: FormData) {

@@ -328,9 +328,9 @@ export const copy = {
     dashboard_delete_account_button: "Delete Account",
     delete_confirm_button: "I'm sure. Delete my account",
     delete_section_header_password_only: "Enter your password to verify deleting your account.",
-    delete_section_header: "Enter your password and 2FA to verify deleting your account.",
+    delete_section_header_password_and_2fa: "Enter your password and 2FA to verify deleting your account.",
     delete_section_header_2fa_only: "Enter your 2FA code to verify deleting your account.",
-    delete_section_header_confirm: "Are you sure you want to delete your account?",
+    delete_section_header_oauth_no_password_or_2fa: "Are you sure you want to delete your account?",
 
     delete_go_back: "Back to safety",
     delete_success_header: "Your account has been successfully deleted.",

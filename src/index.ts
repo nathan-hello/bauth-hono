@@ -21,7 +21,7 @@ import * as logout from "@/routes/auth/logout";
 import * as register from "@/routes/auth/register";
 import * as setup from "@/routes/auth/setup";
 import * as twofa from "@/routes/auth/2fa";
-import * as twofaBackup from "@/routes/auth/2fa-backup";
+import * as twofaBackup from "@/routes/auth/backup-code";
 
 import * as debugHome from "@/routes/debug/home";
 import * as debugEmail from "@/routes/debug/email";

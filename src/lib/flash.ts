@@ -1,5 +1,5 @@
 import { AppError, type TErrorCodes } from "@/lib/auth-error";
-import type { ActionNames, ActionResult, RouteActionData } from "@/lib/types";
+import type { ActionNames, RouteActionData } from "@/lib/types";
 import { parse, serialize } from "cookie";
 import { dotenv } from "@/server/env";
 
@@ -134,7 +134,7 @@ export class Flash<
         return new Response(null, { status: 303, headers });
     }
 
-    Consume(headers: Headers): { actionData: RouteActionData<TActions, TState> | undefined; responseHeaders: Headers } {
+    Consume(headers: Headers): { actionData: RouteActionData<TActions, TState> | undefined; headers: Headers } {
         const cookie = headers.get("cookie");
         const parsed = parse(cookie || "");
         const raw = parsed[flashCookieName()];
@@ -143,13 +143,13 @@ export class Flash<
         responseHeaders.append("Set-Cookie", serialize(flashCookieName(), "", flashCookieOptions(0)));
 
         if (!raw) {
-            return { actionData: undefined, responseHeaders };
+            return { actionData: undefined, headers: responseHeaders };
         }
 
         const actionData = decodeFlash<SerializedActionData<TActions, TState>>(raw);
         return {
             actionData: deserializeActionData<TActions, TState>(actionData),
-            responseHeaders,
+            headers: responseHeaders,
         };
     }
 }

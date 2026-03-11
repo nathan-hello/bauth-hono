@@ -1,6 +1,6 @@
 import type { Handler } from "hono";
 import { Context } from "hono";
-import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
 import type { RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
@@ -11,6 +11,8 @@ import { Redirect } from "@/routes/redirect";
 import { findAction } from "@/routes/auth/lib/check-action";
 
 const tel = new Telemetry(routes.auth.setup);
+
+const flash = new Flash<typeof actions>();
 
 export const actions = {
     setup: { name: "setup", handler: Setup },
@@ -33,14 +35,14 @@ export const get: Handler = async (c) => {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions>>(c.req.raw.headers.get("cookie"));
+    const { actionData, headers } = flash.Consume(c.req.raw.headers);
 
     return c.html(
         SetupPage({
             loaderData: { email: session.user.email },
-            actionData: deserializeActionData<typeof actions, undefined>(flash.actionData),
+            actionData,
         }),
-        { headers: flash.headers },
+        { headers },
     );
 };
 
@@ -63,11 +65,9 @@ export async function post(c: Context) {
         return new Redirect(c.req.raw, result.data.headers).After.OAuth();
     }
 
-    return new Redirect(c.req.raw).Flash(
-        serializeActionData<typeof actions, undefined>({
-            result: { action, success: false, errors: result.error },
-        }),
-    );
+    return flash.Respond(c.req.raw, undefined, {
+        result: { action, success: false, errors: result.error },
+    });
 }
 
 async function Setup(request: Request, form: FormData): Promise<ActionReturnData> {

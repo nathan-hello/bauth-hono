@@ -1,5 +1,5 @@
 import { Context, Handler } from "hono";
-import { deserializeActionData, serializeActionData, type SerializedActionData } from "@/lib/flash";
+import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
 import type { RouteActionData } from "@/lib/types";
 import { routes } from "@/routes/routes";
@@ -10,6 +10,8 @@ import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 
 const tel = new Telemetry(routes.auth.changePassword);
+
+const flash = new Flash<typeof actions>();
 
 export const actions = {
     change_password: { name: "change_password", handler: ChangePassword },
@@ -36,14 +38,14 @@ export const get: Handler = async (c) => {
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
 
-    const flash = Redirect.ConsumeFlash<SerializedActionData<typeof actions>>(c.req.raw.headers.get("cookie"));
+    const { actionData, headers } = flash.Consume(c.req.raw.headers);
 
     return c.html(
         ChangePasswordPage({
             loaderData: { hasCredential },
-            actionData: deserializeActionData<typeof actions, undefined>(flash.actionData),
+            actionData,
         }),
-        { headers: flash.headers },
+        { headers },
     );
 };
 
@@ -63,18 +65,14 @@ export async function post(c: Context) {
     });
 
     if (result.ok) {
-        return new Redirect(c.req.raw, result.data.headers).Flash(
-            serializeActionData<typeof actions, undefined>({
-                result: { action, success: true },
-            }),
-        );
+        return flash.Respond(c.req.raw, result.data.headers, {
+            result: { action, success: true },
+        });
     }
 
-    return new Redirect(c.req.raw).Flash(
-        serializeActionData<typeof actions, undefined>({
-            result: { action, success: false, errors: result.error },
-        }),
-    );
+    return flash.Respond(c.req.raw, undefined, {
+        result: { action, success: false, errors: result.error },
+    });
 }
 
 async function ChangePassword(request: Request, form: FormData): Promise<ActionReturnData> {
