@@ -12,9 +12,9 @@ import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.changeEmail);
-const flash = new Flash<typeof actions, State>({ currentEmail: "", emailVerified: false });
+const flash = new Flash<typeof actions, State>(undefined);
 
-export type State = { currentEmail: string; emailVerified: boolean };
+export type State = undefined;
 export type ChangeEmailProps = BaseProps<typeof actions, State>;
 
 export const actions = {
@@ -30,15 +30,12 @@ app.get("/", async (c) => {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
+    const { state, result, headers } = flash.Consume(c.req.raw.headers);
 
     return c.html(
         ChangeEmailPage({
-            loaderData: {
-                currentEmail: session.user.email,
-                emailVerified: session.user.emailVerified,
-            },
-            actionData,
+            state,
+            result,
             copy,
         }),
         { headers },
