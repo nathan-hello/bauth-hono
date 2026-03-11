@@ -1,10 +1,10 @@
-import { Hono, type Handler } from "hono";
+import { Hono } from "hono";
 import { Flash } from "@/lib/flash";
-import { AppEnv, type ActionResult, type RouteActionData } from "@/lib/types";
+import { AppEnv, BaseProps, BAuthSession } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
-import { DashboardLoaderData, DashboardPage, LinkedAccount } from "@/views/auth/dashboard";
+import { DashboardPage } from "@/views/auth/dashboard";
 import { routes } from "@/routes/routes";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
@@ -12,16 +12,28 @@ import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.dashboard);
-const flash = new Flash<typeof actions, TotpState>();
+const flash = new Flash<typeof actions, State>({ userEnabled: false });
 
-type ActionReturnData = { result?: ActionResult<typeof actions>; state?: TotpState; headers?: Headers };
-export type TotpState = {
+export type State = {
     intermediateEnable?: boolean;
     totpURI?: string;
     backupCodes?: string[];
     userEnabled: boolean;
 };
-export type DashboardActionData = RouteActionData<typeof actions, TotpState>;
+export type LinkedAccount = {
+    id: string;
+    email: string;
+    providerId: string;
+    accountId: string;
+    scopes?: string[];
+};
+
+export type DashboardProps = BaseProps<typeof actions, State> & {
+    sessions: BAuthSession["session"][];
+    session: BAuthSession["session"];
+    user: BAuthSession["user"];
+    accounts: LinkedAccount[];
+};
 
 export const actions = {
     change_password: { name: "change_password", handler: PasswordChange },
@@ -36,33 +48,27 @@ export const actions = {
     get_backup_codes: { name: "get_backup_codes", handler: TwoFactorGetBackupCodes },
     unlink_account: { name: "unlink_account", handler: UnlinkAccount },
     link_account: { name: "link_account", handler: LinkAccount },
-} as const;
+};
 
 app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
-    const result = await tel.task("GET", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw));
-        const session = await getLoaderData(c.req.raw.headers);
-        if (!session) {
-            return new Redirect(c.req.raw).Because.NoSession();
-        }
-
-        const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
-
-        return c.html(
-            DashboardPage({
-                loaderData: session,
-                actionData,
-                copy,
-            }),
-            { headers },
-        );
-    });
-    if (result.ok) {
-        return result.data;
+    const session = await getLoaderData(c.req.raw.headers);
+    if (!session) {
+        return new Redirect(c.req.raw).Because.NoSession();
     }
-    return new Redirect(c.req.raw).Because.Error(copy, result);
+
+    const { state, result, headers } = flash.Consume(c.req.raw.headers);
+
+    return c.html(
+        DashboardPage({
+            ...session,
+            result,
+            state,
+            copy,
+        }),
+        { headers },
+    );
 });
 
 app.post("/", async (c) => {
@@ -74,30 +80,25 @@ app.post("/", async (c) => {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    const result = await tel.task("POST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw, form));
-        const handler = findAction(actions, action);
-        return await handler(c.req.raw, form);
-    });
+    const result = await tel.task(
+        "POST",
+        async (span) => {
+            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+            const handler = findAction(actions, action);
+            return await handler(c.req.raw, form);
+        },
+        { action },
+    );
 
-    if (result.ok) {
-        if (result.data instanceof Response) {
-            return result.data;
-        }
-
-        return flash.Respond(c.req.raw, result.data.headers, {
-            result: result.data.result ?? { action: action, success: true },
-            state: result.data.state,
-        });
-    }
-
-    return flash.Respond(c.req.raw, undefined, {
-        result: { action, success: false, errors: result.error },
-        state: await getTotpStateAfterError(c.req.raw, form),
-    });
+    return flash.Respond(c.req.raw, result, await getTotpStateAfterError(c.req.raw, form));
 });
 
-async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | null> {
+async function getLoaderData(headers: Headers): Promise<{
+    sessions: BAuthSession["session"][];
+    session: BAuthSession["session"];
+    user: BAuthSession["user"];
+    accounts: LinkedAccount[];
+} | null> {
     const session = await auth.api.getSession({ headers });
     if (!session) return null;
 
@@ -113,19 +114,22 @@ async function getLoaderData(headers: Headers): Promise<DashboardLoaderData | nu
     return ret;
 }
 
-async function getTotpStateAfterError(request: Request, form: FormData): Promise<TotpState | undefined> {
+async function getTotpStateAfterError(
+    request: Request,
+    form: FormData,
+): Promise<{ state: State } | { response: Response }> {
     const totpURI = form.get("totp_uri")?.toString();
     const backupCodesRaw = form.get("backup_codes")?.toString();
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session || !totpURI || !backupCodesRaw) {
-        return undefined;
+        return { response: new Redirect(request).Because.NoSession() };
     }
 
     let backupCodes: string[];
     try {
         backupCodes = JSON.parse(backupCodesRaw);
     } catch {
-        return undefined;
+        return { state: { userEnabled: session.user.twoFactorEnabled ? true : false } };
     }
 
     const showTotp = totpURI && backupCodesRaw ? true : false;
@@ -134,14 +138,16 @@ async function getTotpStateAfterError(request: Request, form: FormData): Promise
     const intermediateEnable = showTotp && !session.user.twoFactorEnabled;
 
     return {
-        intermediateEnable,
-        userEnabled,
-        totpURI,
-        backupCodes,
+        state: {
+            intermediateEnable,
+            userEnabled,
+            totpURI,
+            backupCodes,
+        },
     };
 }
 
-async function RevokeSession(request: Request, form: FormData): Promise<ActionReturnData> {
+async function RevokeSession(request: Request, form: FormData): Promise<{ headers: Headers }> {
     const token = form.get("session")?.toString();
     if (!token) {
         throw new AppError("internal_field_missing_token");
@@ -167,26 +173,20 @@ async function RevokeSession(request: Request, form: FormData): Promise<ActionRe
     return { headers: result.headers };
 }
 
-async function EmailVerificationResend(request: Request, _: FormData): Promise<ActionReturnData> {
+async function EmailVerificationResend(request: Request, _: FormData): Promise<{ headers: Headers }> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) {
         throw new AppError("internal_field_missing_session");
     }
-    const { status } = await auth.api.sendVerificationEmail({
+    const r = await auth.api.sendVerificationEmail({
         body: { email: session.user.email },
+        returnHeaders: true,
     });
-    if (!status) {
-        throw new AppError("better_auth_returned_false");
-    }
-    return {
-        result: {
-            action: "email_resend_verification",
-            success: true,
-        },
-    };
+
+    return { headers: r.headers };
 }
 
-async function EmailChange(request: Request, form: FormData): Promise<ActionReturnData> {
+async function EmailChange(request: Request, form: FormData): Promise<{ headers: Headers }> {
     const newEmail = form.get("new_email")?.toString();
     if (!newEmail) {
         throw new AppError("internal_field_missing_new_email");
@@ -199,7 +199,7 @@ async function EmailChange(request: Request, form: FormData): Promise<ActionRetu
     return { headers: result.headers };
 }
 
-async function TwoFactorEnable(request: Request, form: FormData): Promise<ActionReturnData> {
+async function TwoFactorEnable(request: Request, form: FormData): Promise<{ state: State; headers: Headers }> {
     const password = form.get("password")?.toString();
     if (!password) {
         throw new AppError("INVALID_USERNAME_OR_PASSWORD");
@@ -220,7 +220,7 @@ async function TwoFactorEnable(request: Request, form: FormData): Promise<Action
     };
 }
 
-async function PasswordChange(request: Request, form: FormData): Promise<ActionReturnData> {
+async function PasswordChange(request: Request, form: FormData): Promise<{ headers: Headers }> {
     const current = form.get("current")?.toString();
     const newPass = form.get("new_password")?.toString();
     const repeat = form.get("new_password_repeat")?.toString();
@@ -239,7 +239,7 @@ async function PasswordChange(request: Request, form: FormData): Promise<ActionR
     return { headers: result.headers };
 }
 
-async function SetPassword(request: Request, form: FormData): Promise<ActionReturnData> {
+async function SetPassword(request: Request, form: FormData): Promise<{ headers: Headers }> {
     const newPass = form.get("new_password")?.toString();
     const repeat = form.get("new_password_repeat")?.toString();
     if (!newPass) throw new AppError("password_mismatch");
@@ -252,7 +252,7 @@ async function SetPassword(request: Request, form: FormData): Promise<ActionRetu
     return { headers: result.headers };
 }
 
-async function TwoFactorTotpVerify(request: Request, form: FormData): Promise<ActionReturnData> {
+async function TwoFactorTotpVerify(request: Request, form: FormData): Promise<{ headers: Headers; state: State }> {
     const code = form.get("totp_code")?.toString();
     const totpURI = form.get("totp_uri")?.toString();
     const backupCodesRaw = form.get("backup_codes")?.toString();
@@ -275,10 +275,6 @@ async function TwoFactorTotpVerify(request: Request, form: FormData): Promise<Ac
         returnHeaders: true,
     });
     return {
-        result: {
-            action: "two_factor_totp_verify",
-            success: true,
-        },
         headers: result.headers,
         state: {
             userEnabled: true,
@@ -289,7 +285,7 @@ async function TwoFactorTotpVerify(request: Request, form: FormData): Promise<Ac
     };
 }
 
-async function TwoFactorDisable(request: Request, form: FormData): Promise<ActionReturnData> {
+async function TwoFactorDisable(request: Request, form: FormData): Promise<{ headers: Headers }> {
     const password = form.get("password")?.toString();
     if (!password) {
         throw new AppError("INVALID_PASSWORD");
@@ -302,7 +298,7 @@ async function TwoFactorDisable(request: Request, form: FormData): Promise<Actio
     return { headers: result.headers };
 }
 
-async function TwoFactorGetTotpUri(request: Request, form: FormData): Promise<ActionReturnData> {
+async function TwoFactorGetTotpUri(request: Request, form: FormData): Promise<{ headers: Headers; state: State }> {
     const password = form.get("password")?.toString();
     if (!password) {
         throw new AppError("INVALID_PASSWORD");
@@ -321,7 +317,7 @@ async function TwoFactorGetTotpUri(request: Request, form: FormData): Promise<Ac
     };
 }
 
-async function TwoFactorGetBackupCodes(request: Request, form: FormData): Promise<ActionReturnData> {
+async function TwoFactorGetBackupCodes(request: Request, form: FormData): Promise<{ headers: Headers; state: State }> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session || !session.user.twoFactorEnabled) {
         throw new AppError("SESSION_EXPIRED");
@@ -367,7 +363,7 @@ async function LinkAccount(request: Request, form: FormData): Promise<Response> 
     return new Redirect(request, result.headers).Because.Oauth(result.response.url);
 }
 
-async function UnlinkAccount(request: Request, form: FormData): Promise<ActionReturnData> {
+async function UnlinkAccount(request: Request, form: FormData): Promise<{ headers: Headers }> {
     const providerId = form.get("providerId")?.toString();
     if (!providerId) {
         throw new AppError("internal_field_missing_providerId");

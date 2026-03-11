@@ -1,4 +1,4 @@
-import { useCopy, type Copy } from "@/lib/copy";
+import { useCopy } from "@/lib/copy";
 import { AppError } from "@/lib/auth-error";
 import { Layout } from "@/views/components/layout";
 import {
@@ -22,32 +22,12 @@ import {
 import { raw } from "hono/html";
 import { routes } from "@/routes/routes";
 import { generateQrSvg } from "@/lib/qr";
-import { BAuthSession, type ActionResult } from "@/lib/types";
-import { actions, TotpState, type DashboardActionData } from "@/routes/auth/dashboard";
+import { actions, DashboardProps } from "@/routes/auth/dashboard";
 import { auth } from "@/server/auth";
 
-export type LinkedAccount = {
-    id: string;
-    email: string;
-    providerId: string;
-    accountId: string;
-    scopes?: string[];
-};
-
-export type DashboardLoaderData = BAuthSession & {
-    sessions: BAuthSession["session"][];
-    accounts: LinkedAccount[];
-};
-
-type DashboardProps = {
-    actionData?: DashboardActionData;
-    loaderData: DashboardLoaderData;
-    copy: Copy;
-};
-
-export function DashboardPage({ actionData, loaderData, copy }: DashboardProps) {
-    const hasCredential = loaderData.accounts.some((a) => a.providerId === "credential");
-    const linkedProviderIds = new Set(loaderData.accounts.map((a) => a.providerId));
+export function DashboardPage({ state, result, copy, user, session, accounts, sessions }: DashboardProps) {
+    const hasCredential = accounts.some((a) => a.providerId === "credential");
+    const linkedProviderIds = new Set(accounts.map((a) => a.providerId));
     const oauthProviders = getOauthProviders();
 
     return (
@@ -56,17 +36,17 @@ export function DashboardPage({ actionData, loaderData, copy }: DashboardProps) 
                 <Header>{copy.routes.auth.dashboard.title}</Header>
                 <Divider>
                     <Section>
-                        <UsernameSection username={loaderData.user.username} />
+                        <UsernameSection username={user.username} />
                         <br />
                         <SectionHeading>{copy.dashboard_linked_accounts_heading}</SectionHeading>
                         <AccountRow name="accounts" label={copy.dashboard_linked_accounts_credential}>
                             <EmailAndPasswordRow
                                 hasCredential={hasCredential}
-                                emailVerified={loaderData.user.emailVerified}
-                                result={actionData?.result}
+                                emailVerified={user.emailVerified}
+                                result={result}
                             />
                         </AccountRow>
-                        {loaderData.accounts
+                        {accounts
                             .filter((a) => a.providerId !== "credential")
                             .map((account) => (
                                 <AccountRow
@@ -95,16 +75,8 @@ export function DashboardPage({ actionData, loaderData, copy }: DashboardProps) 
                             ))}
                     </Section>
 
-                    {hasCredential && (
-                        <TwoFactorSection
-                            state={{
-                                userEnabled: loaderData.user.twoFactorEnabled ? true : false,
-                                ...actionData?.state,
-                            }}
-                            result={actionData?.result}
-                        />
-                    )}
-                    <SessionsSection sessions={loaderData.sessions} current={loaderData.session} />
+                    {hasCredential && <TwoFactorSection state={state} result={result} />}
+                    <SessionsSection sessions={sessions} current={session} />
 
                     <Section>
                         <SectionHeading>{copy.dashboard_delete_account_heading}</SectionHeading>
@@ -125,7 +97,7 @@ function EmailAndPasswordRow({
 }: {
     emailVerified: boolean;
     hasCredential: boolean;
-    result: ActionResult | undefined;
+    result: DashboardProps["result"];
 }) {
     const copy = useCopy();
     if (hasCredential) {
@@ -149,7 +121,7 @@ function EmailAndPasswordRow({
     );
 }
 
-function VerifyEmailForm({ result, emailVerified }: { emailVerified: boolean; result: ActionResult | undefined }) {
+function VerifyEmailForm({ result, emailVerified }: { emailVerified: boolean; result: DashboardProps["result"] }) {
     const copy = useCopy();
     if (emailVerified) {
         return (
@@ -166,7 +138,7 @@ function VerifyEmailForm({ result, emailVerified }: { emailVerified: boolean; re
             result={result}
         >
             <Button
-                disabled={result?.action === actions.email_resend_verification.name && result.success}
+                disabled={result?.meta.action === actions.email_resend_verification.name && result.ok}
                 type="submit"
             >
                 {copy.resend_email_verification}
@@ -218,7 +190,7 @@ function LinkAccountForm({ provider }: { provider: string }) {
     );
 }
 
-function TwoFactorSection({ state, result }: { state?: TotpState; result?: ActionResult<typeof actions> }) {
+function TwoFactorSection({ state, result }: {result: DashboardProps["result"]; state: DashboardProps["state"]}) {
     if (state?.userEnabled) {
         return <TwoFactorEnabled state={state} result={result} />;
     }
@@ -228,7 +200,7 @@ function TwoFactorSection({ state, result }: { state?: TotpState; result?: Actio
     return <TwoFactorDisabled result={result} />;
 }
 
-function TwoFactorDisabled({ result }: { result?: ActionResult<typeof actions> }) {
+function TwoFactorDisabled({ result }: { result: DashboardProps["result"] }) {
     const copy = useCopy();
     return (
         <Section>
@@ -253,7 +225,7 @@ function TwoFactorDisabled({ result }: { result?: ActionResult<typeof actions> }
     );
 }
 
-function TwoFactorSetup({ state, result }: { state: TotpState; result?: ActionResult<typeof actions> }) {
+function TwoFactorSetup({ state, result }: {result: DashboardProps["result"]; state: DashboardProps["state"]}) {
     const copy = useCopy();
     if (!state.totpURI || !state.backupCodes || state.backupCodes.length === 0) {
         throw new AppError("totp_uri_not_found");
@@ -338,7 +310,7 @@ async function TwoFactorTotpViewer({ secret }: { secret: string }) {
     );
 }
 
-function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: ActionResult<typeof actions> }) {
+function TwoFactorEnabled({ state, result }: {result: DashboardProps["result"]; state: DashboardProps["state"]}) {
     const copy = useCopy();
     if (state?.totpURI) {
         return (
@@ -363,7 +335,7 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
             </Section>
         );
     }
-    const openAction = result && !result.success ? result.action : undefined;
+    const openAction = result && !result.ok ? result.meta.action : undefined;
 
     return (
         <Section>
@@ -437,7 +409,7 @@ function TwoFactorEnabled({ state, result }: { state?: TotpState; result?: Actio
     );
 }
 
-function VerifyTotpForm({ result, state }: { result?: ActionResult<typeof actions>; state: TotpState }) {
+function VerifyTotpForm({ result, state }: { result: DashboardProps["result"]; state: DashboardProps["state"] }) {
     const copy = useCopy();
     return (
         <Form
@@ -473,8 +445,8 @@ function SessionsSection({
     sessions,
     current,
 }: {
-    sessions: BAuthSession["session"][];
-    current: BAuthSession["session"];
+    sessions: DashboardProps["sessions"]
+    current: DashboardProps["session"];
 }) {
     const copy = useCopy();
     return (

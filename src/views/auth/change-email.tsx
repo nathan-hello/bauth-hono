@@ -1,16 +1,9 @@
-import { useCopy, type Copy } from "@/lib/copy";
-import { type ChangeEmailActionData, type ChangeEmailLoaderData, actions } from "@/routes/auth/change-email";
+import { ChangeEmailProps, actions } from "@/routes/auth/change-email";
 import { Layout } from "@/views/components/layout";
 import { Input, Button, ButtonLink, Card, Form, Header, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
-type Props = {
-    loaderData: ChangeEmailLoaderData;
-    actionData?: ChangeEmailActionData;
-    copy: Copy;
-};
-
-export function ChangeEmailPage({ actionData, copy }: Props) {
+export function ChangeEmailPage({ result, copy }: ChangeEmailProps) {
     return (
         <Layout meta={copy.routes.auth.changeEmail} copy={copy}>
             <Card>
@@ -19,7 +12,7 @@ export function ChangeEmailPage({ actionData, copy }: Props) {
                     <Form
                         method="post"
                         action={routes.auth.changeEmail}
-                        result={actionData?.result}
+                        result={result}
                         formAction={actions.change_email.name}
                         success={copy.email_verification_sent}
                     >
