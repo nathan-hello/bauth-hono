@@ -1,5 +1,7 @@
 import { AppError, type TErrorCodes } from "@/lib/auth-error";
 import type { ActionNames, ActionResult, RouteActionData } from "@/lib/types";
+import { parse, serialize } from "cookie";
+import { dotenv } from "@/server/env";
 
 export type FlashValue =
     | string
@@ -91,5 +93,63 @@ export function decodeFlash<T extends FlashValue>(value: string): T | undefined 
         return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as T;
     } catch {
         return undefined;
+    }
+}
+
+function flashCookieName() {
+    return `${dotenv.COOKIE_PREFIX}.flash`;
+}
+
+function flashCookieOptions(maxAge: number) {
+    return {
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax" as const,
+        secure: process.env.NODE_ENV === "production",
+        maxAge,
+    };
+}
+
+export class Flash<
+    TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } },
+    TState extends FlashValue | undefined = undefined,
+> {
+    Respond(
+        request: Request,
+        existingHeaders: Headers | undefined,
+        actionData: RouteActionData<TActions, TState>,
+    ): Response {
+        const url = new URL(request.url);
+        const headers = new Headers({ Location: `${url.pathname}${url.search}` });
+
+        if (existingHeaders) {
+            for (const cookie of existingHeaders.getSetCookie()) {
+                headers.append("Set-Cookie", cookie);
+            }
+        }
+
+        const serialized = serializeActionData<TActions, TState>(actionData);
+        headers.append("Set-Cookie", serialize(flashCookieName(), encodeFlash(serialized), flashCookieOptions(60)));
+
+        return new Response(null, { status: 303, headers });
+    }
+
+    Consume(headers: Headers): { actionData: RouteActionData<TActions, TState> | undefined; responseHeaders: Headers } {
+        const cookie = headers.get("cookie");
+        const parsed = parse(cookie || "");
+        const raw = parsed[flashCookieName()];
+
+        const responseHeaders = new Headers();
+        responseHeaders.append("Set-Cookie", serialize(flashCookieName(), "", flashCookieOptions(0)));
+
+        if (!raw) {
+            return { actionData: undefined, responseHeaders };
+        }
+
+        const actionData = decodeFlash<SerializedActionData<TActions, TState>>(raw);
+        return {
+            actionData: deserializeActionData<TActions, TState>(actionData),
+            responseHeaders,
+        };
     }
 }
