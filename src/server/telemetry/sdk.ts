@@ -1,7 +1,8 @@
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { LoggerProvider, SimpleLogRecordProcessor } from "@opentelemetry/sdk-logs";
-import type { MultiLogExporter } from "@/server/telemetry/exporters";
+import { SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import type { FileTelemetryExporter } from "@/server/telemetry/exporters";
 
 let loggerProvider: LoggerProvider | null = null;
 
@@ -13,16 +14,22 @@ export function getLoggerProvider(): LoggerProvider {
 }
 
 type LoggingConfig = {
-    tracesUrl: string;
-    exporters: MultiLogExporter;
+    tracesUrl?: string;
+    exporter: FileTelemetryExporter;
 };
 
 export function StartLogging(config: LoggingConfig) {
     loggerProvider = new LoggerProvider({
-        processors: [new SimpleLogRecordProcessor(config.exporters)],
+        processors: [new SimpleLogRecordProcessor(config.exporter)],
     });
 
+    const spanProcessors = [new SimpleSpanProcessor(config.exporter)];
+
+    if (config.tracesUrl) {
+        spanProcessors.push(new SimpleSpanProcessor(new OTLPTraceExporter({ url: config.tracesUrl })));
+    }
+
     new NodeSDK({
-        traceExporter: new OTLPTraceExporter({ url: config.tracesUrl }),
+        spanProcessors,
     }).start();
 }

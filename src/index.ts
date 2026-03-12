@@ -1,10 +1,10 @@
 import { dotenv } from "@/server/env";
 import { StartLogging } from "@/server/telemetry/sdk";
-import { MultiLogExporter, PinoLogExporter } from "@/server/telemetry/exporters";
+import { FileTelemetryExporter } from "@/server/telemetry/exporters";
 
 StartLogging({
     tracesUrl: dotenv.OTEL_TRACES_URL,
-    exporters: new MultiLogExporter([new PinoLogExporter(dotenv.LOG_FILE_PATH)]),
+    exporter: new FileTelemetryExporter(dotenv.LOG_FILE_PATH),
 });
 
 import api from "@/routes/auth/api";
@@ -37,6 +37,7 @@ import { buildError, Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
 import { HTTPException } from "hono/http-exception";
 import { AppError } from "@/lib/auth-error";
+import { logger } from "hono/logger";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry("middleware");
@@ -56,6 +57,12 @@ app.onError(async (error) => {
 });
 
 app.use("/*", serveStatic({ root: "./public" }));
+
+app.use(
+    logger((log, attrs) => {
+        tel.info("HONO", { log, attrs });
+    }),
+);
 
 app.use(async (c, next) => {
     const result = await tel.task("REQUEST", async (span) => {
