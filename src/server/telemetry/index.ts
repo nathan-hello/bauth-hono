@@ -207,6 +207,10 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
         this.log(body, SeverityNumber.INFO, "INFO", attributes);
     }
 
+    trace(body: T["info"][0], attributes?: Attrs<T["info"][1]>) {
+        this.log(body, SeverityNumber.TRACE, "INFO", attributes);
+    }
+
     error(body: T["error"][0], attributes?: Attrs<T["error"][1]>) {
         this.log(body, SeverityNumber.ERROR, "ERROR", attributes);
     }
