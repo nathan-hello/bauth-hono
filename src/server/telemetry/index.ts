@@ -42,20 +42,42 @@ const SENSITIVE_KEYS = new Set([
     "backup_codes",
 ]);
 
-export function safeRequestAttrs(request: Request | undefined, form?: FormData) {
-    if (!request) {
+const SENITIVE_HEADERS = ["session_token", "two_factor"];
+
+export async function safeRequestAttrs(r: Request | Response | undefined) {
+    if (!r) {
         return { http: "request_was_undefined" };
     }
 
-    const attrs: Record<string, string> = {
-        "http.method": request.method,
-        "http.url": request.url,
+    let attrs: Record<string, string> = {
+        "http.url": r.url,
     };
 
-    if (form) {
-        for (const [key, value] of form.entries()) {
-            attrs[`form.${key}`] = SENSITIVE_KEYS.has(key) ? "[REDACTED]" : String(value);
+    for (const [key, value] of r.headers.entries()) {
+        if (SENITIVE_HEADERS.some((s) => key.includes(s))) {
+            attrs[`header.${key}`] = "[REDACTED]";
+            continue;
         }
+        attrs[`header.${key}`] = value;
+    }
+    const form = await r.clone().formData();
+    for (const [key, value] of form.entries()) {
+        attrs[`form.${key}`] = SENSITIVE_KEYS.has(key) ? "[REDACTED]" : String(value);
+    }
+
+    if (r instanceof Request) {
+        attrs["req.method"] = r.method;
+        attrs["req.integrity"] = r.integrity;
+        attrs["req.referrer"] = r.referrer;
+        attrs["req.cache"] = r.cache.toString();
+        attrs["req.destination"] = r.destination.toString();
+        attrs["req.redirect"] = r.redirect.toString();
+    }
+
+    if (r instanceof Response) {
+        attrs["res.status"] = r.status.toString();
+        attrs["res.type"] = r.type.toString();
+        attrs["res.redirected"] = r.redirected ? "true" : "false";
     }
 
     return attrs;
@@ -104,6 +126,9 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
                 const traceId = span.spanContext().traceId;
 
                 span.setAttribute("promise", result instanceof Promise);
+                if (meta) {
+                    span.setAttributes(meta);
+                }
 
                 if (result instanceof Promise) {
                     return result

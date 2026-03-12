@@ -36,8 +36,6 @@ import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
 import { buildError, Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
 import { HTTPException } from "hono/http-exception";
-import { AppError } from "@/lib/auth-error";
-import { logger } from "hono/logger";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry("middleware");
@@ -58,22 +56,14 @@ app.onError(async (error) => {
 
 app.use("/*", serveStatic({ root: "./public" }));
 
-app.use(
-    logger((log, attrs) => {
-        tel.info("HONO", { log, attrs });
-    }),
-);
-
 app.use(async (c, next) => {
     const result = await tel.task("REQUEST", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));
-        const start = performance.now();
         await next();
-        const end = performance.now();
-        span.setAttribute("RESPONSE_TIME", end - start);
     });
     if (!result.ok) {
-        tel.error("ERR_IMPOSSIBLE", { error: result.error, ok: result.ok });
+        const copy = createCopy(c.req.raw);
+        return new Redirect(c.req.raw).Because.Error(copy, result);
     }
 });
 
