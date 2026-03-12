@@ -2,10 +2,10 @@ import { Flash } from "@/lib/flash";
 import { AppEnv, BaseProps } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
-import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { LoginPage } from "@/views/auth/login";
 import { routes } from "@/routes/routes";
-import { Context, Hono } from "hono";
+import { Hono } from "hono";
 import { findAction } from "@/routes/auth/lib/check-action";
 import { Redirect } from "@/routes/redirect";
 import { parse } from "cookie";
@@ -62,8 +62,7 @@ app.post("/", async (c) => {
 
     const result = await tel.task(
         "POST",
-        async (span) => {
-            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        async () => {
             const handler = findAction(actions, action);
             return await handler(c.req.raw, form);
         },

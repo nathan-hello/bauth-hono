@@ -1,7 +1,7 @@
 import * as emails from "@/views/email/emails";
 import { createCopy } from "@/lib/copy";
 import { Resend } from "resend";
-import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { betterAuth } from "better-auth/minimal";
 import { db } from "@/server/drizzle/db";
 import { dotenv, envAdmins, optionalEnv } from "@/server/env";
@@ -256,14 +256,13 @@ export const auth = betterAuth({
         autoSignIn: true,
         requireEmailVerification: false,
         revokeSessionsOnPasswordReset: true,
-        sendResetPassword: async (data, request) => {
+        sendResetPassword: async (data) => {
             const copy = createCopy(data.user);
             const result = await tel.task("EMAIL", async (span) => {
                 span.setAttributes({
                     "user.email": data.user.email,
                     "user.id": data.user.id,
                     channel: "verify-email",
-                    ...safeRequestAttrs(request),
                 });
                 const response = await resend.emails.send({
                     from: dotenv.FROM_EMAIL,

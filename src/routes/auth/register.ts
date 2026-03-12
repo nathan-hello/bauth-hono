@@ -2,7 +2,7 @@ import { Hono, type Context } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppEnv, BaseProps } from "@/lib/types";
 import { auth, validateUsername } from "@/server/auth";
-import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { RegisterPage } from "@/views/auth/register";
 import { routes } from "@/routes/routes";
 import { AppError } from "@/lib/auth-error";

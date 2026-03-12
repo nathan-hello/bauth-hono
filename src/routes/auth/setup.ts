@@ -4,7 +4,7 @@ import { AppError } from "@/lib/auth-error";
 import { AppEnv, BaseProps } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
-import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { SetupPage } from "@/views/auth/setup";
 import { Redirect } from "@/routes/redirect";
 import { findAction } from "@/routes/auth/lib/check-action";
@@ -49,8 +49,7 @@ app.post("/", async (c) => {
 
     const result = await tel.task(
         "POST",
-        async (span) => {
-            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        async () => {
             const handler = findAction(actions, action);
             return await handler(c.req.raw, form);
         },

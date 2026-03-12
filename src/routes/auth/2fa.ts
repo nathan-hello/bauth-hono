@@ -3,7 +3,7 @@ import { Flash } from "@/lib/flash";
 import { AppEnv, BaseProps } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
-import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { TwoFactorPage } from "@/views/auth/2fa";
 import { parse } from "cookie";
 import { routes } from "@/routes/routes";
@@ -29,9 +29,7 @@ export const actions = {
 app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
-    const result = await tel.task("GET", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw));
-
+    const result = await tel.task("GET", async () => {
         const cookies = c.req.raw.headers.get("cookie");
         if (!cookies) {
             return new Redirect(c.req.raw).Because.NoTwoFactorCookie();
@@ -66,8 +64,7 @@ app.post("/", async (c) => {
 
     const result = await tel.task(
         "POST",
-        async (span) => {
-            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        async () => {
             const handler = findAction(actions, action);
             return await handler(c, form);
         },

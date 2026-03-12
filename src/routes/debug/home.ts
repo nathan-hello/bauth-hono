@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { auth } from "@/server/auth";
-import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { routes } from "@/routes/routes";
 import { DebugHomePage } from "@/views/debug/index";
 import { createCopy } from "@/lib/copy";
@@ -13,7 +13,6 @@ app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
     const result = await tel.task("GET", async (span) => {
-        tel.debug("REQUEST", safeRequestAttrs(c.req.raw));
         const session = await auth.api.getSession({ headers: c.req.raw.headers });
         if (session) {
             span.setAttribute("user.id", session.user.id);
