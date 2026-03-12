@@ -1,16 +1,9 @@
-import { useCopy, type Copy } from "@/lib/copy";
-import { type SetupActionData, type SetupLoaderData, actions } from "@/routes/auth/setup";
+import { SetupProps, actions } from "@/routes/auth/setup";
 import { Layout } from "@/views/components/layout";
 import { Card, Input, Button, ButtonLink, Form, Header, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
-type Props = {
-    loaderData: SetupLoaderData;
-    actionData?: SetupActionData;
-    copy: Copy;
-};
-
-export function SetupPage({ loaderData, actionData, copy }: Props) {
+export function SetupPage({ result, state, copy }: SetupProps) {
     return (
         <Layout meta={copy.routes.auth.setup} copy={copy}>
             <Card>
@@ -20,9 +13,9 @@ export function SetupPage({ loaderData, actionData, copy }: Props) {
                         method="post"
                         action={routes.auth.setup}
                         formAction={actions.setup.name}
-                        result={actionData?.result}
+                        result={result}
                     >
-                        <Input type="email" name="email" value={loaderData.email} required placeholder={copy.email} />
+                        <Input type="email" name="email" value={state.email} required placeholder={copy.email} />
                         <Input
                             type="password"
                             name="new_password"

@@ -33,30 +33,35 @@ export class Flash<
     TActions extends { [K: string]: { name: string } } = { [K: string]: { name: string } },
     TState extends FlashValue | undefined = undefined,
 > {
-    constructor(private defaultState: TState) {}
+    // TODO: this is messy
+    defaultState: TState = {} as TState;
+    constructor(defaultState?: TState) {
+        if (defaultState) {
+            this.defaultState = defaultState;
+        }
+    }
     Respond(
         request: Request,
         taskResult: ActionResult<TActions, TState>,
-        dataOverride?: HandlerData<TState>,
+        stateFallback?: HandlerData<TState>,
+        withRedirectUrl?: string,
     ): Response {
-        const url = new URL(request.url);
+        const url = withRedirectUrl ? new URL(withRedirectUrl) : new URL(request.url);
         const headers = new Headers({ Location: `${url.pathname}${url.search}` });
 
         let r: ActionResult<TActions, TState> & { data?: HandlerData<TState> } = taskResult;
 
-        if (dataOverride) {
-            r.data = dataOverride;
-        }
-
-        if (r.data && "response" in r.data) {
+        if (r.data && "response" in r.data && r.data.response !== undefined) {
             return r.data.response;
         }
 
-        if (r.data && "headers" in r.data) {
+        if (r.data && "headers" in r.data && r.data.headers !== undefined) {
             for (const cookie of r.data.headers.getSetCookie()) {
                 headers.append("Set-Cookie", cookie);
             }
         }
+
+        r.data = { ...stateFallback, ...r.data };
 
         const actionResult: ActionResult<TActions, TState> = {
             ...taskResult,
@@ -140,7 +145,7 @@ export class Flash<
                     ok: true,
                     traceId: actionData.result.traceId,
                     meta: actionData.result.meta,
-                    data: null,
+                    data: undefined,
                 },
                 state: actionData.state,
             };

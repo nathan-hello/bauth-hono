@@ -4,14 +4,14 @@ import { TaskResult } from "@/server/telemetry";
 
 export type ActionNames<TActions extends { [K: string]: { name: string } }> = TActions[keyof TActions]["name"];
 
-export type HandlerData<TState> =
-    | { state: TState extends undefined ? undefined : Partial<TState> }
-    | { headers: Headers }
-    | { response: Response }
-    | null;
+export type HandlerData<TState> = {
+    state?: TState extends undefined ? undefined : Partial<TState>;
+    headers?: Headers;
+    response?: Response;
+};
 
 export type ActionResult<TActions extends { [K: string]: { name: string } }, TState> = TaskResult<
-    HandlerData<TState>,
+    HandlerData<TState> | undefined,
     { action: ActionNames<TActions> | undefined }
 >;
 
@@ -19,7 +19,11 @@ export type ActionKeys<TActions> = {
     [K in keyof TActions]: TActions[K] extends { name: string } ? TActions[K]["name"] : never;
 };
 
-export type BaseProps<TActions extends { [K: string]: { name: string } }, TState> = { result?: ActionResult<TActions, TState>; state: TState; copy: Copy }
+export type BaseProps<TActions extends { [K: string]: { name: string } }, TState> = {
+    result?: ActionResult<TActions, TState>;
+    state: TState;
+    copy: Copy;
+};
 
 export type BAuthSession = typeof auth.$Infer.Session;
 

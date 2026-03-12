@@ -1,4 +1,4 @@
-import { Hono, type Handler } from "hono";
+import { Hono } from "hono";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
 import { routes } from "@/routes/routes";
@@ -9,7 +9,7 @@ import { AppEnv } from "@/lib/types";
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.debug.home);
 
-export const get: Handler = async (c) => {
+app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
     const result = await tel.task("GET", async (span) => {
@@ -23,6 +23,6 @@ export const get: Handler = async (c) => {
     if (result.ok) return result.data;
     // Session check failed — render home without session
     return c.html(DebugHomePage({ session: null, copy }));
-};
+});
 
 export default app;

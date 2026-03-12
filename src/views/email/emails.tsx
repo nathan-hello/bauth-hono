@@ -71,3 +71,37 @@ export function EmailChangeVerification({
         </EmailLayout>
     );
 }
+
+export function EmailResetPasswordOTP({ email, otp, url }: { email: string; otp: string; url: string }) {
+    return (
+        <EmailLayout url={url}>
+            <p style={{ fontSize: "1rem", margin: 0 }}>
+                {copy.email_reset_password_otp_body} <strong>{email}</strong>:
+            </p>
+            <p style={{ fontSize: "2rem", fontWeight: "bold", letterSpacing: "0.15em", margin: "16px 0" }}>{otp}</p>
+            <p style={{ fontSize: "1rem", color: "#666", margin: 0 }}>{copy.email_2fa_expiry}</p>
+        </EmailLayout>
+    );
+}
+
+export function EmailResetPasswordLink({
+    email,
+    verificationLink,
+    url,
+}: {
+    email: string;
+    verificationLink: string;
+    url: string;
+}) {
+    const fullLink = verificationLink;
+    return (
+        <EmailLayout url={url}>
+            <p style={{ fontSize: "15px", margin: "0 0 16px" }}>
+                {copy.email_reset_password_link_body} <strong>{email}</strong>:
+            </p>
+            <a href={fullLink} style={{ color: "#2563eb", fontSize: "14px" }}>
+                {fullLink}
+            </a>
+        </EmailLayout>
+    );
+}

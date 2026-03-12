@@ -18,6 +18,7 @@ import {
     AccountRow,
     BackupCodes,
     TabGroup,
+    ErrorAlerts,
 } from "@/views/components/ui";
 import { raw } from "hono/html";
 import { routes } from "@/routes/routes";
@@ -30,16 +31,29 @@ export function DashboardPage({ state, result, copy, user, session, accounts, se
     const linkedProviderIds = new Set(accounts.map((a) => a.providerId));
     const oauthProviders = getOauthProviders();
 
+    console.log(JSON.stringify(result));
+
     return (
         <Layout meta={copy.routes.auth.dashboard} copy={copy}>
             <Card>
                 <Header>{copy.routes.auth.dashboard.title}</Header>
                 <Divider>
+                    <ErrorAlerts
+                        errors={
+                            result && !result.ok && (!result.meta.action || result.meta.action === "top-of-page")
+                                ? result.error
+                                : undefined
+                        }
+                    />
                     <Section>
                         <UsernameSection username={user.username} />
                         <br />
                         <SectionHeading>{copy.dashboard_linked_accounts_heading}</SectionHeading>
-                        <AccountRow name="accounts" label={copy.dashboard_linked_accounts_credential}>
+                        <AccountRow
+                            open={state?.openDetails === "credential"}
+                            name="accounts"
+                            label={copy.dashboard_linked_accounts_credential}
+                        >
                             <EmailAndPasswordRow
                                 hasCredential={hasCredential}
                                 emailVerified={user.emailVerified}
@@ -50,6 +64,7 @@ export function DashboardPage({ state, result, copy, user, session, accounts, se
                             .filter((a) => a.providerId !== "credential")
                             .map((account) => (
                                 <AccountRow
+                                    open={state?.openDetails === account.providerId}
                                     name="accounts"
                                     badge={copy.dashboard_linked_accounts_is_linked}
                                     badgeColor="blue"
@@ -65,6 +80,7 @@ export function DashboardPage({ state, result, copy, user, session, accounts, se
                             .filter((p) => !linkedProviderIds.has(p.id))
                             .map((provider) => (
                                 <AccountRow
+                                    open={state?.openDetails === provider.id}
                                     name="accounts"
                                     badge={copy.dashboard_linked_accounts_not_linked}
                                     badgeColor="yellow"
@@ -190,7 +206,7 @@ function LinkAccountForm({ provider }: { provider: string }) {
     );
 }
 
-function TwoFactorSection({ state, result }: {result: DashboardProps["result"]; state: DashboardProps["state"]}) {
+function TwoFactorSection({ state, result }: { result: DashboardProps["result"]; state: DashboardProps["state"] }) {
     if (state?.userEnabled) {
         return <TwoFactorEnabled state={state} result={result} />;
     }
@@ -225,7 +241,7 @@ function TwoFactorDisabled({ result }: { result: DashboardProps["result"] }) {
     );
 }
 
-function TwoFactorSetup({ state, result }: {result: DashboardProps["result"]; state: DashboardProps["state"]}) {
+function TwoFactorSetup({ state, result }: { result: DashboardProps["result"]; state: DashboardProps["state"] }) {
     const copy = useCopy();
     if (!state.totpURI || !state.backupCodes || state.backupCodes.length === 0) {
         throw new AppError("totp_uri_not_found");
@@ -310,7 +326,7 @@ async function TwoFactorTotpViewer({ secret }: { secret: string }) {
     );
 }
 
-function TwoFactorEnabled({ state, result }: {result: DashboardProps["result"]; state: DashboardProps["state"]}) {
+function TwoFactorEnabled({ state, result }: { result: DashboardProps["result"]; state: DashboardProps["state"] }) {
     const copy = useCopy();
     if (state?.totpURI) {
         return (
@@ -445,7 +461,7 @@ function SessionsSection({
     sessions,
     current,
 }: {
-    sessions: DashboardProps["sessions"]
+    sessions: DashboardProps["sessions"];
     current: DashboardProps["session"];
 }) {
     const copy = useCopy();

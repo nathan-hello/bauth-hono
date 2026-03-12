@@ -1,7 +1,7 @@
 import * as emails from "@/views/email/emails";
 import { createCopy } from "@/lib/copy";
 import { Resend } from "resend";
-import { Telemetry } from "@/server/telemetry";
+import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
 import { betterAuth } from "better-auth/minimal";
 import { db } from "@/server/drizzle/db";
 import { dotenv, envAdmins, optionalEnv } from "@/server/env";
@@ -128,10 +128,9 @@ export const auth = betterAuth({
         emailOTP({
             sendVerificationOnSignUp: true,
             expiresIn: 60 * 15,
-            overrideDefaultEmailVerification: true,
             sendVerificationOTP: async (data, _request) => {
                 // This callback does not give us a user object or ID. Only email.
-                const copy = createCopy(new Request("/"));
+                const copy = createCopy(undefined);
 
                 const result = await tel.task("EMAIL", async (span) => {
                     span.setAttributes({
@@ -139,12 +138,34 @@ export const auth = betterAuth({
                         type: data.type,
                         channel: "emailOTP.sendVerificationOTP",
                     });
+
+                    if (data.type === "email-verification" || data.type === "sign-in") {
+                        const response = await resend.emails.send({
+                            from: dotenv.FROM_EMAIL,
+                            to: data.email,
+                            subject: copy.email_otp_subject,
+                            html: emails
+                                .EmailOtp({
+                                    email: data.email,
+                                    otp: data.otp,
+                                    url: dotenv.PRODUCTION_URL,
+                                })
+                                .toString(),
+                        });
+                        if (response.error) {
+                            tel.error("RESEND_ERROR", response.error);
+                            throw response.error;
+                        }
+                        tel.debug("response1", { data: JSON.stringify(response) });
+                        return response;
+                    }
+
                     const response = await resend.emails.send({
                         from: dotenv.FROM_EMAIL,
                         to: data.email,
-                        subject: copy.email_otp_subject,
+                        subject: copy.email_reset_password_subject,
                         html: emails
-                            .EmailOtp({
+                            .EmailResetPasswordOTP({
                                 email: data.email,
                                 otp: data.otp,
                                 url: dotenv.PRODUCTION_URL,
@@ -152,8 +173,10 @@ export const auth = betterAuth({
                             .toString(),
                     });
                     if (response.error) {
+                        tel.error("RESEND_ERROR", response.error);
                         throw response.error;
                     }
+                    tel.debug("response2", { data: JSON.stringify(response) });
                     return response;
                 });
                 if (result.ok) {
@@ -187,6 +210,7 @@ export const auth = betterAuth({
         },
     },
 
+    // TODO: rate limit isn't working. i can span resend email all day
     rateLimit: {
         window: 60,
         max: 100,
@@ -195,7 +219,7 @@ export const auth = betterAuth({
             "/send-verification-email": { window: 300, max: 1 },
             "/email-otp/send-verification-otp": { window: 300, max: 1 },
             "/sign-in/email-otp": { window: 300, max: 5 },
-            "/two-factor/*": { window: 300, max: 5 },
+            "/two-factor/send-otp": { window: 300, max: 5 },
         },
     },
 
@@ -216,7 +240,7 @@ export const auth = betterAuth({
     onAPIError: {
         errorURL: "/auth/error",
         onError: (error, ctx) => {
-            const message = error instanceof Error ? error.message : String(error);
+            const message = error instanceof Error ? JSON.stringify(error.message) : String(error);
             const name = error instanceof Error ? error.name : "UnknownError";
             tel.error("API_ERROR", {
                 error: name,
@@ -232,6 +256,40 @@ export const auth = betterAuth({
         autoSignIn: true,
         requireEmailVerification: false,
         revokeSessionsOnPasswordReset: true,
+        sendResetPassword: async (data, request) => {
+            const copy = createCopy(data.user);
+            const result = await tel.task("EMAIL", async (span) => {
+                span.setAttributes({
+                    "user.email": data.user.email,
+                    "user.id": data.user.id,
+                    channel: "verify-email",
+                    ...safeRequestAttrs(request),
+                });
+                const response = await resend.emails.send({
+                    from: dotenv.FROM_EMAIL,
+                    to: data.user.email,
+                    subject: copy.email_reset_password_subject,
+                    html: emails
+                        .EmailResetPasswordLink({
+                            email: data.user.email,
+                            verificationLink: data.url,
+                            url: dotenv.PRODUCTION_URL,
+                        })
+                        .toString(),
+                });
+                if (response.error) {
+                    throw response.error;
+                }
+                return response;
+            });
+
+            if (result.ok) {
+                tel.info("RESEND_SUCCESS", {
+                    id: result.data.data.id,
+                    headers: result.data.headers,
+                });
+            }
+        },
     },
 
     trustedOrigins: [dotenv.PRODUCTION_URL, "https://localhost:5173", "http://localhost:5173"],
@@ -321,18 +379,20 @@ export const auth = betterAuth({
     logger: {
         level: "debug",
         log: (level, message, ...args) => {
-            const attrs: Record<string, string> = {};
-            for (const arg of args) {
-                if (arg && typeof arg === "object") {
-                    for (const [k, v] of Object.entries(arg)) {
-                        attrs[k] = String(v);
-                    }
+            const attrs = args.reduce((acc, arg) => {
+                if (typeof arg === "object" && arg !== null) {
+                    return { ...acc, ...arg };
                 }
-            }
-            baTel[level](message, attrs);
+                return { ...acc, [`arg_${Object.keys(acc).length}`]: arg };
+            }, {});
+
+            baTel[level](message, {
+                ...attrs,
+                message,
+                full_payload: JSON.stringify({ message, args, attrs }),
+            });
         },
     },
-
     telemetry: { enabled: false },
 });
 

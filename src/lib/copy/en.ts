@@ -66,7 +66,9 @@ const InternallyGeneratedErrors = {
     internal_field_missing_totp_uri         : "Internal error (500) - 510",
     internal_field_missing_user_id          : "Internal error (500) - 511",
     internal_field_unknown_oauth_provider   : "Internal error (500) - 512",
-    oauth_no_url_given_by_provider          : "Internal error (500) - 513",
+    internal_field_missing_email            : "Internal error (500) - 512",
+    internal_field_missing_code             : "Internal error (500) - 513",
+    oauth_no_url_given_by_provider          : "Internal error (500) - 514",
     otp_failed                              : "Verification failed.",
     password_mismatch                       : "Passwords do not match.",
     totp_uri_not_found                      : "Internal error (500) - 513",
@@ -266,6 +268,7 @@ export default {
     change_prompt: "Forgot password?",
     code_resend: "Resend code",
     sign_out: "Sign out",
+    email_sent: "Email sent.",
 
     username: "Username",
     username_not_set: "No username set",
@@ -373,6 +376,10 @@ export default {
 
     email_verification_subject: "Email verification",
     email_verify_body: "Click the link below to verify the email address",
+
+    email_reset_password_subject: "Password reset",
+    email_reset_password_link_body: "Click the link below to reset your password.",
+    email_reset_password_otp_body: "Use the code below to reset your password.",
 
     email_footer_prefix:
         "If you did not initiate this request, you can safely ignore this email. If you believe your account has been compromised,",

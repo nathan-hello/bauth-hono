@@ -210,16 +210,19 @@ export function AccountRow({
     badge,
     badgeColor = "green",
     label,
+    open,
     children,
 }: {
     name: string;
     badge?: string;
+    open?: boolean;
     badgeColor?: "green" | "yellow" | "blue" | "gray";
     label: string;
     children: Child;
 }) {
     return (
         <Details
+            open={open}
             name={name}
             title={
                 <span class="flex items-center gap-4">

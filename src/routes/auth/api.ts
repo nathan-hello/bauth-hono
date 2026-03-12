@@ -9,7 +9,7 @@ import { routes } from "@/routes/routes";
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.api);
 
-app.post("/", async (c) => {
+app.all("/", async (c) => {
     const copy = createCopy(c.req.raw);
     const result = await tel.task("HANDLE", async (span) => {
         span.setAttributes(safeRequestAttrs(c.req.raw));

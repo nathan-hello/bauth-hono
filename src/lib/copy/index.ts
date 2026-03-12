@@ -19,7 +19,7 @@ export function useCopy(): Copy {
     return ctx;
 }
 
-export function createCopy(_data: Request | User): Copy {
+export function createCopy(_data: Request | User | undefined): Copy {
     return en;
 }
 
