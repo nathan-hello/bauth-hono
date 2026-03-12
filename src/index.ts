@@ -62,6 +62,8 @@ if (process.env.NODE_ENV === "development") {
     app.route(routes.debug.email, debugEmail);
 }
 
+export { app };
+
 const port = Number(process.env.PORT) || 3005;
 
 export default {

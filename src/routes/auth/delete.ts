@@ -8,7 +8,7 @@ import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
 import { DeleteAccountPage, DeleteSuccessPage } from "@/views/auth/delete";
-import { Context, Hono } from "hono";
+import { Hono } from "hono";
 import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
@@ -42,18 +42,9 @@ app.get("/", async (c) => {
     const accounts = await auth.api.listUserAccounts({ headers: c.req.raw.headers });
     const hasCredential = accounts.some((a) => a.providerId === "credential");
 
-    const hasTwoFactor = session.user.twoFactorEnabled ?? false;
+    const hasTwoFactor = session.user.twoFactorEnabled ? true : false;
 
-    return c.html(
-        DeleteAccountPage({
-            state,
-            result,
-            copy,
-            hasTwoFactor,
-            hasCredential,
-        }),
-        { headers },
-    );
+    return c.html(DeleteAccountPage({ state, result, copy, hasTwoFactor, hasCredential }), { headers });
 });
 
 app.post("/", async (c) => {

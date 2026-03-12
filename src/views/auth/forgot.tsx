@@ -15,13 +15,7 @@ export function ForgotPage({ state, result, copy }: ForgotProps) {
     );
 }
 
-function StartForm({
-    result,
-    copy,
-}: {
-    result: ForgotProps["result"];
-    copy: ForgotProps["copy"];
-}) {
+function StartForm({ result, copy }: { result: ForgotProps["result"]; copy: ForgotProps["copy"] }) {
     return (
         <form method="post" action={routes.auth.forgot} class="flex gap-4 pt-4 flex-col">
             <Label center unmuted>
@@ -50,32 +44,44 @@ function EmailCodeForm({
 }) {
     return (
         <>
-            <Form method="post" action={routes.auth.forgot} formAction={actions.email_code.name} result={result}>
-            <input type="hidden" name="email" value={state.email} />
-            <Label center unmuted>
-                {copy.forgot_code_prompt}
-            </Label>
-            <Input
-                autofocus
-                name="code"
-                minlength={6}
-                maxlength={6}
-                required
-                placeholder={copy.code}
-                autocomplete="one-time-code"
-            />
-            <Button type="submit">{copy.continue}</Button>
-            <FormFooter>
-                <TextLink href="/auth/login">{copy.go_back}</TextLink>
-            </FormFooter>
-        </Form>
+            <Form
+                kv={{
+                    email: state.email,
+                }}
+                method="post"
+                action={routes.auth.forgot}
+                formAction={actions.email_code.name}
+                result={result}
+            >
+                <Label center unmuted>
+                    {copy.forgot_code_prompt}
+                </Label>
+                <Input
+                    autofocus
+                    name="code"
+                    minlength={6}
+                    maxlength={6}
+                    required
+                    placeholder={copy.code}
+                    autocomplete="one-time-code"
+                />
+                <Button type="submit">{copy.continue}</Button>
+                <FormFooter>
+                    <TextLink href="/auth/login">{copy.go_back}</TextLink>
+                </FormFooter>
+            </Form>
 
-        <Form method="post" action={routes.auth.forgot} formAction={actions.email_resend.name} kv={{ email: state.email }}>
-            <Button variant="ghost" type="submit">
-                {copy.code_resend}
-            </Button>
-        </Form>
-    </>
+            <Form
+                method="post"
+                action={routes.auth.forgot}
+                formAction={actions.email_resend.name}
+                kv={{ email: state.email }}
+            >
+                <Button variant="ghost" type="submit">
+                    {copy.code_resend}
+                </Button>
+            </Form>
+        </>
     );
 }
 
@@ -89,9 +95,16 @@ function EmailUpdateForm({
     state: Extract<ForgotProps["state"], { step: "email-update" }>;
 }) {
     return (
-        <Form method="post" action={routes.auth.forgot} formAction={actions.email_update.name} result={result}>
-            <input type="hidden" name="email" value={state.email} />
-            <input type="hidden" name="code" value={state.code} />
+        <Form
+            method="post"
+            action={routes.auth.forgot}
+            formAction={actions.email_update.name}
+            result={result}
+            kv={{
+                email: state.email,
+                code: state.code,
+            }}
+        >
             <PasswordFields copy={copy} />
             <Button type="submit">{copy.continue}</Button>
             <FormFooter>

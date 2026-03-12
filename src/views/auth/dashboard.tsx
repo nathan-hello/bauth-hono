@@ -31,8 +31,6 @@ export function DashboardPage({ state, result, copy, user, session, accounts, se
     const linkedProviderIds = new Set(accounts.map((a) => a.providerId));
     const oauthProviders = getOauthProviders();
 
-    console.log(JSON.stringify(result));
-
     return (
         <Layout meta={copy.routes.auth.dashboard} copy={copy}>
             <Card>
@@ -118,7 +116,7 @@ function EmailAndPasswordRow({
     const copy = useCopy();
     if (hasCredential) {
         return (
-            <Card>
+            <Section gap>
                 <VerifyEmailForm emailVerified={emailVerified} result={result} />
                 <ButtonLink variant="primary" href={routes.auth.changeEmail}>
                     {copy.change_email}
@@ -126,7 +124,7 @@ function EmailAndPasswordRow({
                 <ButtonLink variant="primary" href={routes.auth.changePassword}>
                     {hasCredential ? copy.password_change : copy.password_set}
                 </ButtonLink>
-            </Card>
+            </Section>
         );
     }
 
@@ -248,18 +246,17 @@ function TwoFactorSetup({ state, result }: { result: DashboardProps["result"]; s
     }
 
     return (
-        <Section>
+        <Section gap>
             <SectionHeading>{copy.dashboard_2fa_heading}</SectionHeading>
             <FormAlert color="warning">{copy.dashboard_2fa_setup_prompt}</FormAlert>
-            <Section>
-                <TwoFactorTotpViewer secret={state.totpURI} />
-                <VerifyTotpForm result={result} state={state} />
-            </Section>
+            <TwoFactorTotpViewer secret={state.totpURI} />
+            <VerifyTotpForm result={result} state={state} />
             <BackupCodes
                 title={copy.dashboard_backup_codes_title}
                 description={copy.dashboard_backup_codes_save}
                 codes={state.backupCodes}
             />
+            <ButtonLink href={routes.auth.dashboard}>{copy.go_back}</ButtonLink>
         </Section>
     );
 }
