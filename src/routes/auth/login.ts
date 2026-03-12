@@ -1,4 +1,3 @@
-import type { Handler } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppEnv, BaseProps } from "@/lib/types";
 import { auth } from "@/server/auth";
@@ -66,7 +65,7 @@ app.post("/", async (c) => {
         async (span) => {
             span.setAttributes(safeRequestAttrs(c.req.raw, form));
             const handler = findAction(actions, action);
-            return await handler(c, form);
+            return await handler(c.req.raw, form);
         },
         { action },
     );
@@ -74,7 +73,7 @@ app.post("/", async (c) => {
     return flash.Respond(c.req.raw, result, { state: { email: email ?? "" } });
 });
 
-async function LogIn(c: Context, form: FormData): Promise<{ response: Response }> {
+async function LogIn(request: Request, form: FormData): Promise<{ response: Response }> {
     const email = form.get("email")?.toString();
     const password = form.get("password")?.toString();
     if (!email || !password) {
@@ -87,12 +86,12 @@ async function LogIn(c: Context, form: FormData): Promise<{ response: Response }
 
     const { headers, response } = await (isEmail
         ? auth.api.signInEmail({
-              headers: c.req.raw.headers,
+              headers: request.headers,
               body: { email, password },
               returnHeaders: true,
           })
         : auth.api.signInUsername({
-              headers: c.req.raw.headers,
+              headers: request.headers,
               body: { username: email, password },
               returnHeaders: true,
           }));
@@ -103,20 +102,20 @@ async function LogIn(c: Context, form: FormData): Promise<{ response: Response }
 
     if ("twoFactorRedirect" in response) {
         tel.info("2FA_REDIRECT");
-        return { response: new Redirect(c.req.raw, headers).Because.TwoFactorRequired() };
+        return { response: new Redirect(request, headers).Because.TwoFactorRequired() };
     }
 
-    return { response: new Redirect(c.req.raw, headers).After.Login() };
+    return { response: new Redirect(request, headers).After.Login() };
 }
 
-async function LogInOauth(c: Context, form: FormData): Promise<{ response: Response }> {
+async function LogInOauth(request: Request, form: FormData): Promise<{ response: Response }> {
     const provider = form.get("provider")?.toString();
     if (!provider) {
         throw new AppError("internal_field_missing_oauth");
     }
 
     const data = await auth.api.signInSocial({
-        headers: c.req.raw.headers,
+        headers: request.headers,
         body: { provider },
         returnHeaders: true,
     });
@@ -128,7 +127,7 @@ async function LogInOauth(c: Context, form: FormData): Promise<{ response: Respo
     // In the handler for auth.api.signInSocial (and linkSocialAcount), the
     // only way that we don't get a redirect url is if we pass an idToken in
     // the body.
-    return { response: new Redirect(c.req.raw, data.headers).Because.Oauth(data.response.url) };
+    return { response: new Redirect(request, data.headers).Because.Oauth(data.response.url) };
 }
 
 export default app;

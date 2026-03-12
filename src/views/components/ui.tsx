@@ -30,7 +30,7 @@ export function Button(props: Record<string, any> & { variant?: ButtonVariant })
 
 export function ButtonLink(props: Record<string, any> & { variant?: ButtonVariant }) {
     const { variant = "ghost", class: cls, ...rest } = props;
-    return <a {...rest} class={`${buttonBase} no-underline ${buttonVariants[variant]} ${cls ?? ""}`} />;
+    return <a {...rest} class={` ${buttonBase} no-underline ${buttonVariants[variant]} ${cls ?? ""}`} />;
 }
 
 export function TextLink({ href, children }: { href: string; children: Child }) {
@@ -43,7 +43,7 @@ export function TextLink({ href, children }: { href: string; children: Child }) 
 
 export function Card(props: { children: Child; class?: string }) {
     return (
-        <div class={`w-full max-w-3xl flex flex-col gap-6 p-4 bg-surface opacity-95 ${props.class ?? ""}`}>
+        <div class={`w-full max-w-3xl flex flex-col p-4 gap-y-4 bg-surface opacity-95 ${props.class ?? ""}`}>
             {props.children}
         </div>
     );
@@ -74,7 +74,7 @@ export function Label(props: { for?: string; children: Child; center?: boolean; 
 export function Form(
     props: PropsWithChildren<JSX.IntrinsicElements["form"]> & {
         flexRow?: true;
-        result?: ActionResult<any,any>;
+        result?: ActionResult<any, any>;
         formAction?: string;
         success?: string;
         kv?: Record<string, boolean | number | string | undefined>;
@@ -85,7 +85,7 @@ export function Form(
     const active = result && result.meta?.action === formAction;
 
     return (
-        <form class={`flex gap-4 pt-4 ${flexRow ? "flex-row" : "flex-col"}`} {...rest}>
+        <form class={`flex gap-4 py-4 ${flexRow ? "flex-row" : "flex-col"}`} {...rest}>
             <input type="hidden" name="action" value={formAction} />
             {props.kv &&
                 Object.entries(props.kv).map(([k, v]) => {
@@ -124,7 +124,7 @@ export function FormAlert({ children, color }: { children: Child; color: "danger
     }
 
     return (
-        <div class={`h-12 flex items-center ${bg} ${fg} text-left text-base gap-2 pl-2`}>
+        <div class={`h-12 flex items-center ${bg} ${fg} text-left text-base gap-4 pl-2`}>
             {Svg}
             <span>{children}</span>
         </div>
@@ -151,14 +151,18 @@ export function Badge({ children, color }: { children: Child; color: "green" | "
         red: "bg-danger/15 text-warning",
     };
     return (
-        <span class={`max-w-fit text-center text-sm uppercase tracking-wider px-2 py-0.5 font-medium ${styles[color]}`}>
+        <span class={`max-w-fit text-center text-sm uppercase tracking-wider px-4 py-0.5 font-medium ${styles[color]}`}>
             {children}
         </span>
     );
 }
 
-export function Section({ children }: { children: Child }) {
-    return <section class="px-6 py-6 border-b border-border">{children}</section>;
+export function Section({ gap, children }: { gap?: boolean; children: Child }) {
+    return (
+        <section class={`p-4 border-b border-border flex flex-col last:border-none ${gap && "space-y-4"}`}>
+            {children}
+        </section>
+    );
 }
 
 export function SectionHeading({ children, right }: { children: Child; right?: Child }) {
@@ -238,9 +242,9 @@ export function AccountRow({
 
 export function BackupCodes({ title, description, codes }: { title: string; description: string; codes: string[] }) {
     return (
-        <div class="bg-surface-raised p-4 mb-4">
-            <p class="text-xs font-semibold text-fg-faint uppercase tracking-widest mb-2">{title}</p>
-            <p class="text-xs text-fg-muted mb-3">{description}</p>
+        <div class="bg-surface-raised p-4">
+            <p class="text-sm font-semibold mb-2">{title}</p>
+            <p class="text-sm mb-3">{description}</p>
             <div class="font-mono text-xs grid grid-cols-2 gap-1 select-all">
                 {codes.map((code) => (
                     <span class="p-2 bg-surface text-fg text-center">{code}</span>

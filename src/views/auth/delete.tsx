@@ -51,7 +51,7 @@ export function DeleteAccountPage({ state, result, hasCredential, hasTwoFactor, 
                             </>
                         )}
 
-                        {state && (
+                        {hasTwoFactor && (
                             <>
                                 <Label for="otp">
                                     {state.verificationType === "email"
@@ -108,10 +108,7 @@ export function DeleteSuccessPage({ copy }: { copy: DeleteProps["copy"] }) {
     );
 }
 
-function TwoFactorSwitchHiddenForm({
-    state,
-    hasTwoFactor,
-}: {state: DeleteProps["state"] ; hasTwoFactor: boolean }) {
+function TwoFactorSwitchHiddenForm({ state, hasTwoFactor }: { state: DeleteProps["state"]; hasTwoFactor: boolean }) {
     if (!hasTwoFactor || !state.verificationType) {
         return null;
     }
@@ -126,10 +123,7 @@ function TwoFactorSwitchHiddenForm({
     );
 }
 
-function TwoFactorSwitch({
-    state,
-    hasTwoFactor,
-}: {state: DeleteProps["state"] ; hasTwoFactor: boolean }) {
+function TwoFactorSwitch({ state, hasTwoFactor }: { state: DeleteProps["state"]; hasTwoFactor: boolean }) {
     const copy = useCopy();
     if (!hasTwoFactor || !state.verificationType) {
         return null;

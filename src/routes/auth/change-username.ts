@@ -3,7 +3,7 @@ import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
 import { AppEnv, BaseProps } from "@/lib/types";
 import { routes } from "@/routes/routes";
-import { auth } from "@/server/auth";
+import { auth, validateUsername } from "@/server/auth";
 import { Telemetry } from "@/server/telemetry";
 import { ChangeUsernamePage } from "@/views/auth/change-username";
 import { Redirect } from "@/routes/redirect";
@@ -60,7 +60,13 @@ app.post("/", async (c) => {
 async function ChangeUsername(request: Request, form: FormData): Promise<{ response: Response }> {
     const username = form.get("username")?.toString();
 
-    if (!username) throw new AppError("field_missing_username");
+    if (!username) {
+        throw new AppError("field_missing_username");
+    }
+
+    if (!validateUsername(username)) {
+        throw new AppError("INVALID_USERNAME");
+    }
 
     const r = await auth.api.updateUser({
         body: { username },

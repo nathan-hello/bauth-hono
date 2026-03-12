@@ -16,10 +16,17 @@ export function ChangeUsernamePage(props: ChangeUsernameProps) {
                         formAction={actions.change_username.name}
                         success={props.copy.dashboard_username_changed}
                     >
-                        <Input type="text" name="username" value={props.username} required placeholder={props.copy.username} />
+                        <Input
+                            type="text"
+                            name="username"
+                            value={props.username}
+                            required
+                            placeholder={props.copy.username}
+                        />
                         <Button type="submit">{props.copy.change_username}</Button>
                     </Form>
-                    <br />
+                </Section>
+                <Section>
                     <ButtonLink href={routes.auth.dashboard}>{props.copy.go_back}</ButtonLink>
                 </Section>
             </Card>
