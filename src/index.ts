@@ -32,10 +32,11 @@ import { Hono } from "hono";
 import { trimTrailingSlash } from "hono/trailing-slash";
 import { serveStatic } from "hono/bun";
 import { AppEnv } from "@/lib/types";
-import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { buildError, Redirect } from "@/routes/redirect";
 import { createCopy } from "@/lib/copy";
 import { HTTPException } from "hono/http-exception";
+import { safeRequestAttrs } from "@/server/telemetry/attrs";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry("middleware");
@@ -58,7 +59,7 @@ app.use("/*", serveStatic({ root: "./public" }));
 
 app.use(async (c, next) => {
     const result = await tel.task("REQUEST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw));
+        span.setAttributes(await safeRequestAttrs(c.req.raw));
         await next();
     });
     if (!result.ok) {

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { auth } from "@/server/auth";
 import { dotenv } from "@/server/env";
-import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
+import { Telemetry } from "@/server/telemetry";
 import { TwoFactorBackupPage } from "@/views/auth/backup-code";
 import { parse } from "cookie";
 import { AppEnv, BaseProps } from "@/lib/types";
@@ -23,8 +23,7 @@ export type BackupCodeProps = BaseProps<typeof actions, State>;
 app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
-    const result = await tel.task("GET", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw));
+    const result = await tel.task("GET", async () => {
 
         const cookies = c.req.raw.headers.get("cookie");
         if (!cookies) {
@@ -60,8 +59,7 @@ app.post("/", async (c) => {
 
     const result = await tel.task(
         "POST",
-        async (span) => {
-            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+        async () => {
             const handler = findAction(actions, action);
             return await handler(c.req.raw, form);
         },
