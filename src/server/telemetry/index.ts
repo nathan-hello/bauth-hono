@@ -45,7 +45,11 @@ const SENSITIVE_KEYS = new Set([
     "backup_codes",
 ]);
 
-export function safeRequestAttrs(request: Request, form?: FormData) {
+export function safeRequestAttrs(request: Request | undefined, form?: FormData) {
+    if (!request) {
+        return { http: "request_was_undefined" };
+    }
+
     const attrs: Record<string, string> = {
         "http.method": request.method,
         "http.url": request.url,

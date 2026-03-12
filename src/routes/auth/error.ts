@@ -1,6 +1,12 @@
+import { AppError } from "@/lib/auth-error";
 import { createCopy } from "@/lib/copy";
+import { Flash } from "@/lib/flash";
 import { AppEnv } from "@/lib/types";
+import { actions as dashboardActions, State } from "@/routes/auth/dashboard";
+import { actions as loginActions } from "@/routes/auth/login";
 import { Redirect } from "@/routes/redirect";
+import { routes } from "@/routes/routes";
+import { dotenv } from "@/server/env";
 import { ErrorPage } from "@/views/components/error";
 import { Hono } from "hono";
 
@@ -17,7 +23,31 @@ app.get("/", async (c) => {
     }
 
     if (err === "banned") {
-        return new Redirect(c.req.raw).Because.OauthUserIsBanned(copy);
+        return new Flash<typeof dashboardActions, State>().Respond(
+            c.req.raw,
+            {
+                ok: false,
+                meta: { action: loginActions.login.name },
+                error: [new AppError("BANNED_USER")],
+                traceId: "",
+            },
+            { state: {} },
+            dotenv.PRODUCTION_URL + routes.auth.login,
+        );
+    }
+
+    if (err === "account_already_linked_to_different_user") {
+        return new Flash<typeof dashboardActions, State>().Respond(
+            c.req.raw,
+            {
+                ok: false,
+                meta: { action: "top-of-page" },
+                error: [new AppError("account_already_linked_to_different_user")],
+                traceId: "",
+            },
+            { state: {} },
+            dotenv.PRODUCTION_URL + routes.auth.dashboard,
+        );
     }
 
     const message =

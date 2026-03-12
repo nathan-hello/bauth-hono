@@ -1,97 +1,132 @@
-import { useCopy, type Copy } from "@/lib/copy";
-import { type ForgotActionData, type ForgotLoaderData, actions } from "@/routes/auth/forgot";
+import { ForgotProps, actions } from "@/routes/auth/forgot";
 import { Layout } from "@/views/components/layout";
-import { Card, Input, Button, FormFooter, TextLink, Form, Label } from "@/views/components/ui";
+import { Card, Input, Button, FormFooter, TextLink, Form, Label, ErrorAlerts } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 
-export type ForgotStep = "start" | "code" | "update" | "try-again";
-
-type ForgotProps = {
-    loaderData: ForgotLoaderData;
-    actionData?: ForgotActionData;
-    copy: Copy;
-};
-
-export function ForgotPage({ actionData, copy }: ForgotProps) {
-    const step = actionData?.state?.step ?? "start";
-    const email = actionData?.state?.email;
-    const code = actionData?.state?.code;
-
+export function ForgotPage({ state, result, copy }: ForgotProps) {
     return (
         <Layout meta={copy.routes.auth.forgot} copy={copy}>
             <Card>
-                <Form method="post" action={routes.auth.forgot} formAction={actions.forgot.name} result={actionData?.result}>
-                    {step === "start" && (
-                        <>
-                            <input type="hidden" name="step" value="start" />
-                            <Label center unmuted>
-                                {copy.forgot_email_prompt}
-                            </Label>
-                            <Input autofocus type="email" name="email" required placeholder={copy.email} />
-                        </>
-                    )}
-
-                    {step === "code" && (
-                        <>
-                            <input type="hidden" name="step" value="code" />
-                            <Label center unmuted>
-                                {copy.forgot_code_prompt}
-                            </Label>
-                            <br />
-                            <input type="hidden" name="email" value={email ?? ""} />
-                            <Input
-                                autofocus
-                                name="code"
-                                minlength={6}
-                                maxlength={6}
-                                required
-                                placeholder={copy.code}
-                                autocomplete="one-time-code"
-                            />
-                            <Form
-                                method="post"
-                                action={routes.auth.forgot}
-                                formAction={actions.forgot.name}
-                                kv={{ step: "start", email: email ?? "", resend: "true" }}
-                            >
-                                <Button variant="ghost" type="submit">
-                                    {copy.code_resend}
-                                </Button>
-                            </Form>
-                        </>
-                    )}
-
-                    {step === "try-again" && <input type="hidden" name="step" value="try-again" />}
-
-                    {step === "update" && (
-                        <>
-                            <input type="hidden" name="step" value="update" />
-                            <input type="hidden" name="email" value={email ?? ""} />
-                            <input type="hidden" name="code" value={code ?? ""} />
-                            <Input
-                                autofocus
-                                type="password"
-                                name="password"
-                                placeholder={copy.password}
-                                required
-                                autocomplete="new-password"
-                            />
-                            <Input
-                                type="password"
-                                name="repeat"
-                                required
-                                placeholder={copy.repeat_password}
-                                autocomplete="new-password"
-                            />
-                        </>
-                    )}
-
-                    <Button type="submit">{copy.continue}</Button>
-                    <FormFooter>
-                        <TextLink href="/auth/login">{copy.go_back}</TextLink>
-                    </FormFooter>
-                </Form>
+                {state.step === "start" && <StartForm result={result} copy={copy} />}
+                {state.step === "email-code" && <EmailCodeForm result={result} copy={copy} state={state} />}
+                {state.step === "email-update" && <EmailUpdateForm result={result} copy={copy} state={state} />}
             </Card>
         </Layout>
     );
+}
+
+function StartForm({
+    result,
+    copy,
+}: {
+    result: ForgotProps["result"];
+    copy: ForgotProps["copy"];
+}) {
+    return (
+        <form method="post" action={routes.auth.forgot} class="flex gap-4 pt-4 flex-col">
+            <Label center unmuted>
+                {copy.forgot_email_prompt}
+            </Label>
+            <ErrorAlerts errors={getErrors(result, [actions.start_email.name])} />
+            <Input autofocus name="identifier" required placeholder={copy.email} autocomplete="username" />
+            <Button type="submit" name="action" value={actions.start_email.name}>
+                {copy.continue}
+            </Button>
+            <FormFooter>
+                <TextLink href="/auth/login">{copy.go_back}</TextLink>
+            </FormFooter>
+        </form>
+    );
+}
+
+function EmailCodeForm({
+    result,
+    copy,
+    state,
+}: {
+    result: ForgotProps["result"];
+    copy: ForgotProps["copy"];
+    state: Extract<ForgotProps["state"], { step: "email-code" }>;
+}) {
+    return (
+        <>
+            <Form method="post" action={routes.auth.forgot} formAction={actions.email_code.name} result={result}>
+            <input type="hidden" name="email" value={state.email} />
+            <Label center unmuted>
+                {copy.forgot_code_prompt}
+            </Label>
+            <Input
+                autofocus
+                name="code"
+                minlength={6}
+                maxlength={6}
+                required
+                placeholder={copy.code}
+                autocomplete="one-time-code"
+            />
+            <Button type="submit">{copy.continue}</Button>
+            <FormFooter>
+                <TextLink href="/auth/login">{copy.go_back}</TextLink>
+            </FormFooter>
+        </Form>
+
+        <Form method="post" action={routes.auth.forgot} formAction={actions.email_resend.name} kv={{ email: state.email }}>
+            <Button variant="ghost" type="submit">
+                {copy.code_resend}
+            </Button>
+        </Form>
+    </>
+    );
+}
+
+function EmailUpdateForm({
+    result,
+    copy,
+    state,
+}: {
+    result: ForgotProps["result"];
+    copy: ForgotProps["copy"];
+    state: Extract<ForgotProps["state"], { step: "email-update" }>;
+}) {
+    return (
+        <Form method="post" action={routes.auth.forgot} formAction={actions.email_update.name} result={result}>
+            <input type="hidden" name="email" value={state.email} />
+            <input type="hidden" name="code" value={state.code} />
+            <PasswordFields copy={copy} />
+            <Button type="submit">{copy.continue}</Button>
+            <FormFooter>
+                <TextLink href="/auth/login">{copy.go_back}</TextLink>
+            </FormFooter>
+        </Form>
+    );
+}
+
+function PasswordFields({ copy }: Pick<ForgotProps, "copy">) {
+    return (
+        <>
+            <Input
+                autofocus
+                type="password"
+                name="password"
+                placeholder={copy.password}
+                required
+                autocomplete="new-password"
+            />
+            <Input
+                type="password"
+                name="repeat"
+                required
+                placeholder={copy.repeat_password}
+                autocomplete="new-password"
+            />
+        </>
+    );
+}
+
+function getErrors(result: ForgotProps["result"], actionsForStep: string[]) {
+    if (!result || result.ok || !actionsForStep.includes(result.meta.action ?? "")) {
+        return undefined;
+    }
+
+    return result.error;
 }

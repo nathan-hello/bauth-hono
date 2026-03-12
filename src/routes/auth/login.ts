@@ -1,6 +1,6 @@
 import type { Handler } from "hono";
 import { Flash } from "@/lib/flash";
-import { AppEnv, type RouteActionData } from "@/lib/types";
+import { AppEnv, BaseProps } from "@/lib/types";
 import { auth } from "@/server/auth";
 import { AppError } from "@/lib/auth-error";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -13,79 +13,68 @@ import { parse } from "cookie";
 import { dotenv } from "@/server/env";
 import { createCopy } from "@/lib/copy";
 
-
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.login);
-const flash = new Flash<typeof actions, LoginActionState>();
+const flash = new Flash<typeof actions, State>({ email: "" });
 
 export const actions = {
     login: { name: "login", handler: LogIn },
     oauth: { name: "oauth", handler: LogInOauth },
 };
 
-export type LoginLoaderData = {};
-
-export type LoginActionState = {
+export type State = {
     email?: string;
 };
 
-export type LoginActionData = RouteActionData<typeof actions, LoginActionState>;
+export type LoginProps = BaseProps<typeof actions, State>;
 
-export const get: Handler = async (c) => {
+app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
-
-    const result = await tel.task("GET", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw));
-        const existing = await auth.api.getSession({ headers: c.req.raw.headers });
-        if (existing) {
-            return new Redirect(c.req.raw).Because.HasSession();
-        }
-        const cookies = c.req.raw.headers.get("cookie");
-        if (cookies) {
-            const parsed = parse(cookies);
-            const cookieKey = dotenv.COOKIE_PREFIX + ".two_factor";
-            if (parsed[cookieKey] || parsed["__Secure." + cookieKey]) {
-                return new Redirect(c.req.raw).Because.TwoFactorRequired();
-            }
-        }
-
-        const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
-
-        return c.html(
-            LoginPage({
-                loaderData: {},
-                actionData,
-                copy,
-            }),
-            { headers },
-        );
-    });
-    if (result.ok) {
-        return result.data;
+    const existing = await auth.api.getSession({ headers: c.req.raw.headers });
+    if (existing) {
+        return new Redirect(c.req.raw).Because.HasSession();
     }
-    return new Redirect(c.req.raw).Because.Error(copy, result);
-};
 
-export const post: Handler = async (c) => {
+    const cookies = c.req.raw.headers.get("cookie");
+    if (cookies) {
+        const parsed = parse(cookies);
+        const cookieKey = dotenv.COOKIE_PREFIX + ".two_factor";
+        if (parsed[cookieKey] || parsed["__Secure." + cookieKey]) {
+            return new Redirect(c.req.raw).Because.TwoFactorRequired();
+        }
+    }
+
+    const { state, result, headers } = flash.Consume(c.req.raw.headers);
+
+    return c.html(
+        LoginPage({
+            state,
+            result,
+            copy,
+        }),
+        { headers },
+    );
+});
+
+app.post("/", async (c) => {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
     const email = form.get("email")?.toString();
 
-    const result = await tel.task("POST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw, form));
-        const handler = findAction(actions, action);
-        return await handler(c, form);
-    });
+    const result = await tel.task(
+        "POST",
+        async (span) => {
+            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+            const handler = findAction(actions, action);
+            return await handler(c, form);
+        },
+        { action },
+    );
 
-    if (result.ok) return result.data;
+    return flash.Respond(c.req.raw, result, { state: { email: email ?? "" } });
+});
 
-    return flash.Respond(c.req.raw, undefined, {
-        result: { action, success: false, errors: result.error },
-        state: { email },
-    });
-};
-
-async function LogIn(c: Context, form: FormData) {
+async function LogIn(c: Context, form: FormData): Promise<{ response: Response }> {
     const email = form.get("email")?.toString();
     const password = form.get("password")?.toString();
     if (!email || !password) {
@@ -114,13 +103,13 @@ async function LogIn(c: Context, form: FormData) {
 
     if ("twoFactorRedirect" in response) {
         tel.info("2FA_REDIRECT");
-        return new Redirect(c.req.raw, headers).Because.TwoFactorRequired();
+        return { response: new Redirect(c.req.raw, headers).Because.TwoFactorRequired() };
     }
 
-    return new Redirect(c.req.raw, headers).After.Login();
+    return { response: new Redirect(c.req.raw, headers).After.Login() };
 }
 
-async function LogInOauth(c: Context, form: FormData) {
+async function LogInOauth(c: Context, form: FormData): Promise<{ response: Response }> {
     const provider = form.get("provider")?.toString();
     if (!provider) {
         throw new AppError("internal_field_missing_oauth");
@@ -139,7 +128,7 @@ async function LogInOauth(c: Context, form: FormData) {
     // In the handler for auth.api.signInSocial (and linkSocialAcount), the
     // only way that we don't get a redirect url is if we pass an idToken in
     // the body.
-    return new Redirect(c.req.raw, data.headers).Because.Oauth(data.response.url);
+    return { response: new Redirect(c.req.raw, data.headers).Because.Oauth(data.response.url) };
 }
 
 export default app;

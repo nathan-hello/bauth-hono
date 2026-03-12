@@ -1,8 +1,7 @@
-import type { Handler } from "hono";
-import { Context, Hono } from "hono";
+import { Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { AppError } from "@/lib/auth-error";
-import { AppEnv, type RouteActionData } from "@/lib/types";
+import { AppEnv, BaseProps } from "@/lib/types";
 import { routes } from "@/routes/routes";
 import { auth } from "@/server/auth";
 import { Telemetry, safeRequestAttrs } from "@/server/telemetry";
@@ -13,23 +12,19 @@ import { createCopy } from "@/lib/copy";
 
 const app = new Hono<AppEnv>();
 const tel = new Telemetry(routes.auth.setup);
-const flash = new Flash<typeof actions>();
+const flash = new Flash<typeof actions, State>({ email: "" });
 
 export const actions = {
     setup: { name: "setup", handler: Setup },
 };
 
-export type SetupLoaderData = {
+export type State = {
     email: string;
 };
 
-export type SetupActionData = RouteActionData<typeof actions>;
+export type SetupProps = BaseProps<typeof actions, State>;
 
-type ActionReturnData = {
-    headers?: Headers;
-};
-
-export const get: Handler = async (c) => {
+app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -38,19 +33,12 @@ export const get: Handler = async (c) => {
         return new Redirect(c.req.raw).Because.NoSession();
     }
 
-    const { state: actionData, headers } = flash.Consume(c.req.raw.headers);
+    const { state, result, headers } = flash.Consume(c.req.raw.headers);
 
-    return c.html(
-        SetupPage({
-            loaderData: { email: session.user.email },
-            actionData,
-            copy,
-        }),
-        { headers },
-    );
-};
+    return c.html(SetupPage({ state, result, copy }), { headers });
+});
 
-export async function post(c: Context) {
+app.post("/", async (c) => {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) {
         return new Redirect(c.req.raw).Because.NoSession();
@@ -59,22 +47,20 @@ export async function post(c: Context) {
     const form = await c.req.formData();
     const action = form.get("action")?.toString();
 
-    const result = await tel.task("POST", async (span) => {
-        span.setAttributes(safeRequestAttrs(c.req.raw, form));
-        const handler = findAction(actions, action);
-        return await handler(c.req.raw, form);
-    });
+    const result = await tel.task(
+        "POST",
+        async (span) => {
+            span.setAttributes(safeRequestAttrs(c.req.raw, form));
+            const handler = findAction(actions, action);
+            return await handler(c.req.raw, form);
+        },
+        { action },
+    );
 
-    if (result.ok) {
-        return new Redirect(c.req.raw, result.data.headers).After.OAuth();
-    }
+    return flash.Respond(c.req.raw, result);
+});
 
-    return flash.Respond(c.req.raw, undefined, {
-        result: { action, success: false, errors: result.error },
-    });
-}
-
-async function Setup(request: Request, form: FormData): Promise<ActionReturnData> {
+async function Setup(request: Request, form: FormData): Promise<{ response: Response }> {
     const newEmail = form.get("email")?.toString();
     const newPass = form.get("new_password")?.toString();
     const repeat = form.get("repeat")?.toString();
@@ -98,13 +84,13 @@ async function Setup(request: Request, form: FormData): Promise<ActionReturnData
         headers = emailResult.headers;
     }
 
-    const passwordResult = await auth.api.setPassword({
+    const result = await auth.api.setPassword({
         body: { newPassword: newPass },
         headers: headers ? headers : request.headers,
         returnHeaders: true,
     });
 
-    return { headers: passwordResult.headers };
+    return { response: new Redirect(request, result.headers).After.OAuth() };
 }
 
 export default app;

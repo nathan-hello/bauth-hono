@@ -19,6 +19,7 @@ export type State = {
     totpURI?: string;
     backupCodes?: string[];
     userEnabled: boolean;
+    openDetails?: string;
 };
 export type LinkedAccount = {
     id: string;
@@ -59,6 +60,10 @@ app.get("/", async (c) => {
     }
 
     const { state, result, headers } = flash.Consume(c.req.raw.headers);
+
+    if (session.user.twoFactorEnabled) {
+        state.userEnabled = true;
+    }
 
     return c.html(
         DashboardPage({
@@ -340,7 +345,7 @@ async function TwoFactorGetBackupCodes(request: Request, form: FormData): Promis
     };
 }
 
-async function LinkAccount(request: Request, form: FormData): Promise<Response> {
+async function LinkAccount(request: Request, form: FormData): Promise<{ response: Response }> {
     const provider = form.get("provider")?.toString();
     if (!provider) {
         throw new AppError("internal_field_unknown_oauth_provider");
@@ -360,7 +365,7 @@ async function LinkAccount(request: Request, form: FormData): Promise<Response> 
         throw new AppError("oauth_no_url_given_by_provider");
     }
 
-    return new Redirect(request, result.headers).Because.Oauth(result.response.url);
+    return { response: new Redirect(request, result.headers).Because.Oauth(result.response.url) };
 }
 
 async function UnlinkAccount(request: Request, form: FormData): Promise<{ headers: Headers }> {

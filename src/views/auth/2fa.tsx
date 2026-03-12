@@ -14,7 +14,9 @@ export function TwoFactorPage({ result, state, copy }: TwoFactorProps) {
                     {verificationType === "totp" ? copy.twofa_prompt_totp : copy.twofa_prompt_email}
                 </Label>
 
-                <ErrorAlerts errors={result && !result.ok && result?.meta?.action === "top-of-page" ? result.error : undefined} />
+                <ErrorAlerts
+                    errors={result && !result.ok && result?.meta?.action === "top-of-page" ? result.error : undefined}
+                />
 
                 {verificationType === "email" && <EmailVerificationForm result={result} />}
                 {verificationType === "totp" && <TotpVerificationForm result={result} />}
@@ -50,7 +52,13 @@ function EmailVerificationForm({ result }: { result: TwoFactorProps["result"] | 
                 <Button type="submit">{copy.continue}</Button>
             </Form>
 
-            <Form method="post" action={routes.auth.twoFactor} formAction={actions.resend_email.name} result={result}>
+            <Form
+                method="post"
+                action={routes.auth.twoFactor}
+                formAction={actions.resend_email.name}
+                result={result}
+                success={copy.email_sent}
+            >
                 <Button variant="ghost" type="submit">
                     {copy.code_resend}
                 </Button>

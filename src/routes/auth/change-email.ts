@@ -73,13 +73,12 @@ async function ChangeEmail(request: Request, form: FormData): Promise<{ headers:
     return { headers: r.headers };
 }
 
-async function ResendVerification(request: Request, _: FormData): Promise<null> {
+async function ResendVerification(request: Request, _: FormData): Promise<undefined> {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) throw new AppError("SESSION_EXPIRED");
     await auth.api.sendVerificationEmail({
         body: { email: session.user.email },
     });
-    return null;
 }
 
 export default app;
