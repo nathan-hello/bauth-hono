@@ -32,14 +32,44 @@ import { Hono } from "hono";
 import { trimTrailingSlash } from "hono/trailing-slash";
 import { serveStatic } from "hono/bun";
 import { AppEnv } from "@/lib/types";
+import { safeRequestAttrs, Telemetry } from "@/server/telemetry";
+import { buildError, Redirect } from "@/routes/redirect";
+import { createCopy } from "@/lib/copy";
+import { HTTPException } from "hono/http-exception";
+import { AppError } from "@/lib/auth-error";
 
 const app = new Hono<AppEnv>();
+const tel = new Telemetry("middleware");
 
 // Allow trailing slashes. E.g.: /auth/login and /auth/login/
 // become the same route. Browsers like qutebrowser need this.
 app.use(trimTrailingSlash());
 
+app.onError(async (error) => {
+    const copy = createCopy(undefined);
+    const message = error.name + ": " + error.message + " Cause: " + (error.cause ?? "unknown");
+    let status = 500;
+    if (error instanceof HTTPException) {
+        status = error.status;
+    }
+    return buildError(status, message, copy);
+});
+
 app.use("/*", serveStatic({ root: "./public" }));
+
+app.use(async (c, next) => {
+    const result = await tel.task("REQUEST", async (span) => {
+        span.setAttributes(safeRequestAttrs(c.req.raw));
+        const start = performance.now();
+        await next();
+        const end = performance.now();
+        span.setAttribute("RESPONSE_TIME", end - start);
+    });
+    if (!result.ok) {
+        tel.error("ERR_IMPOSSIBLE", { error: result.error, ok: result.ok });
+    }
+});
+
 app.route("/api/auth/*", api);
 
 app.route(routes.auth.admin, admin);

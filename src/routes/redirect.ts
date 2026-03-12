@@ -92,16 +92,16 @@ export class Redirect {
             );
         },
         Error: (copy: Copy, result: Extract<TaskResult<any, any>, { ok: false }>): Response => {
-            const page = ErrorPage({
-                status: 500,
-                message: `${copy.report_this_trace_id}: ${result.traceId}`,
-                copy,
-            });
-            return new Response(page.toString(), {
-                    status: 500,
-                    headers: { "Content-Type": "text/html; charset=utf-8" },
-                },
-            );
+          return buildError(500, `${copy.report_this_trace_id}: ${result.traceId}`, copy);
         },
     };
+}
+
+export function buildError(status: number, message: string, copy: Copy) {
+
+    const page = ErrorPage({ status, message, copy });
+    return new Response(page.toString(), {
+        status: 500,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
 }
