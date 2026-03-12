@@ -8,7 +8,7 @@ const tel = new Telemetry("drizzle-orm");
 const logger = new DefaultLogger({
     writer: {
         write: (message) => {
-            tel.info(message);
+            tel.trace(message);
         },
     },
 });
