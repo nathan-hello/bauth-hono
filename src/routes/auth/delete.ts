@@ -110,7 +110,7 @@ async function DeleteAccount(request: Request, form: FormData): Promise<{ state:
     if (!hasCredential) {
         const result = await auth.api.deleteUser({
             body: {},
-            headers: request.headers,
+            headers: headersForDelete,
             returnHeaders: true,
         });
         return { state: { success: true }, headers: result.headers };

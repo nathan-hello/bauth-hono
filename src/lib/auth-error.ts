@@ -1,4 +1,3 @@
-import { APIError } from "better-auth";
 import { auth } from "@/server/auth";
 import { defaultCopy as copy } from "@/lib/copy";
 
@@ -108,22 +107,4 @@ export class AppError extends Error {
     public override toString(): string {
         return this.code;
     }
-}
-
-export function errorAttrs(error: unknown): Record<string, string> {
-    if (error instanceof AppError) {
-        return { type: "AppError", code: error.code, message: error.message };
-    }
-    if (error instanceof APIError) {
-        return {
-            type: "APIError",
-            code: error.body?.code ?? "unknown",
-            status: String(error.status),
-            message: error.message,
-        };
-    }
-    if (error instanceof Error) {
-        return { type: error.name, message: error.message };
-    }
-    return { type: "unknown", message: String(error) };
 }

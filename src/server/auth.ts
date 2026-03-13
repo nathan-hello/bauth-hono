@@ -228,8 +228,6 @@ export const auth = betterAuth({
         },
     },
 
-    // TODO: rate limit doesn't work on the forms because it's auth.api calling
-    // the endpoints instead of a user. Rate limit myself?
     rateLimit: {
         window: 60,
         max: 100,

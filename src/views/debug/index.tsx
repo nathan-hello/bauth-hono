@@ -33,7 +33,7 @@ export function DebugHomePage({ session, copy }: HomeProps) {
                     )}
                 </Section>
                 <Section gap>
-                    <pre class="mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 leading-relaxed">
+                    <pre class="text-sm mt-2 p-2 bg-surface-raised border border-border overflow-auto max-h-64 leading-relaxed">
                         {JSON.stringify(session, null, 2)}
                     </pre>
                 </Section>
