@@ -9,12 +9,7 @@ export function SetupPage({ result, state, copy }: SetupProps) {
             <Card>
                 <Header>{copy.routes.auth.setup.title}</Header>
                 <Section>
-                    <Form
-                        method="post"
-                        action={routes.auth.setup}
-                        formAction={actions.setup.name}
-                        result={result}
-                    >
+                    <Form method="post" action={routes.auth.setup} formAction={actions.setup.name} result={result}>
                         <Input type="email" name="email" value={state.email} required placeholder={copy.email} />
                         <Input
                             type="password"

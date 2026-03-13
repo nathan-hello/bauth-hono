@@ -6,7 +6,7 @@ export function findAction<T extends { [x: string]: { name: string; handler: (..
 ): T[keyof T]["handler"] {
     const handler = Object.values(obj).find((o) => o.name === n)?.handler;
     if (!handler) {
-      throw new AppError("internal_field_missing_action")
+        throw new AppError("internal_field_missing_action");
     }
-    return handler
+    return handler;
 }

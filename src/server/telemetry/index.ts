@@ -30,7 +30,6 @@ export type TaskResult<R, TMeta extends Attributes | undefined = undefined> =
     | TaskSuccess<R, TMeta>
     | TaskFailure<TMeta>;
 
-
 type Attrs<T = LogAttributes> = T | (() => T | Promise<T>);
 
 export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {

@@ -24,7 +24,6 @@ app.get("/", async (c) => {
     const copy = createCopy(c.req.raw);
 
     const result = await tel.task("GET", async () => {
-
         const cookies = c.req.raw.headers.get("cookie");
         if (!cookies) {
             return await new Redirect(c.req.raw).Because.TwoFactorCookieNotFound();
