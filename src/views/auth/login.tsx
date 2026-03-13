@@ -8,32 +8,32 @@ export function LoginPage({ state, result, copy }: LoginProps) {
     return (
         <Layout meta={copy.routes.auth.login} copy={copy}>
             <Card>
-            <Section>
-                <Form method="post" action={routes.auth.login} formAction={actions.login.name} result={result}>
-                    <Input
-                        type="text"
-                        name="email"
-                        required
-                        placeholder={copy.email_or_username}
-                        autofocus={!result}
-                        value={state?.email ?? ""}
-                    />
-                    <Input
-                        required
-                        type="password"
-                        name="password"
-                        placeholder={copy.password}
-                        autocomplete="current-password"
-                    />
-                    <Button type="submit">{copy.continue}</Button>
-                    <FormFooter>
-                        <TextLink href="/auth/register">{copy.register_prompt}</TextLink>
-                        <TextLink href="/auth/forgot">{copy.change_prompt}</TextLink>
-                    </FormFooter>
-                </Form>
+                <Section>
+                    <Form method="post" action={routes.auth.login} formAction={actions.login.name} result={result}>
+                        <Input
+                            type="text"
+                            name="email"
+                            required
+                            placeholder={copy.email_or_username}
+                            autofocus={!result}
+                            value={state?.email ?? ""}
+                        />
+                        <Input
+                            required
+                            type="password"
+                            name="password"
+                            placeholder={copy.password}
+                            autocomplete="current-password"
+                        />
+                        <Button type="submit">{copy.continue}</Button>
+                        <FormFooter>
+                            <TextLink href="/auth/register">{copy.register_prompt}</TextLink>
+                            <TextLink href="/auth/forgot">{copy.change_prompt}</TextLink>
+                        </FormFooter>
+                    </Form>
                 </Section>
                 <Section>
-                <OauthButtons formAction={routes.auth.login} />
+                    <OauthButtons formAction={routes.auth.login} />
                 </Section>
             </Card>
         </Layout>

@@ -111,7 +111,9 @@ export class FileTelemetryExporter implements LogRecordExporter, SpanExporter {
     export(items: ReadableLogRecord[] | ReadableSpan[], resultCallback: (result: ExportResult) => void) {
         try {
             for (const item of items) {
-                this.writeJsonLine(this.isReadableLogRecord(item) ? this.serializeLogRecord(item) : this.serializeSpan(item));
+                this.writeJsonLine(
+                    this.isReadableLogRecord(item) ? this.serializeLogRecord(item) : this.serializeSpan(item),
+                );
             }
             resultCallback({ code: ExportResultCode.SUCCESS });
         } catch (error) {

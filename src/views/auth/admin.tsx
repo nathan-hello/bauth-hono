@@ -69,15 +69,7 @@ export function AdminPage(props: AdminProps) {
     );
 }
 
-function UserRow({
-    props,
-    open,
-    user,
-}: {
-    props: AdminProps;
-    open?: boolean;
-    user: FullUser;
-}) {
+function UserRow({ props, open, user }: { props: AdminProps; open?: boolean; user: FullUser }) {
     const actionPath = getAdminHref(props.search.filters);
 
     return (

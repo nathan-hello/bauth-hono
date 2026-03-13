@@ -79,7 +79,7 @@ const AppErrorCodes = [
     // "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
     // "INVALID_OTP_CODE",
 ] as const;
- 
+
 export type TErrorCodes =
     | (typeof AppErrorCodes)[number]
     | (typeof ResendErrorCodes)[number]

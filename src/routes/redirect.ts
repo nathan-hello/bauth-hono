@@ -86,19 +86,17 @@ export class Redirect {
                 copy,
             });
             return new Response(page.toString(), {
-                    status: 403,
-                    headers: { "Content-Type": "text/html; charset=utf-8" },
-                },
-            );
+                status: 403,
+                headers: { "Content-Type": "text/html; charset=utf-8" },
+            });
         },
         Error: (copy: Copy, result: Extract<TaskResult<any, any>, { ok: false }>): Response => {
-          return buildError(500, `${copy.report_this_trace_id}: ${result.traceId}`, copy);
+            return buildError(500, `${copy.report_this_trace_id}: ${result.traceId}`, copy);
         },
     };
 }
 
 export function buildError(status: number, message: string, copy: Copy) {
-
     const page = ErrorPage({ status, message, copy });
     return new Response(page.toString(), {
         status: 500,

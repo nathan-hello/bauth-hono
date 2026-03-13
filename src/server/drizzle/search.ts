@@ -22,9 +22,7 @@ export async function getUserByLogin(login: string) {
     }
 
     const user = users[0].user;
-    const twoFactors = users
-        .filter((r) => r.two_factor)
-        .map((r) => r.two_factor!);
+    const twoFactors = users.filter((r) => r.two_factor).map((r) => r.two_factor!);
 
     return { ...user, twoFactors };
 }

@@ -13,10 +13,14 @@ export function TwoFactorBackupPage(props: BackupCodeProps) {
                 </Label>
 
                 <ErrorAlerts
-                    errors={props.result && !props.result.ok && props.result?.meta.action === "top-of-page" ? props.result.error : undefined}
+                    errors={
+                        props.result && !props.result.ok && props.result?.meta.action === "top-of-page"
+                            ? props.result.error
+                            : undefined
+                    }
                 />
 
-                <BackupCodeVerificationForm  {...props}/>
+                <BackupCodeVerificationForm {...props} />
             </Card>
         </Layout>
     );
