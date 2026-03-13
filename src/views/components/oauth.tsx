@@ -1,16 +1,16 @@
 import { useCopy } from "@/lib/copy";
 import { auth } from "@/server/auth";
+import { Card, FormFooter, Section } from "@/views/components/ui";
 
 export function OauthButtons({ formAction }: { formAction: string }) {
     if (!auth.options.socialProviders.apple.enabled && !auth.options.socialProviders.google.enabled) {
         return null;
     }
     return (
-        <div class="flex flex-col w-full gap-3 justify-center items-center ">
-            <div class="border-t border-border py-2 w-full" />
+        <FormFooter>
             {auth.options.socialProviders.google.enabled && <GoogleButton formAction={formAction} />}
-            {auth.options.socialProviders.apple.enabled  && <AppleButton formAction={formAction} />}
-        </div>
+            {auth.options.socialProviders.apple.enabled && <AppleButton formAction={formAction} />}
+        </FormFooter>
     );
 }
 
@@ -51,8 +51,12 @@ function GoogleButton({ formAction }: { formAction: string }) {
                             <path fill="none" d="M0 0h48v48H0z"></path>
                         </svg>
                     </div>
-                    <span class="gsi-material-button-contents">{copy.oauth.login_prompt}{" "}{copy.oauth.providers.google}</span>
-                    <span style="display: none;">{copy.oauth.login_prompt}{" "}{copy.oauth.providers.google}</span>
+                    <span class="gsi-material-button-contents">
+                        {copy.oauth.login_prompt} {copy.oauth.providers.google}
+                    </span>
+                    <span style="display: none;">
+                        {copy.oauth.login_prompt} {copy.oauth.providers.google}
+                    </span>
                 </div>
             </button>
         </form>
@@ -123,7 +127,7 @@ function AppleButton({ formAction }: { formAction: string }) {
                                         font-family="applied-button-font-0"
                                         direction="ltr"
                                     >
-                                      {copy.oauth.login_prompt}{" "}{copy.oauth.providers.apple}
+                                         {copy.oauth.login_prompt} {copy.oauth.providers.apple}
                                     </text>
                                 </svg>
                             </g>

@@ -35,18 +35,23 @@ export const auth = betterAuth({
                     "user.id": data.user.id,
                     channel: "verify-email",
                 });
-                const response = await resend.emails.send({
-                    from: dotenv.FROM_EMAIL,
-                    to: data.user.email,
-                    subject: copy.email_verification_subject,
-                    html: emails
-                        .EmailVerification({
-                            email: data.user.email,
-                            verificationLink: data.url,
-                            url: dotenv.PRODUCTION_URL,
-                        })
-                        .toString(),
-                });
+                const response = await resend.emails.send(
+                    {
+                        from: dotenv.FROM_EMAIL,
+                        to: data.user.email,
+                        subject: copy.email_verification_subject,
+                        html: emails
+                            .EmailVerification({
+                                email: data.user.email,
+                                verificationLink: data.url,
+                                url: dotenv.PRODUCTION_URL,
+                            })
+                            .toString(),
+                    },
+                    {
+                        idempotencyKey: idempotentcyKey("verify-email", data.user.id),
+                    },
+                );
                 if (response.error) {
                     throw response.error;
                 }
@@ -99,18 +104,23 @@ export const auth = betterAuth({
                             "user.id": data.user.id,
                             channel: "twoFactor.sendOTP",
                         });
-                        const response = await resend.emails.send({
-                            from: dotenv.FROM_EMAIL,
-                            to: data.user.email,
-                            subject: copy.email_2fa_subject,
-                            html: emails
-                                .Email2fa({
-                                    email: data.user.email,
-                                    otp: data.otp,
-                                    url: dotenv.PRODUCTION_URL,
-                                })
-                                .toString(),
-                        });
+                        const response = await resend.emails.send(
+                            {
+                                from: dotenv.FROM_EMAIL,
+                                to: data.user.email,
+                                subject: copy.email_2fa_subject,
+                                html: emails
+                                    .Email2fa({
+                                        email: data.user.email,
+                                        otp: data.otp,
+                                        url: dotenv.PRODUCTION_URL,
+                                    })
+                                    .toString(),
+                            },
+                            {
+                                idempotencyKey: idempotentcyKey("twoFactor.sendOTP", data.user.id),
+                            },
+                        );
                         if (response.error) {
                             throw response.error;
                         }
@@ -140,18 +150,23 @@ export const auth = betterAuth({
                     });
 
                     if (data.type === "email-verification" || data.type === "sign-in") {
-                        const response = await resend.emails.send({
-                            from: dotenv.FROM_EMAIL,
-                            to: data.email,
-                            subject: copy.email_otp_subject,
-                            html: emails
-                                .EmailOtp({
-                                    email: data.email,
-                                    otp: data.otp,
-                                    url: dotenv.PRODUCTION_URL,
-                                })
-                                .toString(),
-                        });
+                        const response = await resend.emails.send(
+                            {
+                                from: dotenv.FROM_EMAIL,
+                                to: data.email,
+                                subject: copy.email_otp_subject,
+                                html: emails
+                                    .EmailOtp({
+                                        email: data.email,
+                                        otp: data.otp,
+                                        url: dotenv.PRODUCTION_URL,
+                                    })
+                                    .toString(),
+                            },
+                            {
+                                idempotencyKey: idempotentcyKey("email-verification_or_sign-in", data.email),
+                            },
+                        );
                         if (response.error) {
                             tel.error("RESEND_ERROR", response.error);
                             throw response.error;
@@ -160,18 +175,21 @@ export const auth = betterAuth({
                         return response;
                     }
 
-                    const response = await resend.emails.send({
-                        from: dotenv.FROM_EMAIL,
-                        to: data.email,
-                        subject: copy.email_reset_password_subject,
-                        html: emails
-                            .EmailResetPasswordOTP({
-                                email: data.email,
-                                otp: data.otp,
-                                url: dotenv.PRODUCTION_URL,
-                            })
-                            .toString(),
-                    });
+                    const response = await resend.emails.send(
+                        {
+                            from: dotenv.FROM_EMAIL,
+                            to: data.email,
+                            subject: copy.email_reset_password_subject,
+                            html: emails
+                                .EmailResetPasswordOTP({
+                                    email: data.email,
+                                    otp: data.otp,
+                                    url: dotenv.PRODUCTION_URL,
+                                })
+                                .toString(),
+                        },
+                        { idempotencyKey: idempotentcyKey("reset-otp", data.email) },
+                    );
                     if (response.error) {
                         tel.error("RESEND_ERROR", response.error);
                         throw response.error;
@@ -210,7 +228,8 @@ export const auth = betterAuth({
         },
     },
 
-    // TODO: rate limit isn't working. i can span resend email all day
+    // TODO: rate limit doesn't work on the forms because it's auth.api calling
+    // the endpoints instead of a user. Rate limit myself?
     rateLimit: {
         window: 60,
         max: 100,
@@ -262,20 +281,23 @@ export const auth = betterAuth({
                 span.setAttributes({
                     "user.email": data.user.email,
                     "user.id": data.user.id,
-                    channel: "verify-email",
+                    channel: "reset-password-link",
                 });
-                const response = await resend.emails.send({
-                    from: dotenv.FROM_EMAIL,
-                    to: data.user.email,
-                    subject: copy.email_reset_password_subject,
-                    html: emails
-                        .EmailResetPasswordLink({
-                            email: data.user.email,
-                            verificationLink: data.url,
-                            url: dotenv.PRODUCTION_URL,
-                        })
-                        .toString(),
-                });
+                const response = await resend.emails.send(
+                    {
+                        from: dotenv.FROM_EMAIL,
+                        to: data.user.email,
+                        subject: copy.email_reset_password_subject,
+                        html: emails
+                            .EmailResetPasswordLink({
+                                email: data.user.email,
+                                verificationLink: data.url,
+                                url: dotenv.PRODUCTION_URL,
+                            })
+                            .toString(),
+                    },
+                    { idempotencyKey: idempotentcyKey("reset-link", data.user.id) },
+                );
                 if (response.error) {
                     throw response.error;
                 }
@@ -411,4 +433,10 @@ export function validateUsername(username: string): boolean {
     }
 
     return true;
+}
+
+function idempotentcyKey(name: string, userId: string) {
+    const msInFiveMinutes = 5 * 60 * 1000;
+    const key = Math.floor(Date.now() / msInFiveMinutes);
+    return `${name}/${userId}/${key}`;
 }
