@@ -1,6 +1,6 @@
 import { LoginProps, actions } from "@/routes/auth/login";
 import { Layout } from "@/views/components/layout";
-import { Card, Input, Button, FormFooter, TextLink, Form } from "@/views/components/ui";
+import { Card, Input, Button, FormFooter, TextLink, Form, Section } from "@/views/components/ui";
 import { routes } from "@/routes/routes";
 import { OauthButtons } from "@/views/components/oauth";
 
@@ -8,6 +8,7 @@ export function LoginPage({ state, result, copy }: LoginProps) {
     return (
         <Layout meta={copy.routes.auth.login} copy={copy}>
             <Card>
+            <Section>
                 <Form method="post" action={routes.auth.login} formAction={actions.login.name} result={result}>
                     <Input
                         type="text"
@@ -30,7 +31,10 @@ export function LoginPage({ state, result, copy }: LoginProps) {
                         <TextLink href="/auth/forgot">{copy.change_prompt}</TextLink>
                     </FormFooter>
                 </Form>
+                </Section>
+                <Section>
                 <OauthButtons formAction={routes.auth.login} />
+                </Section>
             </Card>
         </Layout>
     );

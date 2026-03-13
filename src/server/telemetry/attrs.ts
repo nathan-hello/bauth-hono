@@ -28,9 +28,12 @@ export async function safeRequestAttrs(r: Request | Response | undefined) {
         }
         attrs[`header.${key}`] = value;
     }
-    const form = await r.clone().formData();
-    for (const [key, value] of form.entries()) {
-        attrs[`form.${key}`] = SENSITIVE_KEYS.has(key) ? "[REDACTED]" : String(value);
+    const contentType = r.headers.get("content-type") || "";
+    if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+        const form = await r.clone().formData();
+        for (const [key, value] of form.entries()) {
+            attrs[`form.${key}`] = SENSITIVE_KEYS.has(key) ? "[REDACTED]" : String(value);
+        }
     }
 
     if (r instanceof Request) {
