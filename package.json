@@ -1,10 +1,10 @@
 {
     "name": "bauth-hono",
     "scripts": {
-        "dev": "trap 'kill 0' SIGINT; PORT=3005 NODE_ENV=development bun --watch src/index.ts & bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --watch & wait",
+        "dev": "trap 'kill 0' SIGINT; PORT=3005 NODE_ENV=development bun --watch src/index.ts & bunx @tailwindcss/cli -i ./src/styles.css -o ./public/auth/styles.css --watch & wait",
         "start": "bun run build:css && PORT=3005 NODE_ENV=production bun run src/index.ts",
-        "build:css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --minify",
-        "dev:css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/styles.css --watch",
+        "build:css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/auth/styles.css --minify",
+        "dev:css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./public/auth/styles.css --watch",
         "typegen:ba": "bunx @better-auth/cli generate --config ./src/server/auth.ts --output ./src/server/drizzle/schema.auth.ts -y",
         "typegen:db": "bunx drizzle-kit generate --config ./src/server/drizzle/config.ts",
         "typegen": "bun run typegen:ba && bun run typegen:db",
