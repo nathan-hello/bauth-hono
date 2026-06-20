@@ -120,7 +120,7 @@ async function userIsAdmin(headers: Headers) {
         headers,
         body: {
             role: "admin",
-            permission: {},
+            permissions: {},
         },
     });
 

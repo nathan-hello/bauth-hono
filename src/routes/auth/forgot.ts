@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { Flash } from "@/lib/flash";
 import { auth } from "@/server/auth";
-import { AppError } from "@/lib/auth-error";
+import { AppError, TErrorCodes } from "@/lib/auth-error";
 import { AppEnv, BaseProps } from "@/lib/types";
 import { Telemetry } from "@/server/telemetry";
 import { ForgotPage } from "@/views/auth/forgot";
@@ -134,7 +134,7 @@ function requirePassword(form: FormData): string {
     return password;
 }
 
-function requireValue(form: FormData, key: string, error: ConstructorParameters<typeof AppError>[0]): string {
+function requireValue(form: FormData, key: string, error: TErrorCodes): string {
     const value = trimmedValue(form, key);
     if (!value) {
         throw new AppError(error);

@@ -1,4 +1,4 @@
-import { useCopy, type Copy } from "@/lib/copy";
+import { type Copy } from "@/lib/copy";
 import { routes } from "@/routes/routes";
 import { Layout } from "@/views/components/layout";
 import { ButtonLink, Card, Label, Section, SectionHeading } from "@/views/components/ui";

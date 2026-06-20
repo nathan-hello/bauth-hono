@@ -84,7 +84,6 @@ async function Switch(c: Context<AppEnv>, form: FormData): Promise<{ state: Part
             body: { trustDevice: true },
             headers: c.req.raw.headers,
         });
-        tel.info("2FA_EMAIL_OTP_SENT");
     }
     const verificationType = to === "email" ? "email" : "totp";
     return { state: { verificationType } };
