@@ -1,11 +1,8 @@
 import { dotenv } from "@/server/env";
-import { StartLogging } from "@/server/telemetry/sdk";
+import { AddExporters } from "@/server/telemetry/sdk";
 import { FileTelemetryExporter } from "@/server/telemetry/exporters";
 
-StartLogging({
-    tracesUrl: dotenv.OTEL_TRACES_URL,
-    exporter: new FileTelemetryExporter(dotenv.LOG_FILE_PATH),
-});
+AddExporters([new FileTelemetryExporter(dotenv.LOG_FILE_PATH)]);
 
 import api from "@/routes/auth/api";
 import admin from "@/routes/auth/admin";

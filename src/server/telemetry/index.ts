@@ -1,204 +1,200 @@
-import { trace, SpanStatusCode, type Span, context, type Attributes } from "@opentelemetry/api";
-import { LogAttributes, SeverityNumber, type AnyValue } from "@opentelemetry/api-logs";
-import { getLoggerProvider } from "@/server/telemetry/sdk";
+import * as RuntimeMod from "./runtime";
+import { getLoggerProvider } from "./sdk";
+import {
+  SeverityNumber,
+  SpanStatusCode,
+  type Attributes,
+  type Span,
+} from "./types";
 import { AppError, ResendErrorCodes } from "@/lib/auth-error";
 import { APIError } from "better-auth";
 import { defaultCopy as copy } from "@/lib/copy";
 
 export type TelemetryLogSchema = {
-    info: [string, Record<string, AnyValue>];
-    debug: [string, Record<string, AnyValue>];
-    warn: [string, Record<string, AnyValue>];
-    error: [string, Record<string, AnyValue>];
+  info: [string, Record<string, unknown>];
+  debug: [string, Record<string, unknown>];
+  warn: [string, Record<string, unknown>];
+  error: [string, Record<string, unknown>];
 };
 
 type TaskSuccess<R, TMeta extends Attributes | undefined = undefined> = {
-    ok: true;
-    traceId: string;
-    data: R;
-    meta: TMeta;
+  ok: true;
+  traceId: string;
+  data: R;
+  meta: TMeta;
 };
 
 type TaskFailure<TMeta extends Attributes | undefined = undefined> = {
-    ok: false;
-    traceId: string;
-    error: AppError[];
-    meta: TMeta;
+  ok: false;
+  traceId: string;
+  error: AppError[];
+  meta: TMeta;
 };
 
 export type TaskResult<R, TMeta extends Attributes | undefined = undefined> =
-    | TaskSuccess<R, TMeta>
-    | TaskFailure<TMeta>;
+  | TaskSuccess<R, TMeta>
+  | TaskFailure<TMeta>;
 
-type Attrs<T = LogAttributes> = T | (() => T | Promise<T>);
+type Attrs<T = Record<string, unknown>> = T | (() => T | Promise<T>);
 
 export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
-    private tracer;
-    private namespace: string;
+  private namespace: string;
 
-    constructor(namespace: string) {
-        this.namespace = namespace;
-        this.tracer = trace.getTracer(namespace);
-    }
+  constructor(namespace: string) {
+    this.namespace = namespace;
+  }
 
-    private get logger() {
-        return getLoggerProvider().getLogger(this.namespace);
-    }
+  task<R>(name: string, fn: (span: Span) => Promise<R>): Promise<TaskResult<R, undefined>>;
 
-    // Overload 1: Simple Async
-    task<R>(name: string, fn: (span: Span) => Promise<R>): Promise<TaskResult<R, undefined>>;
+  task<R>(name: string, fn: (span: Span) => R): TaskResult<R, undefined>;
 
-    // Overload 2: Simple Sync
-    task<R>(name: string, fn: (span: Span) => R): TaskResult<R, undefined>;
+  task<R, TMeta extends Attributes>(
+    name: string,
+    fn: (span: Span) => Promise<R>,
+    meta: TMeta,
+  ): Promise<TaskResult<R, TMeta>>;
 
-    // Overload 3: Meta Async
-    task<R, TMeta extends Attributes>(
-        name: string,
-        fn: (span: Span) => Promise<R>,
-        meta: TMeta,
-    ): Promise<TaskResult<R, TMeta>>;
+  task<R, TMeta extends Attributes>(name: string, fn: (span: Span) => R, meta: TMeta): TaskResult<R, TMeta>;
 
-    // Overload 4: Meta Sync
-    task<R, TMeta extends Attributes>(name: string, fn: (span: Span) => R, meta: TMeta): TaskResult<R, TMeta>;
+  task<R, TMeta extends Attributes | undefined = undefined>(
+    name: string,
+    fn: (span: Span) => R | Promise<R>,
+    meta?: TMeta,
+  ): TaskResult<R, TMeta> | Promise<TaskResult<R, TMeta>> {
+    const span = RuntimeMod.createSpan(name, RuntimeMod.getActiveSpan()?.context);
 
-    // Implementation
-    task<R, TMeta extends Attributes | undefined = undefined>(
-        name: string,
-        fn: (span: Span) => R | Promise<R>,
-        meta?: TMeta,
-    ): TaskResult<R, TMeta> | Promise<TaskResult<R, TMeta>> {
-        return this.tracer.startActiveSpan(name, (span) => {
-            try {
-                const result = fn(span);
-                const traceId = span.spanContext().traceId;
+    return RuntimeMod.withSpan(span, () => {
+      if (meta) {
+        span.setAttributes(meta);
+      }
 
-                span.setAttribute("promise", result instanceof Promise);
+      try {
+        const result = fn(span);
+        const traceId = span.context.traceId;
 
-                if (meta) {
-                    span.setAttributes(meta);
-                }
-
-                if (result instanceof Promise) {
-                    return result
-                        .then((data): TaskResult<R, TMeta> => {
-                            this.handleSuccess(span, name);
-                            span.end();
-                            return {
-                                meta: meta as TMeta,
-                                traceId,
-                                data,
-                                ok: true as const,
-                            };
-                        })
-                        .catch((err): TaskResult<R, TMeta> => {
-                            this.handleError(span, name, err);
-                            span.end();
-                            return {
-                                meta: meta as TMeta,
-                                traceId,
-                                ok: false as const,
-                                error: getAuthError(err),
-                            };
-                        });
-                }
-
-                this.handleSuccess(span, name);
-                span.end();
-                return {
-                    meta: meta as TMeta,
-                    traceId,
-                    data: result,
-                    ok: true as const,
-                };
-            } catch (err) {
-                this.handleError(span, name, err);
-                span.end();
-                const traceId = span.spanContext().traceId;
-                return {
-                    meta: meta as TMeta,
-                    traceId,
-                    ok: false as const,
-                    error: getAuthError(err),
-                };
-            }
-        });
-    }
-
-    private handleSuccess(span: Span, name: string) {
-        span.setStatus({ code: SpanStatusCode.OK });
-        this.emit(name, SeverityNumber.INFO, "INFO", { success: true });
-    }
-
-    private handleError(span: Span, name: string, error: unknown): void {
-        const errorName = error instanceof Error ? error.name : "UnknownError";
-        const attrs: Record<string, string | number> = { creator: errorName };
-
-        try {
-            attrs.full = JSON.stringify(error);
-        } catch {
-            attrs.full = "Unable to JSON.stringify the error. String() attempt: " + String(error);
+        if (result instanceof Promise) {
+          return result
+            .then((data): TaskResult<R, TMeta> => {
+              this.handleSuccess(span, name);
+              span.end();
+              return {
+                meta: meta as TMeta,
+                traceId,
+                data,
+                ok: true as const,
+              };
+            })
+            .catch((err): TaskResult<R, TMeta> => {
+              this.handleError(span, name, err);
+              span.end();
+              return {
+                meta: meta as TMeta,
+                traceId,
+                ok: false as const,
+                error: getAuthError(err),
+              };
+            });
         }
 
-        if (
-            error != null &&
-            typeof error === "object" &&
-            "code" in error &&
-            (typeof error.code === "string" || typeof error.code === "number")
-        ) {
-            attrs.code = error.code;
-        }
+        this.handleSuccess(span, name);
+        span.end();
+        return {
+          meta: meta as TMeta,
+          traceId,
+          data: result,
+          ok: true as const,
+        };
+      } catch (err) {
+        this.handleError(span, name, err);
+        span.end();
+        return {
+          meta: meta as TMeta,
+          traceId: span.context.traceId,
+          ok: false as const,
+          error: getAuthError(err),
+        };
+      }
+    });
+  }
 
-        if (error != null && typeof error === "object" && "message" in error && typeof error.message === "string") {
-            attrs.message = error.message;
-        }
+  private handleSuccess(span: Span, name: string) {
+    span.setStatus({ code: SpanStatusCode.OK });
+    this.emit(name, SeverityNumber.INFO, "INFO", { success: true });
+  }
 
-        span.setStatus({ code: SpanStatusCode.ERROR });
+  private handleError(span: Span, name: string, error: unknown): void {
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+    const attrs: Record<string, string | number> = { creator: errorName };
 
-        this.emit(name, SeverityNumber.ERROR, "ERROR", attrs);
+    try {
+      attrs.full = JSON.stringify(error);
+    } catch {
+      attrs.full = "Unable to JSON.stringify the error. String() attempt: " + String(error);
     }
 
-    debug(body: T["debug"][0], attributes?: Attrs<T["debug"][1]>) {
-        this.log(body, SeverityNumber.DEBUG, "DEBUG", attributes);
+    if (
+      error != null &&
+      typeof error === "object" &&
+      "code" in error &&
+      (typeof error.code === "string" || typeof error.code === "number")
+    ) {
+      attrs.code = error.code;
     }
 
-    warn(body: T["warn"][0], attributes?: Attrs<T["warn"][1]>) {
-        this.log(body, SeverityNumber.WARN, "WARN", attributes);
+    if (error != null && typeof error === "object" && "message" in error && typeof error.message === "string") {
+      attrs.message = error.message;
     }
 
-    info(body: T["info"][0], attributes?: Attrs<T["info"][1]>) {
-        this.log(body, SeverityNumber.INFO, "INFO", attributes);
-    }
+    span.setStatus({ code: SpanStatusCode.ERROR });
 
-    trace(body: T["info"][0], attributes?: Attrs<T["info"][1]>) {
-        this.log(body, SeverityNumber.TRACE, "INFO", attributes);
-    }
+    this.emit(name, SeverityNumber.ERROR, "ERROR", attrs);
+  }
 
-    error(body: T["error"][0], attributes?: Attrs<T["error"][1]>) {
-        this.log(body, SeverityNumber.ERROR, "ERROR", attributes);
-    }
+  debug(body: T["debug"][0], attributes?: Attrs<T["debug"][1]>) {
+    this.log(body, SeverityNumber.DEBUG, "DEBUG", attributes);
+  }
 
-    private log(body: string, severityNumber: SeverityNumber, severityText: string, attributes?: Attrs) {
-        if (typeof attributes === "function") {
-            const result = attributes();
-            if (result instanceof Promise) {
-                result.then((resolved) => this.emit(body, severityNumber, severityText, resolved));
-                return;
-            }
-            this.emit(body, severityNumber, severityText, result);
-            return;
-        }
-        this.emit(body, severityNumber, severityText, attributes);
-    }
+  warn(body: T["warn"][0], attributes?: Attrs<T["warn"][1]>) {
+    this.log(body, SeverityNumber.WARN, "WARN", attributes);
+  }
 
-    private emit(body: string, severityNumber: SeverityNumber, severityText: string, attributes?: LogAttributes) {
-        this.logger.emit({
-            body,
-            severityNumber,
-            severityText,
-            attributes,
-            context: context.active(),
-        });
+  info(body: T["info"][0], attributes?: Attrs<T["info"][1]>) {
+    this.log(body, SeverityNumber.INFO, "INFO", attributes);
+  }
+
+  trace(body: T["info"][0], attributes?: Attrs<T["info"][1]>) {
+    this.log(body, SeverityNumber.TRACE, "INFO", attributes);
+  }
+
+  error(body: T["error"][0], attributes?: Attrs<T["error"][1]>) {
+    this.log(body, SeverityNumber.ERROR, "ERROR", attributes);
+  }
+
+  private log(body: string, severityNumber: SeverityNumber, severityText: string, attributes?: Attrs) {
+    if (typeof attributes === "function") {
+      const result = attributes();
+      if (result instanceof Promise) {
+        result.then((resolved) => this.emit(body, severityNumber, severityText, resolved));
+        return;
+      }
+      this.emit(body, severityNumber, severityText, result);
+      return;
     }
+    this.emit(body, severityNumber, severityText, attributes);
+  }
+
+  private emit(body: string, severityNumber: SeverityNumber, severityText: string, attributes?: Record<string, unknown>) {
+    const logger = getLoggerProvider().getLogger(this.namespace);
+    logger.emit({
+      hrTime: [Math.floor(Date.now() / 1000), 0],
+      body,
+      severityNumber,
+      severityText,
+      attributes: (attributes ?? {}) as Attributes,
+      spanContext: RuntimeMod.getActiveSpan()?.context,
+      instrumentationScope: { name: this.namespace },
+    });
+  }
 }
 
 /**
@@ -210,31 +206,31 @@ export class Telemetry<T extends TelemetryLogSchema = TelemetryLogSchema> {
  * do that.
  */
 function getAuthError(e: unknown): AppError[] {
-    if (e === null) {
-        return [];
-    }
-    if (e instanceof AppError) {
-        return [e];
-    }
-    if (Array.isArray(e) && e[0] instanceof AppError) {
-        return e;
-    }
+  if (e === null) {
+    return [];
+  }
+  if (e instanceof AppError) {
+    return [e];
+  }
+  if (Array.isArray(e) && e[0] instanceof AppError) {
+    return e;
+  }
 
-    if (e instanceof APIError) {
-        const code = e.body?.code;
-        if (typeof code === "string" && code in copy.error) {
-            return [new AppError(code as keyof typeof copy.error)];
-        }
+  if (e instanceof APIError) {
+    const code = e.body?.code;
+    if (typeof code === "string" && code in copy.error) {
+      return [new AppError(code as keyof typeof copy.error)];
     }
+  }
 
-    if (
-        typeof e === "object" &&
-        "name" in e &&
-        typeof e.name === "string" &&
-        ResendErrorCodes.includes(e.name as any)
-    ) {
-        return [new AppError(e.name as (typeof ResendErrorCodes)[number])];
-    }
+  if (
+    typeof e === "object" &&
+    "name" in e &&
+    typeof e.name === "string" &&
+    ResendErrorCodes.includes(e.name as any)
+  ) {
+    return [new AppError(e.name as (typeof ResendErrorCodes)[number])];
+  }
 
-    return [new AppError("generic_error")];
+  return [new AppError("generic_error")];
 }

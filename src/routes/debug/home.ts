@@ -15,7 +15,7 @@ app.get("/", async (c) => {
     const result = await tel.task("GET", async (span) => {
         const session = await auth.api.getSession({ headers: c.req.raw.headers });
         if (session) {
-            span.setAttribute("user.id", session.user.id);
+            span.setAttributes({ "user.id": session.user.id });
         }
         return c.html(DebugHomePage({ session, copy }));
     });

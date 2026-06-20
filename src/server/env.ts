@@ -46,8 +46,6 @@ export const dotenv = loadEnv(
     "DB_FILE_NAME",
     "FROM_EMAIL",
     "LOG_FILE_PATH",
-    "OTEL_LOGS_URL",
-    "OTEL_TRACES_URL",
     "PRODUCTION_URL",
     "RESEND_ACCESS_TOKEN",
 );
