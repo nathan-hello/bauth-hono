@@ -77,6 +77,7 @@ export const auth = betterAuth({
         },
     },
     plugins: [
+        
         adminPlugin({
             ac: adminRole.ac,
             roles: adminRole.roles,

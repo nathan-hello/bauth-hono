@@ -166,6 +166,22 @@ const BetterAuthErrors: a<typeof auth.$ERROR_CODES>  = {
     YOU_ARE_NOT_ALLOWED_TO_SET_NON_EXISTENT_VALUE : "You are not allowed to set non existent value.",
     YOU_CANNOT_IMPERSONATE_ADMINS                 : "You cannot impersonate admins.",
     YOU_CANNOT_REMOVE_YOURSELF                    : "You cannot remove yourself.",
+
+    AUTH_CANCELLED                                : "Authentication cancelled.",
+    BODY_MUST_BE_AN_OBJECT                        : "Request body must be an object.",
+    CHANGE_EMAIL_DISABLED                         : "Change email is disabled.",
+    INVALID_USER                                  : "Invalid user.",
+    METHOD_NOT_ALLOWED_DEFER_SESSION_REQUIRED     : "Method not allowed.",
+    PASSWORD_ALREADY_SET                          : "Password already set.",
+    PASSWORD_CANNOT_BE_UPDATED_VIA_UPDATE_USER    : "Password cannot be updated via update user.",
+    PREVIOUSLY_REGISTERED                         : "Previously registered.",
+    REGISTRATION_CANCELLED                        : "Registration cancelled.",
+    RESOLVED_USER_INVALID                         : "Resolved user invalid.",
+    RESOLVE_USER_REQUIRED                         : "Resolve user required.",
+    SESSION_REQUIRED                              : "Session required.",
+    TOKEN_EXPIRED                                 : "Token has expired.",
+    UNKNOWN_ERROR                                 : "An unknown error occurred.",
+    YOU_ARE_NOT_ALLOWED_TO_SET_USERS_EMAIL        : "You are not allowed to set users email.",
 };
 
 const ERROR_COPY: Record<TErrorCodes, string> = {
